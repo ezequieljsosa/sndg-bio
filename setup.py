@@ -1,0 +1,22 @@
+from setuptools import setup
+
+with open("README.md") as handle:
+    readme_md = handle.read().replace("\n","")
+
+__version__ = "Undefined"
+for line in open('SNDG/__init__.py'):
+    if (line.startswith('__version__')):
+        exec(line.strip())
+
+setup(
+    name = 'sndg-bio',
+    packages = ['SNDG'],
+    version = __version__,
+    description = readme_md,
+    author = 'Ezequiel Sosa - SNDG',
+    author_email = 'ezequieljsosa@gmail.com',
+    url = 'https://github.com/ezequieljsosa/sndg-bio',
+    download_url = 'https://github.com/ezequieljsosa/sndg-bio/archive/0.1.tar.gz',
+    keywords = ['bioinformatics', 'sequence', 'example'],
+    classifiers = [ 'Programming Language :: Python','Topic :: Scientific/Engineering :: Bio-Informatics','Intended Audience :: Science/Research',],
+)
