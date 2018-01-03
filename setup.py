@@ -10,7 +10,7 @@ for line in open('SNDG/__init__.py'):
 
 setup(
     name = 'sndg-bio',
-    packages = ['SNDG'],
+    packages = ['SNDG','SNDG.Structure','SNDG.Comparative','SNDG.WebServices'],
     version = __version__,
     description = readme_md,
     author = 'Ezequiel Sosa - SNDG',
