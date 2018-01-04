@@ -1,3 +1,11 @@
+"""
+BEFORE installing  ete3
+sudo apt-get install python-pyqt5 python-pyqt5.qtopengl python-pyqt5.qtsvggit s
+
+
+
+"""
+
 
 def scipy2Newick(node, newick, parentdist, leaf_names):
     """
@@ -20,8 +28,8 @@ def scipy2Newick(node, newick, parentdist, leaf_names):
             newick = "):%.2f%s" % (parentdist - node.dist, newick)
         else:
             newick = ");"
-        newick = getNewick(node.get_left(), newick, node.dist, leaf_names)
-        newick = getNewick(node.get_right(), ",%s" % (newick), node.dist, leaf_names)
+        newick = scipy2Newick(node.get_left(), newick, node.dist, leaf_names)
+        newick = scipy2Newick(node.get_right(), ",%s" % (newick), node.dist, leaf_names)
         newick = "(%s" % (newick)
         return newick
 

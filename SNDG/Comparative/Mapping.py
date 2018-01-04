@@ -100,7 +100,7 @@ def process_ref(ref_fasta, strains, read_template, work_dir):
         out_bwa_se_bam = "bwa_se.bam"
         out_unmapped_se_bam = "unmapped_se.bam"
         if not os.path.exists(out_bwa_bam_idx) and not os.path.exists(out_bwa_se_bam):
-            execute('bwa mem -R "@RG\tID:illumina\tSM:{ncepa}\tLB:{ncepa}"  {ref_fasta} {s1}   >  ' + out_bwa_se,
+            execute('bwa mem -R "@RG\\tID:illumina\\tSM:{ncepa}\\tLB:{ncepa}"  {ref_fasta} {s1}   >  ' + out_bwa_se,
                     ref_fasta=ref_fasta, ncepa=cepa,
                     s1=read_template % (cepa, "S"))
             execute("samtools view -F 4 -Sbh %s > %s" % (out_bwa_se, out_bwa_se_bam))
