@@ -27,7 +27,6 @@ def init_ref(path, record):
     finally:
         os.chdir(cwd)
 
-
 def realign(bam_file, ref_fasta):
     out_bwa_bam = "sorted_" + bam_file
     execute("samtools sort -o %s %s" % (out_bwa_bam, bam_file))
@@ -133,3 +132,19 @@ def process_ref(ref_fasta, strains, read_template, work_dir):
 
         if not os.path.exists("flagstat.txt"):
             execute("samtools flagstat %s > %s" % (out_bwa_bam, "flagstat.txt"))
+
+def variant_call(strain,  in_bam, ref_fasta, snpeffdb,work_dir="./"):
+    if not os.path.exists(work_dir + strain):
+        os.makedirs(work_dir + strain)
+    os.chdir(work_dir + strain)
+    variants_file = "variants.vcf"
+    variants_ann_file = "variants.ann.vcf"
+
+
+
+    if not os.path.exists(variants_file):
+        execute("gatk -T HaplotypeCaller -ploidy 1 -R {ref} -I {aln} --num_cpu_threads_per_data_thread 4 --genotyping_mode DISCOVERY -stand_call_conf 30 -o {vcf}",
+                ref=ref_fasta, aln=in_bam, vcf=variants_file)
+    if not os.path.exists(variants_ann_file):
+        execute("snpEff {database} {input} > {output}",
+                database=snpeffdb, input=variants_file, output=variants_ann_file)

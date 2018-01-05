@@ -7,7 +7,7 @@ ENV https_proxy http://proxy.fcen.uba.ar:8080
 RUN apt-get update && apt-get install -y \
    build-essential libpthread-stubs0-dev \
    libxml-simple-perl libperl4-corelibs-perl \
-   liblog-log4perl-perl \
+   liblog-log4perl-perl unzip wget gzip \
    python-biopython \
    ncbi-blast+ hmmer bioperl tigr-glimmer blast2
 
@@ -25,4 +25,4 @@ ADD ./p_procariota /app/p_procariota
 ENV PERL5LIB=/app/ber/lib/:/app/tRNAscan-SE-1.3.1/tRNAscanSE/:/app/tRNAscan-SE-1.3.1/bin
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/app/ber/:/app/ber/bin/:/app/ber/praze:/app/tRNAscan-SE-1.3.1/tRNAscanSE/:/app/hmmer-2.3.1/src/:/app/tRNAscan-SE-1.3.1/bin:/app/rnammer/:/app/ELPH/sources:/app/prinseq-lite-0.20.4/:/app/signalp-4.1/:/app/tmhmm-2.0c/bin:/app/LipoP1.0a/
 
-CMD ["cat","README"]
+CMD ["cat","README.md"]
