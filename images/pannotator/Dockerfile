@@ -21,8 +21,9 @@ RUN cd /app/hmmer-2.3.1 && ./configure && make && \
     cd /app/ELPH/sources && make
 
 ADD ./p_procariota /app/p_procariota
+ADD ./README.md /app/README.md
 
 ENV PERL5LIB=/app/ber/lib/:/app/tRNAscan-SE-1.3.1/tRNAscanSE/:/app/tRNAscan-SE-1.3.1/bin
-ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/app/ber/:/app/ber/bin/:/app/ber/praze:/app/tRNAscan-SE-1.3.1/tRNAscanSE/:/app/hmmer-2.3.1/src/:/app/tRNAscan-SE-1.3.1/bin:/app/rnammer/:/app/ELPH/sources:/app/prinseq-lite-0.20.4/:/app/signalp-4.1/:/app/tmhmm-2.0c/bin:/app/LipoP1.0a/
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/app/ber/:/app/ber/bin/:/app/ber/praze:/app/tRNAscan-SE-1.3.1/tRNAscanSE/:/app/hmmer-2.3.1/src/:/app/tRNAscan-SE-1.3.1/bin:/app/rnammer/:/app/ELPH/sources:/app/prinseq-lite-0.20.4/:/app/signalp-4.1/:/app/tmhmm-2.0c/bin:/app/LipoP1.0a/:/app/p_procariota/
 
-CMD ["cat","README.md"]
+CMD ["cat","/app/README.md"]

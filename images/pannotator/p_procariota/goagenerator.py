@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import os
 import sys
-unip_goa_path = sys.argv[1] if len(sys.argv) > 1 else  "gp_association.goa_uniprot"
+#unip_goa_path = sys.argv[1] if len(sys.argv) > 1 else  "gp_association.goa_uniprot"
 
-print unip_goa_path
-sys.exit()
+unip_goa_path = "goa_uniprot_all.gpa"
+
 
 goa = open(unip_goa_path)
 goaheader = open("gp_association.goa_uniprot.000", "w")
@@ -38,4 +38,4 @@ for i in range(65,91):
 				print "Archivo mock gp_association.goa_uniprot.%s%s%s" % (chr(i), str(j), chr(k) )
 				new_gp.close()
 
-
+sys.exit(0)

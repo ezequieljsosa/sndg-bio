@@ -53,10 +53,12 @@ if not os.path.exists("/data/pfamtigrfam/pfam2go.txt"):
     download_file("http://geneontology.org/external2go/pfam2go", "/data/pfamtigrfam/pfam2go.txt")
     download_file("ftp://ftp.jcvi.org/pub/data/TIGRFAMs/TIGRFAMS_GO_LINK", "/data/pfamtigrfam/TIGRFAMS_GO_LINK")
 
-if old_or_inexistent("/data/pfamtigrfam/pfamatigrfam.hmm", 150):
+if old_or_inexistent("/data/pfamtigrfam/Pfam-A.hmm", 150):
     download_file("ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz",
-                  "/data/pfamtigrfam/Pfam-A.hmm.gz")
+              "/data/pfamtigrfam/Pfam-A.hmm.gz")
     execute("gunzip /data/pfamtigrfam/Pfam-A.hmm.gz")
+
+if old_or_inexistent("/data/pfamtigrfam/pfamatigrfam.hmm", 150):
     execute_from("cat tirgfam.hmm Pfam-A.hmm > pfamatigrfam.hmm", "/data/pfamtigrfam/")
     execute("hmmpress /data/pfamtigrfam/pfamatigrfam.hmm")
     shutil.copy("/app/p_procariota/shorthmm_generator.sh", "/data/pfamtigrfam/")
@@ -68,9 +70,9 @@ if old_or_inexistent("/data/uniprot/goa/"):
                   "/data/uniprot/goa/goa_uniprot_all.gpa.gz", ovewrite=True)
     shutil.copy("/app/p_procariota/goagenerator.py", "/data/uniprot/goa/")
     execute("gunzip /data/uniprot/goa/goa_uniprot_all.gpa.gz")
-    execute_from("./goagenerator.sh", "/data/uniprot/goa/")
+    execute_from("./goagenerator.py", "/data/uniprot/goa/")
 
-if old_or_inexistent("/data/uniprot/gsm"):
+if old_or_inexistent("/data/uniprot/gsm/gp_association.goa_uniprot.000",150):
     mkdir("/data/uniprot/gsm")
 
     download_file(
@@ -92,4 +94,6 @@ if old_or_inexistent("/data/uniprot/uniref/uniref90.fasta"):
     download_file("ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz",
                   "/data/uniprot/uniref90.fasta.gz", ovewrite=True)
     execute("gunzip /data/uniprot/uniref90.fasta.gz")
+
+if old_or_inexistent("/data/uniprot/uniref/uniref90.fasta.pal"):
     execute("makeblastdb -dbtype prot -in /data/uniprot/uniref90.fasta")

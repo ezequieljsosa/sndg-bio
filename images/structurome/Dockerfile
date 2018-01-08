@@ -18,13 +18,14 @@ RUN cd /app/ost && cmake . -DOPTIMIZE=ON -DENABLE_INFO=OFF -DPYTHON_LIBRARIES=/u
     && make && mv stage /opt/ost && cd /app/qmean && cmake . -DOST_ROOT=/opt/ost  -DOPTIMIZE=1 -DPYTHON_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython2.7.so \
     && make && mv stage /opt/qmean
 
-ADD somecommand.sh /app
-RUN chmod +x /app/somecommand.sh && ln -s /app/dssp /usr/local/bin/dssp && rm -r /app/ost /app/qmean
+ADD run.sh /app
+ADD createdb.py /app
+RUN chmod +x /app/run.sh && ln -s /app/dssp /usr/local/bin/dssp && rm -r /app/ost /app/qmean
 
 # Define environment variable
 ENV PYTHONPATH=/app/structurome/:/opt/qmean/lib64/qmean:/opt/ost/lib64/python2.7/site-packages/:/opt/ost/
 ENV LD_LIBRARY_PATH=/opt/ost/lib64/:/opt/qmean/lib64/
 
 # Run app.py when the container launches
-ENTRYPOINT ["/app/somecommand.sh"]
-CMD ["validkey"]
+ENTRYPOINT ["/app/run.sh"]
+CMD ["xxx"]
