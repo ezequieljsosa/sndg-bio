@@ -1,15 +1,5 @@
 #!/usr/bin/python
 
-import re
-from random import randint
-from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
-from commands import getoutput
-
-
-
 map = open("./uniprotheaders")
 new = open("./genesymbolmap", "w")
 

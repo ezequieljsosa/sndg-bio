@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import time
 
@@ -6,7 +8,6 @@ from SNDG.WebServices import download_file
 from SNDG.Structure.PDBs import PDBs
 
 init_log("/tmp/createdb.log")
-
 
 def old_or_inexistent(filepath, period=30):
     return not os.path.exists(filepath) or (((time.time() - os.path.getatime(filepath)) / 60 / 60 / 24) > period)

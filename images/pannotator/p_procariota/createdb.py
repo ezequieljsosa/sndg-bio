@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os
 import time
@@ -72,7 +72,7 @@ if old_or_inexistent("/data/uniprot/goa/"):
     execute("gunzip /data/uniprot/goa/goa_uniprot_all.gpa.gz")
     execute_from("./goagenerator.py", "/data/uniprot/goa/")
 
-if old_or_inexistent("/data/uniprot/gsm/gp_association.goa_uniprot.000",150):
+if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
     mkdir("/data/uniprot/gsm")
 
     download_file(
@@ -84,10 +84,9 @@ if old_or_inexistent("/data/uniprot/gsm/gp_association.goa_uniprot.000",150):
         "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
         "/data/uniprot/gsm/uniprot_trembl.fasta.gz", ovewrite=True)
     execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz")
-
-    shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
-    shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
-    execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
+shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
+shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
+execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
 
 if old_or_inexistent("/data/uniprot/uniref/uniref90.fasta"):
     mkdir("/data/uniprot/uniref")

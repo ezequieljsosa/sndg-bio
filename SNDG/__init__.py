@@ -5,7 +5,7 @@ from subprocess import CalledProcessError
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.1'
+__version__ = '0.1.5'
 
 _log = logging.getLogger(__name__)
 

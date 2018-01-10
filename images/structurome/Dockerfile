@@ -22,6 +22,8 @@ ADD run.sh /app
 ADD createdb.py /app
 RUN chmod +x /app/run.sh && ln -s /app/dssp /usr/local/bin/dssp && rm -r /app/ost /app/qmean
 
+RUN pip install sndg-bio
+
 # Define environment variable
 ENV PYTHONPATH=/app/structurome/:/opt/qmean/lib64/qmean:/opt/ost/lib64/python2.7/site-packages/:/opt/ost/
 ENV LD_LIBRARY_PATH=/opt/ost/lib64/:/opt/qmean/lib64/

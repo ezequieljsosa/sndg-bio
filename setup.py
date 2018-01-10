@@ -12,6 +12,7 @@ setup(
     name = 'sndg-bio',
     packages = ['SNDG','SNDG.Structure','SNDG.Comparative','SNDG.WebServices'],
     version = __version__,
+    scripts = ["scripts/structurome.py"],
     description = readme_md,
     author = 'Ezequiel Sosa - SNDG',
     author_email = 'ezequieljsosa@gmail.com',
