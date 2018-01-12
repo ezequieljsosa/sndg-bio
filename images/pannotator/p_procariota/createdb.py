@@ -84,9 +84,9 @@ if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
         "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
         "/data/uniprot/gsm/uniprot_trembl.fasta.gz", ovewrite=True)
     execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz")
-shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
-shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
-execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
+    shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
+    shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
+    execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
 
 if old_or_inexistent("/data/uniprot/uniref/uniref90.fasta"):
     mkdir("/data/uniprot/uniref")
