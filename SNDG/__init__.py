@@ -27,15 +27,15 @@ def init_log(log_file_path=None):
 
 
 def execute(cmd_unformated, **kargs):
-
     cmd = cmd_unformated.format(**kargs)
     _log.debug(cmd)
     try:
-        sp.check_output(cmd, shell=True,stderr=sp.STDOUT)
-        _log.debug(cmd  + " -> OK")
+        sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
+        _log.debug(cmd + " -> OK")
     except CalledProcessError as ex:
         _log.warn(ex.message)
         raise
+
 
 def execute_from(cmd_unformated, workdir, **kargs):
     cwd = os.getcwd()
@@ -54,3 +54,13 @@ def mkdir(dirpath):
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
+
+
+from itertools import izip_longest
+
+
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return izip_longest(*args, fillvalue=fillvalue)
