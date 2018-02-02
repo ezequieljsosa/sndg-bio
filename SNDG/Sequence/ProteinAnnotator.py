@@ -11,6 +11,15 @@ import json
 
 from SNDG import grouper
 
+def ResultIter(cursor, arraysize=1000):
+    'An iterator that uses fetchmany to keep memory usage down'
+    while True:
+        results = cursor.fetchmany(arraysize)
+        if not results:
+            break
+        for result in results:
+            yield result
+
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
@@ -47,7 +56,7 @@ class Uniprot(PABase):
 class Mapping(PABase):
     uniprot = ForeignKeyField(Uniprot, related_name='mappings',
                               db_column="uniprot_fk")
-    db = CharField()
+    db = CharField(index = True)
     value = CharField()
 
     class Meta:
@@ -100,7 +109,7 @@ class ProteinAnnotator:
 
     def populate_sql(self, unip_id_mapping, goa_id_mapping):
         import subprocess as sp
-
+        """
         total = int(sp.check_output("wc -l " + unip_id_mapping, shell=True).split()[0])
         with open(unip_id_mapping) as h:
             all_unips = {}
@@ -133,27 +142,40 @@ class ProteinAnnotator:
                 with PABase.sqldb.atomic():
                     op = Mapping.insert_many(data, fields=fields)
                     op.execute()
+        """
+        #total = int(sp.check_output("wc -l " + goa_id_mapping, shell=True).split()[0])
 
-        total = int(sp.check_output("wc -l " + goa_id_mapping, shell=True).split()[0])
+
+        total = 460488943
+
         with open(goa_id_mapping) as h:
-            for lines in grouper(tqdm(h, total=total), 10000):
-                data_m = []
-                for line in lines:
-                    if line:
-                        if line.startswith("!") or line.startswith("gpa-version"):
-                            continue
-                        db, db_object_id, qualifiers, go_id, db_ref, eco_ev, _with, interacting_taxon, date, \
-                        assigned_by = line.strip().split("\t")[:10]
-                        if db != "UniProtKB":
-                            continue
-                        data_m.append((db_object_id, "GO", go_id))
-                        if _with.startswith("EC:"):
-                            data_m.append((db_object_id, "EC", _with))
-                fields = [Mapping.uniprot, Mapping.db, Mapping.value]
-                with PABase.sqldb.atomic():
-                    op = Mapping.insert_many(data_m, fields=fields)
-                    op.execute()
+            with tqdm(h, total=total) as pbar:
+                for lines in grouper(pbar, 10000):
+                    data_m = []
+                    for line in lines:
+                        if line:
+                            if line.startswith("!") or line.startswith("gpa-version"):
+                                continue
+                            db, db_object_id, qualifiers, go_id, db_ref, eco_ev, _with, interacting_taxon, date, \
+                            assigned_by = line.strip().split("\t")[:10]
+                            if db != "UniProtKB":
+                                continue
 
+                            data_m.append((db_object_id, "GO", go_id,))
+                            if _with.startswith("EC:"):
+                                data_m.append((db_object_id, "EC", _with,))
+                    fields = [Mapping.uniprot, Mapping.db, Mapping.value]
+                    if data_m:
+                        try:
+                            with PABase.sqldb.atomic():
+                                op = Mapping.insert_many(data_m, fields=fields)
+                                op.execute()
+                        except IntegrityError:
+                            for data in tqdm(data_m):
+                                try:
+                                    Mapping.create(**{x:data[i] for i,x in enumerate(["uniprot", "db", "value"])})
+                                except IntegrityError:
+                                    pass
 
 if __name__ == '__main__':
     pa = ProteinAnnotator()

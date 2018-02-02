@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 
+
 from modeller import alignment, model, environ
 from modeller.automodel import assess, refine
 from modeller.automodel.automodel import automodel
@@ -222,6 +223,9 @@ class Modeller(object):
     def _create_directory_structure(self, model_id, query_id):
         if not os.path.exists(self.model_directory(model_id, query_id)):
             os.makedirs(self.model_directory(model_id, query_id))
+
+
+
 
 
 if __name__ == '__main__':

@@ -7,7 +7,6 @@ import json
 from tempfile import mkdtemp
 import Bio.SearchIO as bpsio
 
-
 from SNDG import execute, Struct
 from SNDG.Structure.Modeller import Modeller
 from SNDG.Structure.QMean import QMean
@@ -36,7 +35,7 @@ MODELS_TO_GENERATE = 1
 
 
 def create_psi_model(seq_id, seq_fasta, profile_database, pssm_build_iterations, pdb_seqres, work_dir, cpus,
-                     refinement=REFINEMENT, models_to_generate=MODELS_TO_GENERATE, assesments=ASSESMENTS, entries={},
+                     refinement=REFINEMENT, models_to_generate=MODELS_TO_GENERATE, assessments=ASSESMENTS, entries={},
                      pdb_divided="/data/databases/pdb/divided/", tmp_dir=None):
     if not tmp_dir:
         tmp_dir = mkdtemp("structurome_")
@@ -47,26 +46,35 @@ def create_psi_model(seq_id, seq_fasta, profile_database, pssm_build_iterations,
 
     profile_search(seq_id, pdb_seqres, pssm_file, search_result, cpus)
     search_result = bpsio.parse(search_result, "blast-xml")
-    alns = []
+    hsps = []
     for query in search_result:
         for hit in list(query):
             for hsp in hit:
                 if hsp.evalue < 10 ** -5:
-                    aln = Struct(
-                        aln_query=Struct(name=seq_id, seq=str(hsp.aln[0].seq), start=hsp.query_start,
-                                         end=hsp.query_end),
-                        aln_hit=Struct(name=hsp.hit.id, seq=str(hsp.aln[1].seq), start=hsp.hit_start, end=hsp.hit_end))
-                    alns.append(aln)
+                    hsps.append(hsp)
+    model_hsps(seq_id,work_dir, hsps, refinement, models_to_generate, assessments, entries, pdb_divided, tmp_dir)
+
+
+def model_hsps(seq_id,work_dir, hsps, refinement=REFINEMENT, models_to_generate=MODELS_TO_GENERATE, assessments=ASSESMENTS,
+               entries={}, pdb_divided="/data/databases/pdb/divided/", tmp_dir=None):
+    alns = []
+    for hsp in hsps:
+        aln = Struct(
+            aln_query=Struct(name=seq_id, seq=str(hsp.aln[0].seq), start=hsp.query_start,
+                             end=hsp.query_end),
+            aln_hit=Struct(name=hsp.hit.id, seq=str(hsp.aln[1].seq), start=hsp.hit_start, end=hsp.hit_end))
+        alns.append(aln)
 
     modeler = Modeller(work_dir, tmp_dir)
 
     modeler._refinement = refinement
     modeler.model_count = models_to_generate
-    modeler._assess_methods = assesments
+    modeler._assess_methods = assessments
     modeler.parallel_jobs = 1
-    pdb_fn = lambda x: x.aln_hit.name.split("_")[0]
-    alns = sorted(alns, key=lambda x: entries[pdb_fn(x)] if pdb_fn(x) in entries else 0)
-    for aligment in alns[0:5]:
+    def pdb_fn(x):
+        return x.aln_hit.name.split("_")[0]
+    alns = sorted(alns, key=lambda x: entries[pdb_fn(x)] if pdb_fn(x) in entries else 20)
+    for aligment in alns[0:3]:
         # pdb,aligment = pdb_alignment
         pdb, chain, _, _ = aligment.aln_hit.name.split("_")
         if not os.path.exists(modeler.pdb_path(seq_id + "_" + aligment.aln_hit.name, seq_id)):
@@ -82,3 +90,4 @@ def create_psi_model(seq_id, seq_fasta, profile_database, pssm_build_iterations,
                 assessment = QMean.assesment(model_path)
                 with open(model_path + ".json", "w") as h:
                     json.dump(assessment, h)
+

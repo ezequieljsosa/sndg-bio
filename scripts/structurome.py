@@ -10,6 +10,8 @@ import warnings
 from Bio import BiopythonWarning
 warnings.simplefilter('ignore', BiopythonWarning)
 
+
+
 import os
 import argparse
 import multiprocessing
@@ -48,7 +50,7 @@ if __name__ == '__main__':
 
     if not args.log_path:
         args.log_path = args.fasta + ".log"
-    init_log(args.log_path)
+    init_log(args.log_path,logging.INFO)
     _log = logging.getLogger("model_fasta")
 
 
@@ -66,6 +68,51 @@ if __name__ == '__main__':
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+
+
+
+#----------------------
+
+
+
+    from collections import defaultdict
+    from tqdm import tqdm
+    import Bio.SearchIO as bpsio
+    from SNDG.Structure.PsiProfile import model_hsps
+    con_pdb = [ ]
+    good_model = defaultdict(lambda : [])
+    def identity(hsp):
+        return 1.0 * hsp.ident_num / hsp.aln_span
+    for query in bpsio.parse("/data/pext/good_hits.xml","blast-xml"):
+        for hit in query:
+            if list(hit):
+                hsp = list(hit)[0]
+                if identity(hsp) >= 0.9:
+                    con_pdb.append( hsp.query.id)
+                elif identity >= 0.6:
+                    good_model[hsp.query.id].append(hsp)
+
+
+    tuplas = good_model.items()
+
+    with tqdm(tuplas) as pbar:
+        for seq,hsps in pbar:
+            #pbar.set_description(seq)
+            #break
+            try:
+                model_hsps(seq,"/data/pext_good/",hsps,entries=entries,tmp_dir="/tmp/chain_PDBs")
+            except Exception as ex:
+                _log.exception(ex)
+
+
+    import sys
+    sys.exit()
+#----------------------
+
+
+
+
+
     seqs = bpio.parse(args.fasta, "fasta")
     for i, seq in enumerate(seqs):
 

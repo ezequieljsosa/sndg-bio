@@ -10,7 +10,7 @@ __version__ = '0.1.5'
 _log = logging.getLogger(__name__)
 
 
-def init_log(log_file_path=None):
+def init_log(log_file_path=None,rootloglevel=logging.DEBUG):
     default_formatter = logging.Formatter(log_format)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(default_formatter)
@@ -23,7 +23,7 @@ def init_log(log_file_path=None):
         root.addHandler(fh)
 
     root.addHandler(console_handler)
-    root.setLevel(logging.DEBUG)
+    root.setLevel(rootloglevel)
 
 
 def execute(cmd_unformated, **kargs):

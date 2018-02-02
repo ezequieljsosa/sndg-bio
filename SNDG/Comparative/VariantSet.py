@@ -90,7 +90,7 @@ class VariantSet():
         """
         return df[["chrom","pos","gene","type"] + samples ]
 
-    if __name__ == '__main__':
+if __name__ == '__main__':
         import glob
         from SNDG import init_log
 
