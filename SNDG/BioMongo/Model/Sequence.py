@@ -1,13 +1,18 @@
+import copy
+
 from mongoengine import Document, EmbeddedDocument, DynamicEmbeddedDocument
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, ObjectIdField, IntField, \
-    DynamicField
+    DynamicField, ReferenceField, BinaryField
 
-from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
-
-from SNDG.BioMongo.Model.Feature import Feature
+from Bio.SeqRecord import SeqRecord
 from SNDG.BioMongo.Model.DruggabilitySearch import ProteinDruggabilitySearch
+from SNDG.BioMongo.Model.Feature import Feature
+from SNDG.BioMongo.Model.SeqCollection import SeqCollection
 
+
+class NotFoundException(Exception):
+    pass
 
 
 class Size(EmbeddedDocument):
@@ -109,20 +114,20 @@ class Sequence(Document):
     def has_property(self, prop):
         return bool([x for x in self.properties if x.property == prop.property and x._type == prop._type])
 
+
 class Contig(Sequence):
     meta = {'allow_inheritance': True,
             'index_cls': False,
-            'collection':"contig_collection",
+            'collection': "contig_collection",
             'indexes': [
                 'organism',
-                {"fields":["organism","features.locus_tag"]},
-                {"fields":["features.identifier"]}
+                {"fields": ["organism", "features.locus_tag"]},
+                {"fields": ["features.identifier"]}
             ]}
     organism = StringField()
     organelle = StringField(required=False)
-    seq_collection_id =  ReferenceField(SeqCollection)
+    seq_collection_id = ReferenceField(SeqCollection)
     bigseq = BinaryField()
-
 
     def __init__(self, **kwargs):
         '''
@@ -131,20 +136,22 @@ class Contig(Sequence):
         self._seq_init()
         self.size.unit = "bp"
 
-    def gene(self,name):
-        #gene_filter = lambda  x : all([ x[key] == value for key,value in params.items() ])
+    def gene(self, name):
+        # gene_filter = lambda  x : all([ x[key] == value for key,value in params.items() ])
         for f in self.features:
-            if f.has_alias(name)   :
+            if f.has_alias(name):
                 return f
-        raise NotFoundException("Gene not found: " + name )
+        raise NotFoundException("Gene not found: " + name)
 
-    def seq_from_feature(self, whole_gene_feature, cds_feature=None,regulatory_feature=None):
-        if not cds_feature:
-            cds_feature = whole_gene_feature
-        cds_feature = copy.copy(cds_feature)
-        cds_feature.location = cds_feature.location.relative_to(whole_gene_feature.location)
-        protein_coding_gene =  ProteinCodingGene(id=self._feature_id(whole_gene_feature),
-                                                 name=self._feature_name(whole_gene_feature), seq=whole_gene_feature.seq(self))
-        protein_coding_gene.add_cds(whole_gene_feature.identifier,
-                                    cds_feature.location.start, cds_feature.location.end, cds_feature.location.strand, "")
-        return protein_coding_gene
+    # def seq_from_feature(self, whole_gene_feature, cds_feature=None, regulatory_feature=None):
+    #     if not cds_feature:
+    #         cds_feature = whole_gene_feature
+    #     cds_feature = copy.copy(cds_feature)
+    #     cds_feature.location = cds_feature.location.relative_to(whole_gene_feature.location)
+    #     protein_coding_gene = ProteinCodingGene(id=self._feature_id(whole_gene_feature),
+    #                                             name=self._feature_name(whole_gene_feature),
+    #                                             seq=whole_gene_feature.seq(self))
+    #     protein_coding_gene.add_cds(whole_gene_feature.identifier,
+    #                                 cds_feature.location.start, cds_feature.location.end, cds_feature.location.strand,
+    #                                 "")
+    #     return protein_coding_gene

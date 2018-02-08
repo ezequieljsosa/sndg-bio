@@ -20,7 +20,6 @@ from SNDG.BioMongo.Model.SeqCollection import SeqCollection, DataUpload
 from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParam
 from SNDG.BioMongo.Model.Sequence import BioProperty
 from SNDG.BioMongo.Process.BioCyc2Mongo import BioCyc
-from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Process.COG2Mongo import COG2Mongo
 from SNDG.BioMongo.Process.EC2Mongo import EC2Mongo
 from SNDG.BioMongo.Process.GO2Mongo import GO2Mongo
@@ -48,8 +47,9 @@ class BioMongoDB(object):
 
         self.db = pymongo.MongoClient(host)[dbname]
         self.fs_resolver = FilesystemResolver(basefs)
-        register_connection("pdb", "pdb")
         connect(dbname)
+        register_connection("pdb", "pdb")
+
 
         self.paths = {
             "gene": []
@@ -273,8 +273,10 @@ class BioMongoDB(object):
 
     def load_metadata(self, organism_name, datafile, uploader=demo):
         import pandas as pd
+        from tqdm import tqdm
 
-        seqCollection = SeqCollection.objects(name=organism_name).get()
+        seqCollection = list(SeqCollection.objects(name=organism_name))
+        seqCollection = seqCollection[0]
         errors = []
 
         upload = DataUpload(uploader=uploader, errors=errors);
@@ -299,7 +301,7 @@ class BioMongoDB(object):
 
         assert BioMongoDB.GENE_FIELD_IMPORT in df.columns
 
-        for linenum, fields in df.iterrows():
+        for linenum, fields in tqdm(df.iterrows()):
 
             gene = fields[BioMongoDB.GENE_FIELD_IMPORT]
 
@@ -348,8 +350,14 @@ regx = re.compile("^ec:", re.IGNORECASE)
 
 if __name__ == '__main__':
     init_log()
-    pdb = pymongo.MongoClient().pdb
-    mdb = BioMongoDB("saureus")
+    #pdb = pymongo.MongoClient().pdb
+    import SNDG.BioMongo.Model.Genome
+    mdb = BioMongoDB("tdr")
+
+    mdb.load_metadata("Kp13","/home/eze/workspace/kp13/metadata.tbl")
+
+
+
     # tax_db.initialize(MySQLDatabase('biosql', user='root', passwd="mito"))
     #     bacs = []
     #     ts = []
