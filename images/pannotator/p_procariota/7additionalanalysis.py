@@ -9,7 +9,6 @@ from commands import getoutput
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Motif.Parsers import MAST
 from random import randint
 from aux_libs import cpu_count
 
@@ -25,7 +24,7 @@ Opciones:\n\
 	-d	Base de datos para disopred.  Default: /data/uniprot/uniref90/uniref90.fasta\n\
 	-p	Base de datos para Ps_scan. Default: /data/prosite/prosite.dat\n\
 	-g	Tipo de bacteria (gram+, gram-). Default: gram+ 	\n\
-	-q 	Analisis rapido (sin analisis estructural). T o F. Default: F \n\
+	-q 	Analisis rapido (sin analisis estructural). T o F. Default: T \n\
 	-h 	Imprime este mensaje de ayuda\n"
 	
 def disorder(query, database):
@@ -124,7 +123,7 @@ params["m"] = "/data/regtransbase/regtransbaselong.mast" 			#Base de datos para 
 params["p"] = "/data/prosite/prosite.dat" 						#Base de datos para Ps_scan
 params["s"] = "/data/uniprot/uniref50/uniref50filt.fasta"			#Base de datos para psipred
 params["d"] = "/data/uniprot/uniref90/uniref90.fasta"				#Base de datos para disopred
-params["q"] = "F"		               						#Analisis rapido (sin estructural)
+params["q"] = "T"		               						#Analisis rapido (sin estructural)
 params["g"] = "gram+" 		#Tipo de bacteria
 
 #Chequeo de parametro

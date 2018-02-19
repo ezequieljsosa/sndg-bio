@@ -21,7 +21,7 @@ Opciones:\n\
         -t      mapeo tigr-go. Default /data/pfamtigrfam/TIGRFAMS_GO_LINK	\n\
         -g      directorio de nombres de gen de uniprot. Default /data/uniprot/gsm/	\n\
         -m      directorio de mapeos de go-uniprot. Default /data/uniprot/goa	\n\
-	-j      directorio de informacion de tigrfam. Default /annotator/pfamtigrfam/INFO \n\
+	-j      directorio de informacion de tigrfam. Default /data/pfamtigrfam/INFO \n\
 	-v      mapeo pfam-go. Default /data/pfamtigrfam/pfam2go.txt \n\
 	"
 
@@ -461,7 +461,7 @@ for seq_record in SeqIO.parse(f_contigs, "fasta"):
 				if gene:
 					symbol_source = tigr_class[ORF.id][4]
 				EC = tigr_class[ORF.id][2]
-				GOlines = getoutput("egrep \"%s\" '%s'  " % (tigr_class[ORF.id][4]).split("\n"),params["t"])
+				GOlines = getoutput("egrep \"%s\" '%s'  " % (tigr_class[ORF.id][4], params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
@@ -554,49 +554,49 @@ for seq_record in SeqIO.parse(f_contigs, "fasta"):
 		if  product == ""  and tigr_class.has_key(ORF.id):
 			EC = tigr_class[ ORF.id][2]
 			if tigr_class[ ORF.id ][3] == 3:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["t"])
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
 				product = tigr_class[ ORF.id][0].split(": ")[1] + " family protein"  # +"    TIGRFAM"
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 4:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["t"])
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
 				product = tigr_class[ ORF.id][0].split(": ")[1]  +"    TIGRFAM"
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 5:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["t"])
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
 				product = tigr_class[ ORF.id][0].split(": ")[1] + " family protein"      #+"    TIGRFAM"
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 6:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["t"])
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
 				product = tigr_class[ ORF.id][0].split(": ")[1] + " domain protein"     #+"    TIGRFAM"
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 7:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["t"])
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
 				product = tigr_class[ ORF.id][0].split(": ")[1] + " domain protein"       #+"    TIGRFAM"
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 8:
-				GOlines =  getoutput("egrep \" %s \" '%s'  " % (tigr_class[ ORF.id][4]).split("\n"),params["v"])
+				GOlines =  getoutput("egrep \" %s \" '%s'  " % (tigr_class[ ORF.id][4], params["v"]) ).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split()[-1] + ","
 				product = tigr_class[ORF.id][0] + " family protein"      #+"    PFAM" 	
 				product_source = tigr_class[ ORF.id][4]
 			elif tigr_class[ ORF.id ][3] == 11:
-				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"])    ).split("\n")
+				GOlines =  getoutput("egrep \"%s\" '%s'  " % (tigr_class[ ORF.id][4],params["t"]) ).split("\n")
 				for line in GOlines:
 					if line:
 						GO = GO + line.split("\t")[1] + ","
