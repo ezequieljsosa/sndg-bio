@@ -10,10 +10,11 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-from SNDG.BioMongo.Model.collections import SeqColDruggabilityParam
-from SNDG.BioMongo.Model.collections import SeqColDruggabilityParamTypes
-from SNDG.BioMongo.Model.sequence import Protein, ProteinDruggabilitySearch, StructureDruggabilitySearch, \
+from SNDG.BioMongo.Model.SeqCollection import SeqColDruggabilityParam
+from SNDG.BioMongo.Model.DruggabilitySearch import ProteinDruggabilitySearch, StructureDruggabilitySearch, \
     PocketDruggabilitySearch
+from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParamTypes
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.Structure.CompoundTypes import compound_type, main_compound_types

@@ -3,23 +3,22 @@ Created on May 22, 2017
 
 @author: eze
 '''
-from SNDG.BioMongo.Model.collections import Genome, TaxEDoc
 
-# from SNDGComp.Taxon import TaxName
-from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
-Contig
-from SNDG.BioMongo.Model.Sequence import  BioProperty, Size, Feature, Location, \
-
-
-from SNDG.BioMongo.Model.Feature import    Feature, Location
-from SNDG.BioMongo.Model.Protein import    Protein
-
-
-from bson.objectid import ObjectId
-from SNDGInt.NCBI import NCBI
-from Bia.Model.aligment import SimpleAlignment, AlnLine
 import zlib
+from bson.objectid import ObjectId
 from Bio.Seq import Seq
+from SNDG.BioMongo.Model.SeqCollection import TaxEDoc
+from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+from SNDG.BioMongo.Model.Sequence import BioProperty, Size, Contig
+from SNDG.BioMongo.Model.Feature import Feature, Location
+from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Model.Genome import Genome
+
+# from SNDGInt.NCBI import NCBI
+from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
+
+TaxName = ""
+NCBI = ""
 
 
 class BioDocFactory(object):
@@ -48,7 +47,7 @@ class BioDocFactory(object):
     @staticmethod
     def create_features_from_contig(seqrecord, source, type_map={x: x for x in NCBI.ftypes},
                                     extract_annotation_feature=lambda feature: feature):
-        ftypes = {x: 1 for x in type_map}
+        ftypes = {xx: 1 for xx in type_map}
         features = []
         gene_ids = {}
         for feature in seqrecord.features:
@@ -109,9 +108,9 @@ class BioDocFactory(object):
             bigseq=seq,
             features=features,
             properties=[BioProperty(_type="annotation",
-                                    property=x, value=seqrecord.annotations[x][0])
-                        for x in ["topology", "molecule_type"]
-                        if x in seqrecord.annotations],
+                                    property=xx, value=seqrecord.annotations[xx][0])
+                        for xx in ["topology", "molecule_type"]
+                        if xx in seqrecord.annotations],
 
             size=(Size(unit="bp", len=len(str(seqrecord.seq)))),
             auth=BioMongoDB.demo_id

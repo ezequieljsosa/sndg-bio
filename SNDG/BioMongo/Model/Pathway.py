@@ -3,9 +3,16 @@ Created on Sep 24, 2015
 
 @author: eze
 '''
+from enum import Enum
 from mongoengine.document import EmbeddedDocument
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, \
     IntField,DictField
+
+
+class ChokepointType(Enum):
+    consuming = "consuming"
+    production = "production"
+    double = "double"
 
 
 class ChemSpecie(EmbeddedDocument):

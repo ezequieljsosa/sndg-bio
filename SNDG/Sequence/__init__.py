@@ -51,6 +51,13 @@ def smart_parse(path):
     if path.endswith(".fna"):
         return bpio.parse(path, "fasta")
 
+    if path.endswith(".gb"):
+        return bpio.parse(path, "gb")
+    if path.endswith(".gbk"):
+        return bpio.parse(path, "gb")
+    if path.endswith(".genebank"):
+        return bpio.parse(path, "gb")
+
     if path.endswith(".fq"):
         return bpio.parse(path, "fastq")
     if path.endswith(".fastq"):

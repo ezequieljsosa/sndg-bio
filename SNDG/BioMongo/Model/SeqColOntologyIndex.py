@@ -1,7 +1,7 @@
-from mongoengine.document import Document, DynamicDocument
+from mongoengine.document import Document
 from mongoengine.fields import StringField, ListField, ReferenceField, IntField
 
-from SNDG.BioMongo.Model.collections import SeqCollection
+from SNDG.BioMongo.Model.SeqCollection import SeqCollection
 
 
 class SeqColOntologyIndex(Document):
