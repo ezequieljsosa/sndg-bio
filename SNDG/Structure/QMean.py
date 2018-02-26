@@ -1,4 +1,6 @@
 import matplotlib
+import shutil
+
 matplotlib.use('Agg')
 
 import tempfile
@@ -15,6 +17,7 @@ class QMean:
             output_dir = tempfile.mkdtemp(suffix="_qmean")
         pdb = LoadPDB(pdb_path)
         assessment = AssessModelQuality(pdb, output_dir=output_dir)
+        shutil.rmtree(output_dir)
         return assessment[0].qmean4.__dict__
 
 

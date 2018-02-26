@@ -12,13 +12,11 @@ from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Model.Sequence import BioProperty, Size, Contig
 from SNDG.BioMongo.Model.Feature import Feature, Location
 from SNDG.BioMongo.Model.Protein import Protein
-from SNDG.BioMongo.Model.Genome import Genome
+from SNDG.BioMongo.Model.SeqCollection import Genome
 
-# from SNDGInt.NCBI import NCBI
+
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
-
-TaxName = ""
-NCBI = ""
+from SNDG.WebServices.NCBI import NCBI
 
 
 class BioDocFactory(object):
@@ -27,14 +25,18 @@ class BioDocFactory(object):
     '''
 
     @staticmethod
-    def create_genome(name, seqrecord, tax_provider):
+    def create_genome(name, seqrecord, ncbi_tax=None, tax_provider=None):
         '''
         TaxEDoc
         '''
-        tax = tax_provider.getTax(
-            seqrecord.annotations["ncbi_taxid"]) if "ncbi_taxid" in seqrecord.annotations else None
-        tax = TaxEDoc(tid=tax.ncbi_taxon_id, superkingdom=tax.node_rank,
-                      name=[x.name for x in tax.names if x.name_class == TaxName.scientific_name][0]) if tax else None
+        if tax_provider:
+            if not ncbi_tax:
+                ncbi_tax = seqrecord.annotations["ncbi_taxid"] if "ncbi_taxid" in seqrecord.annotations else None
+
+            tax = tax_provider.getTax(ncbi_tax) if ncbi_tax else None
+            tax = TaxEDoc(tid=tax.ncbi_taxon_id, superkingdom=tax.node_rank,
+                          name=[x.name for x in tax.names if x.name_class == tax_provider.scientific_name][
+                              0]) if tax else None
         return Genome(
             name=name,
             description=seqrecord.description,
@@ -82,8 +84,11 @@ class BioDocFactory(object):
                     fdoc.alias.append(f.qualifiers["protein_id"][0])
 
                 if "locus_tag" in f.qualifiers:
-                    fdoc.locus_tag = f.qualifiers["locus_tag"][0]
                     fdoc.alias.append(fdoc.locus_tag)
+                    fdoc.locus_tag = f.qualifiers["locus_tag"][0]
+                else:
+                    fdoc.locus_tag = fid
+
                 if "old_locus_tag" in f.qualifiers:
                     fdoc.alias = fdoc.alias + f.qualifiers["old_locus_tag"]
                 if source:

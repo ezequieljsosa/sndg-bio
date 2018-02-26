@@ -7,9 +7,11 @@ Created on Aug 24, 2015
 '''
 
 import warnings
-from Bio import BiopythonWarning
+
+from Bio import BiopythonWarning, BiopythonParserWarning
 
 warnings.simplefilter('ignore', BiopythonWarning)
+warnings.simplefilter('ignore', BiopythonParserWarning)
 
 import os
 import argparse
@@ -25,7 +27,6 @@ if __name__ == '__main__':
 
     parser.add_argument("-d", "--models_directory", required=True)
     parser.add_argument("-l", "--log_path", default=None)
-    parser.add_argument("--pdb_divided", default="/data/pdb/divided/")
 
     args = parser.parse_args()
 
@@ -33,7 +34,7 @@ if __name__ == '__main__':
 
     if not args.log_path:
         args.log_path = args.models_directory + "/pocketome.log"
-    init_log(args.log_path,logging.INFO)
+    init_log(args.log_path, logging.INFO)
     _log = logging.getLogger("pocketome")
 
     with tqdm(glob.glob(args.models_directory + "/*.pdb")) as pbar:

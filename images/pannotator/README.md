@@ -48,10 +48,10 @@ Inside the container, you can run scripts /app/p_procariota/ from 1 to 8
 ```{r, engine='bash', count_lines}
 docker pull ezequieljsosa/pannotator 
 # with 250Gb avaliable, only the first time, it may take a few hours  
-docker  run   --mount type=bind,source="/home/myuser/data",target="/data" 
-ezequieljsosa/pannotator createdb.py
-docker  run   --mount type=bind,source="/home/myuser/data",target="/data",readonly 
---mount type=bind,source="/home/myuser/mygenome/",target="/out" 
-pannotator annotate.sh /out/mygenome.fasta
+docker  run   --mount type=bind,source="/home/myuser/data",target="/data" \
+    ezequieljsosa/pannotator createdb.py
+docker  run   --mount type=bind,source="/home/myuser/data",target="/data",readonly \
+    --mount type=bind,source="/home/myuser/mygenome/",target="/out" \
+    pannotator annotate.sh /out/mygenome.fasta
 ```
 

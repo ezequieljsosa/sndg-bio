@@ -6,16 +6,17 @@ Created on Jul 4, 2014
 import logging
 import os
 
+from tqdm import tqdm
+
+import Bio.SeqIO as bpio
+from Bio.Data.IUPACData import protein_letters_3to1
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-import Bio.SeqIO as bpio
-from Bio.Data.IUPACData import protein_letters_3to1
 from Bio.SeqUtils import seq1
-
-from SNDG.WebServices import download_file
 from SNDG import mkdir, execute
+from SNDG.WebServices import download_file
 
 _log = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class PDBs(object):
         self.delete_compressed = True
 
     def download_pdb_seq_ses(self):
-        download_file(self.url_pdb_seq_res, self.pdb_seq_res_path)
+        download_file(self.url_pdb_seq_res, self.pdb_seq_res_path, ovewrite=True)
 
     def update_pdb_dir(self):
         assert os.path.exists(self.pdb_dir), "the target directory does not exists %s" % self.pdb_dir
@@ -65,11 +66,9 @@ class PDBs(object):
 
         pdbs = set([x.id.split("_")[0] for x in bpio.parse(self.pdb_seq_res_path, "fasta")])
         total_pdbs = len(pdbs)
-        pdb_count = 0
-        for pdb in pdbs:
+
+        for pdb in tqdm(pdbs):
             try:
-                pdb_count = pdb_count + 1
-                _log.debug("pdbs: %s / %s" % (pdb_count, total_pdbs))
                 mkdir(self.pdbs_dir + pdb[1:3])
                 if not os.path.exists(self.pdb_path(pdb)):
                     download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
@@ -80,13 +79,14 @@ class PDBs(object):
                 _log.warn(str(ex))
 
     def pdbs_seq_for_modelling(self, out_fasta=None,
-                               pdbsIter=lambda: PDBs()):
+                               pdbsIter=None):
+        if pdbsIter == None:
+            pdbsIter = PDBs(self.pdb_dir)
         if not out_fasta:
             out_fasta = self.pdb_dir + "processed/seqs_from_pdb.fasta"
-        pdbsIter = pdbsIter()
+
         with open(out_fasta, "w") as handle:
-            for i, (pdb, pdb_file_path) in enumerate(pdbsIter):
-                _log.debug("processing %s pdb %i" % (pdb, i))
+            for  (pdb, pdb_file_path) in tqdm(pdbsIter):
                 struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
                 for chain in struct.get_chains():
                     residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]

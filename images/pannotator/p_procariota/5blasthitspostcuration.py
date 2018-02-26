@@ -25,7 +25,7 @@ Opciones:\n\
 	-c	Base de datos para busqueda de ortologos. Default: /data/cog/myva\n\
 	-w	Base de datos para detalle de ortologos. Default: /data/cog/whog\n\
 	-p	Base de datos para busqueda de perfiles enzimaticos. Default: /data/priamrpsdb/priam\n\
-	-u	Base de datos para busqueda de funcion. Default: /data/uniprot/uniref50/uniref50.fasta\n\
+	-u	Base de datos para busqueda de funcion. Default: /data/uniprot/uniref/uniref90/uniref90.fasta\n\
 	-s 	Base de datos secundaria para busqueda de funcion. Default: [vacio]\n\
 	-e	Umbral de e-value para las busquedas. Default: 1e-5\n\
 	-a	Numero de procesadores a usar. Default: maximo disponible\n\
@@ -44,7 +44,7 @@ params["i"] = "orfs.fasta"               	#Sequencias de entrada por defecto
 params["c"] = "/data/cog/myva"	#Base de datos por defecto de COG
 params["w"] = "/data/cog/whog"	#Base de datos por defecto de COG
 params["p"] = "/data/priamrpsdb/priam"	#Base de datos por defecto de Priam
-params["u"] = "/data/uniprot/uniref50/uniref50.fasta"	#Base de datos por defecto de NCBI uniref100
+params["u"] = "/data/uniprot/uniref/uniref90/uniref90.fasta"	#Base de datos por defecto de NCBI uniref100
 params["s"] = ""									#Base de datos secundaria por defecto
 params["e"] = "1e-5"                   				#Umbral de e-value
 params["a"] =  "%d" % cpu_count()    					#Numero de procesadores

@@ -12,13 +12,16 @@ import numpy as np
 import pymongo
 from bson.objectid import ObjectId
 from mongoengine import connect, register_connection
-from peewee import MySQLDatabase
+from tqdm import tqdm
 
+from Bio.Seq import Seq
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+from Bio.SeqRecord import SeqRecord
 from SNDG import init_log
 from SNDG.BioMongo.Model.Protein import Protein
-from SNDG.BioMongo.Model.SeqCollection import SeqCollection, DataUpload
 from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParam
-from SNDG.BioMongo.Model.Sequence import BioProperty
+from SNDG.BioMongo.Model.SeqCollection import SeqCollection, DataUpload
+from SNDG.BioMongo.Model.Sequence import BioProperty, Contig
 from SNDG.BioMongo.Process.BioCyc2Mongo import BioCyc
 from SNDG.BioMongo.Process.COG2Mongo import COG2Mongo
 from SNDG.BioMongo.Process.EC2Mongo import EC2Mongo
@@ -50,7 +53,6 @@ class BioMongoDB(object):
         connect(dbname)
         register_connection("pdb", "pdb")
 
-
         self.paths = {
             "gene": []
         }
@@ -62,13 +64,13 @@ class BioMongoDB(object):
         genome = self.db.sequence_collection.find_one({"name": name})
         if genome:
             genome_id = genome["_id"]
-            print self.db.sequence_collection.remove({"name": name})
-            print self.db.contig_collection.remove({"seq_collection_id": genome_id})
-            print self.db.structures.remove({"organism": name})
-            print self.db.proteins.remove({"organism": name})
-            print self.db.col_ont_idx.remove({"seq_collection_name": name})
-            print self.db.users.update({}, {"$pull": {"links": {"description": name}}}, multi=True)
-            print self.db.users.update({}, {"$pull": {"seq_collections": genome_id}}, multi=True)
+            print (self.db.sequence_collection.remove({"name": name}))
+            print (self.db.contig_collection.remove({"seq_collection_id": genome_id}))
+            print (self.db.structures.remove({"organism": name}))
+            print (self.db.proteins.remove({"organism": name}))
+            print (self.db.col_ont_idx.remove({"seq_collection_name": name}))
+            print (self.db.users.update({}, {"$pull": {"links": {"description": name}}}, multi=True))
+            print (self.db.users.update({}, {"$pull": {"seq_collections": genome_id}}, multi=True))
 
     def init_db(self, ec=True, pfam=True, tigrfam=True, cog=True, so=True, pathways=True, go=True):
         if ec:
@@ -127,17 +129,19 @@ class BioMongoDB(object):
             go.load(False)
             _log.debug("GO loaded")
 
-    def copy_genome(self, name, newname, db=None):
+    def copy_genome(self, name, newname=None, db=None, ):
 
-        genome_id = self.db.sequence_collection.find_one({"name": name})["_id"]
+        sc = self.db.sequence_collection.find_one({"name": name})
+        genome_id = sc["_id"]
         new_id = genome_id if db else ObjectId()
+
+        assert bool(newname) | bool(db), "newname and db cant be none at the same time"
 
         if not db:
             db = self.db
         if not newname:
             newname = name
 
-        sc = self.db.sequence_collection.find_one({"name": name})
         sc["name"] = newname
         db.sequence_collection.insert(sc)
 
@@ -146,7 +150,7 @@ class BioMongoDB(object):
             contig["organism"] = newname
             db.contig_collection.save(contig)
 
-        for protein in self.db.proteins.find({"organism": name}):
+        for protein in tqdm(self.db.proteins.find({"organism": name})):
             protein["seq_collection_id"] = new_id
             protein["organism"] = newname
             db.proteins.save(protein)
@@ -326,15 +330,14 @@ class BioMongoDB(object):
                 )
 
         for p in headerProperties:
-            dpType = "number" if p in numericFields else "value";
+            dpType = "number" if p in numericFields else "value"
 
-            options = [] if p in numericFields else list(set(df[p]));
+            options = [] if p in numericFields else list(set(df[p]))
             currentDp = seqCollection.druggabilityParam(p, uploader)
 
             if currentDp:
-
-                currentDp.options = options;
-                currentDp.type = dpType;
+                currentDp.options = options
+                currentDp.type = dpType
             else:
                 dp = SeqColDruggabilityParam(type=dpType, name=p, options=options,
                                              uploader=uploader, target="protein")
@@ -343,6 +346,35 @@ class BioMongoDB(object):
         seqCollection.uploads.append(upload);
         seqCollection.save()
 
+    def organism_iterator(self, organism, seq_map=None):
+        for dbcontig in Contig.objects(organism=organism).no_cache():
+            if seq_map:
+                seq = str(seq_map[dbcontig.name].seq)
+            else:
+                seq = dbcontig.seq
+            contig = SeqRecord(id=dbcontig.name, seq=Seq(seq))
+            for dbfeature in dbcontig.features:
+                qualifiers = {"locus_tag": [dbfeature.locus_tag]}
+                p = list(Protein.objects(organism=organism, gene=dbfeature.identifier))
+                if p:
+                    p = p[0]
+                    qualifiers["description"] = [p.description]
+                    qualifiers["gene_symbol"] = p.gene
+                    qualifiers["Note"] = [p.description]
+
+                    ecs = [x.upper() for x in p.ontologies if x.startswith("ec:")]
+                    gos = [x.upper() for x in p.ontologies if x.startswith("go:")]
+                    if ecs:
+                        qualifiers["EC"] = ecs
+                    if gos:
+                        qualifiers["GO"] = gos
+                    feature = SeqFeature(id=dbfeature.identifier, type=dbfeature.type, qualifiers=qualifiers,
+                                         location=FeatureLocation(start=dbfeature.location.start,
+                                                                  end=dbfeature.location.end,
+                                                                  strand=dbfeature.location.strand))
+                    contig.features.append(feature)
+            yield contig
+
 
 import re
 
@@ -350,13 +382,11 @@ regx = re.compile("^ec:", re.IGNORECASE)
 
 if __name__ == '__main__':
     init_log()
-    #pdb = pymongo.MongoClient().pdb
-    import SNDG.BioMongo.Model.Genome
+    # pdb = pymongo.MongoClient().pdb
+
     mdb = BioMongoDB("tdr")
 
-    mdb.load_metadata("Kp13","/home/eze/workspace/kp13/metadata.tbl")
-
-
+    mdb.load_metadata("Kp13", "/home/eze/workspace/kp13/metadata.tbl")
 
     # tax_db.initialize(MySQLDatabase('biosql', user='root', passwd="mito"))
     #     bacs = []

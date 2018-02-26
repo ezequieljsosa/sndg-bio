@@ -2,26 +2,25 @@
 
 """
 
+import logging
 import os
 import re
-import logging
+
 from bson.objectid import ObjectId
 from tqdm import tqdm
+
 import Bio.SearchIO as bpsio
-
+from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
+from SNDG.BioMongo.Model.Feature import Feature, Location
 from SNDG.BioMongo.Model.Protein import Protein
-from SNDG.BioMongo.Model.Alignment import SimpleAlignment,AlnLine
-from SNDG.BioMongo.Model.Feature import Feature,Location
-from SNDG.Sequence.so import SO_TERMS
-
 from SNDG.BioMongo.Process.BioDocFactory import BioDocFactory
-
-
+from SNDG.Sequence import identity, coverage, hit_coverage
+from SNDG.Sequence.so import SO_TERMS
 
 _log = logging.getLogger(__name__)
 
 
-def load_hmm(self, organism, hmm_file, transform_query_regexp=None, transform_hit_regexp=None):
+def load_hmm(organism, hmm_file, transform_query_regexp=None, transform_hit_regexp=None):
     assert os.path.exists(hmm_file)
     for query in tqdm(bpsio.parse(hmm_file, 'hmmer3-text')):
         for hit in query:
@@ -34,7 +33,7 @@ def load_hmm(self, organism, hmm_file, transform_query_regexp=None, transform_hi
                 if transform_query_regexp:
                     hit_name = re.search(transform_hit_regexp, hit_name, re.IGNORECASE).group(1)
 
-                proteins = Protein.objects(alias=gene)
+                proteins = Protein.objects(organism=organism,alias=gene).no_cache().timeout(False)
                 for protein in proteins:
                     dn = [d for d in protein.domains() if
                           (d.identifier == hit_name) and (d.location.start == hsp.query_start) and (
@@ -58,16 +57,15 @@ def load_hmm(self, organism, hmm_file, transform_query_regexp=None, transform_hi
                     protein.save()
 
 
-def load_blast_pdb(self, organism, blast_file):
+def load_blast_pdb(organism, blast_file):
     '''
     load_blast_features.py -db tdr -org TGONDII -ft SO:0001079 -i 0.95  -qc 0.8 -hc 0.8 -b ./blast_pdb.xml
     '''
-    self.load_blast_features(organism, blast_file, SO_TERMS["polypeptide_structural_motif"], 0.95, 0.8, 0.8)
+    load_blast_features(organism, blast_file, SO_TERMS["polypeptide_structural_motif"], 0.95, 0.8, 0.8)
 
 
-def load_pdb_domains(self, organism, blast_file, feature_type="SO:0001079",
+def load_pdb_domains(organism, blast_file, feature_type="SO:0001079",
                      min_identity=0.9, min_query_coverage=0.9, min_hit_coverage=0.9):
-
     queries = list(bpsio.parse(blast_file, 'blast-xml'))
     features_added = 0
     total = len(queries)
@@ -94,7 +92,8 @@ def load_pdb_domains(self, organism, blast_file, feature_type="SO:0001079",
                                x.type == feature_type and ident_fn(x.identifier) == ident_fn(hit.id)]
                         if not pdb:
                             posSet = set(range(dn.location.start, dn.location.end))
-                            dncover = 1.0 * len(posSet & set(range(dnstart, dnend))) / (dn.location.end - dn.location.start)
+                            dncover = 1.0 * len(posSet & set(range(dnstart, dnend))) / (
+                                    dn.location.end - dn.location.start)
                             if (min_identity <= identity(hsp)) and (dncover >= min_query_coverage):
                                 hsp_feature = BioDocFactory.feature_from_hsp(hsp, feature_type)
                                 hsp_feature.location.start += dnstart
@@ -108,9 +107,8 @@ def load_pdb_domains(self, organism, blast_file, feature_type="SO:0001079",
     _log.info("Features added: " + str(features_added))
 
 
-def load_blast_features(self, organism, blast_file, feature_type,
+def load_blast_features( organism, blast_file, feature_type,
                         min_identity=0, min_query_coverage=0, min_hit_coverage=0):
-
     queries = list(bpsio.parse(blast_file, 'blast-xml'))
 
     def check_overlap(features, new_feature, max_aa_overlap):
@@ -120,9 +118,8 @@ def load_blast_features(self, organism, blast_file, feature_type,
         return False
 
     features_added = 0
-    total = len(queries)
-    for i, query in enumerate(queries, 1):
-        _log.debug(query.id + " %i/%i" % (i, total))
+    for query in tqdm(queries):
+
         gene = query.id
 
         proteins = Protein.objects(organism=organism, gene=gene).no_cache().timeout(False)

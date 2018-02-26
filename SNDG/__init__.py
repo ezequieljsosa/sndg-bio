@@ -1,16 +1,23 @@
-import os
 import logging
+import os
 import subprocess as sp
+import warnings
 from subprocess import CalledProcessError
+
+from Bio import BiopythonWarning, BiopythonExperimentalWarning, BiopythonParserWarning
+
+warnings.simplefilter('ignore', BiopythonWarning)
+warnings.simplefilter('ignore', BiopythonExperimentalWarning)
+warnings.simplefilter('ignore', BiopythonParserWarning)
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.5'
+__version__ = '0.1.11'
 
 _log = logging.getLogger(__name__)
 
 
-def init_log(log_file_path=None,rootloglevel=logging.DEBUG):
+def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
     default_formatter = logging.Formatter(log_format)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(default_formatter)

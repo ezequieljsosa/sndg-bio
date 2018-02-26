@@ -2,17 +2,13 @@
 
 """
 from collections import defaultdict
-import warnings
-from Bio import BiopythonWarning,BiopythonExperimentalWarning
-
-
-warnings.simplefilter('ignore', BiopythonWarning)
-warnings.simplefilter('ignore', BiopythonExperimentalWarning)
 
 
 
 import Bio.SeqIO as bpio
 import Bio.SearchIO as bpsio
+from BCBio import GFF
+
 
 def identity(hsp):
     return 1.0 * hsp.ident_num / hsp.aln_span
@@ -26,6 +22,16 @@ def coverage(query_result, hsp):
 def hit_coverage(hit, hsp):
     # return 1.0 * hsp.aln_span /  hsp.hit_span
     return 1.0 * hsp.hit_span / hit.seq_len
+
+
+blast_columns = ["query", "hit", "identity", "aln_len", "mismatches", "gap_openings", "qstart", "qend", "hstart",
+                 "hend", "evalue"]
+
+
+def read_blast_table(blast_table_file):
+    import pandas as pd
+    return pd.read_table(blast_table_file,
+                  sep="\t", names=blast_columns, index_col=False)
 
 
 def search_iterator(bps_iter):
@@ -57,6 +63,15 @@ def smart_parse(path):
         return bpio.parse(path, "gb")
     if path.endswith(".genebank"):
         return bpio.parse(path, "gb")
+    if path.endswith(".gbff"):
+        return bpio.parse(path, "gb")
+
+    if path.endswith(".embl"):
+        return bpio.parse(path, "embl")
+
+    if path.endswith(".gbff"):
+        with open(path) as h:
+            return GFF(h)
 
     if path.endswith(".fq"):
         return bpio.parse(path, "fastq")
@@ -86,10 +101,10 @@ def blast_parse(path, fn_hsp_filter):
 
 def blast_partition(path, partition_dict):
     partitions = defaultdict(lambda: [], {"no_hit": [], "else": []})
-    for query in bpio.parse(path, "uniprot-xml"):
-        hits = list (query)
+    for query in bpsio.parse(path, "blast-xml"):
+        hits = list(query)
         if not hits:
-            partitions["no_hit"].append(query)
+            partitions["no_hit"].append(query.id)
         for hit in hits:
             for hsp in hit:
                 hsp.identity = identity(hsp)
@@ -97,7 +112,7 @@ def blast_partition(path, partition_dict):
                 hsp.hit_coverage = hit_coverage(hit, hsp)
 
                 added = False
-                for k, fn_filter in partition_dict:
+                for k, fn_filter in partition_dict.items():
                     if fn_filter(query, hit, hsp):
                         partitions[k].append((query, hit, hsp,))
                         added = True
@@ -107,6 +122,8 @@ def blast_partition(path, partition_dict):
 
     return partitions
 
-if __name__ == '__main__':
 
-    next(sp("/data/pext/good_hits.xml"))
+if __name__ == '__main__':
+    # next(smart_parse("/data/pext/good_hits.xml"))
+    blast_partition("/tmp/GCF_001624625.1/pdb_blast.xml",
+                    {"cristal": lambda q, h, hsp: (1.0 * hsp.ident_num / hsp.aln_span) > 0.9})

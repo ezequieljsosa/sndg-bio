@@ -13,9 +13,21 @@ from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 
 
 class VariantSet():
+    """
+/usr/local/bin/gatk
+#!/bin/bash
+java -jar /opt/GATK/GenomeAnalysisTK.jar $@
+    """
 
     @staticmethod
     def create_gvcf(vcfs_path_list, gvcf_path, ref_path):
+        """
+
+        :param vcfs_path_list: list of paths of the vcf files
+        :param gvcf_path: gvcf to be created
+        :param ref_path: fasta from the reference genome
+        :return:
+        """
         cmd_template = """
         gatk -T CombineVariants    -R {ref} {vcfs}   -o {out}    -genotypeMergeOptions UNIQUIFY
         """
@@ -25,7 +37,7 @@ class VariantSet():
 
     def __init__(self, path_gvcf, reference=None):
         assert os.path.exists(path_gvcf), path_gvcf + " does not exists"
-        self.total_variants = int(sp.check_output('grep -vc "^#" /tmp/pepe.ann.gvcf', shell=True))
+        self.total_variants = int(sp.check_output('grep -vc "^#" ' + path_gvcf, shell=True))
         self.reference = reference
         self.gvcf = VcfSnpeffIO.parse(path_gvcf)
 
@@ -70,7 +82,7 @@ class VariantSet():
         return dist
 
     def diff_variants(self, df_variants, samples):
-        #diff = defaultdict(lambda: defaultdict(lambda: []))
+        # diff = defaultdict(lambda: defaultdict(lambda: []))
         df = df_variants
         idx = df.pos != df.pos
         for i in range(len(samples)):
@@ -88,24 +100,21 @@ class VariantSet():
                         if row[s1] != row[s2]:
                             diff[s1][s2].append((row.chrom, row.pos, row.gene, row["type"], row[s1], row[s2]))
         """
-        return df[["chrom","pos","gene","type"] + samples ]
+        return df[["chrom", "pos", "gene", "type"] + samples]
+
 
 if __name__ == '__main__':
-        import glob
-        from SNDG import init_log
+    import glob
+    from SNDG import init_log
 
-        init_log()
-        vcfs = glob.glob("/home/eze/workspace/git/23staphilo/data/processed/core-mapping-n315/**/*.vcf")
-        vcfs = [x for x in vcfs if "ann" not in x]
-        # pepe = VariantSet.from_vcfs(vcfs,
-        #                            "/tmp/pepe.gvcf",
-        #                            "/home/eze/workspace/git/23staphilo/data/processed/refn315/genomic.fasta")
-        pepe = VariantSet("/tmp/pepe.ann.gvcf",
-                          "/home/eze/workspace/git/23staphilo/data/processed/refn315/genomic.fasta")
-        df = pepe.build_table()
-        df.to_csv("/tmp/pepe.csv", columns=["pos", "gene", "type", "ref"] +
-                                           ['0037', '0058', '0142', '0271', '0298', '0450', '0564', '1096', '1300',
-                                            '1445',
-                                            '1527', '1584', '1707', '1710', '1796', '1875', '3296', '3867INF', '3867NE',
-                                            '3867NI'] + ["aa_pos", "aa_ref", "aa_alt"])
-        print pepe
+    init_log()
+    vcfs = glob.glob("/home/eze/workspace/git/msmegmatis_mut/data/processed/variant_call/**/*.vcf")
+    vcfs = [x for x in vcfs if "ann" not in x]
+    VariantSet.create_gvcf(vcfs, "/tmp/pepe.gvcf",
+                                  "/home/eze/workspace/git/msmegmatis_mut/data/external/GCF_000283295.1_ASM28329v1_genomic.fna")
+    pepe = VariantSet("/tmp/pepe.ann.gvcf",
+                      "/home/eze/workspace/git/msmegmatis_mut/data/external/GCF_000283295.1_ASM28329v1_genomic.fna")
+    df = pepe.build_table()
+    df.to_csv("/tmp/pepe.csv", columns=["pos", "gene", "type", "ref"] +
+                                       ["MUT-11","MUT-12","MUT-7","WT1"] + ["aa_pos", "aa_ref", "aa_alt"])
+    print pepe

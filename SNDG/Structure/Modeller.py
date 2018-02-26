@@ -169,7 +169,7 @@ class Modeller(object):
         model = a.make()
         if "OverflowError" in str(a.outputs[0]["failure"].__class__):
             raise ModellerOverflowError(a.outputs[0]["failure"], base_models)
-        _log.info("{model_count} models for {orf} with {base_models} where generated ".format(
+        _log.debug("{model_count} models for {orf} with {base_models} where generated ".format(
             orf=query_id, base_models=base_models, model_count=self.model_count))
 
     def create_model(self, model_id, alignment):
