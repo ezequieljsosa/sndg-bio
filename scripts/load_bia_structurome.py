@@ -138,10 +138,9 @@ USAGE
                 continue
             model_data = model_data.iloc[0]
 
-            #prot = list(Protein.objects(organism=args.genome, alias__iexact=model_data["protein"]))
-            #if len(prot) == 0:
-            #    print "Not found: " + str(model_data["protein"])
-            #    continue
+            prot = list(Protein.objects(organism=args.genome, alias__iexact=model_data["prot"]))
+            if len(prot) == 0:
+                _log.warn( "Not found: " + str(model_data["prot"]))
             try:
                 strdoc = process_model(args.structs_dir,args.pipeline,  collection["name"],collection["_id"], model_data, model_name, model_path, parser)
                 strdoc.save()

@@ -4,21 +4,24 @@ Created on Jun 25, 2015
 @author: eze
 '''
 
-from multiprocessing.synchronize import Lock
 import os
-import sys
+import re
+from multiprocessing.synchronize import Lock
+
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import CaPPBuilder
-
-import pandas as pd
-
 from SNDG import Struct
+from SNDG import init_log,mkdir
 from SNDG.Structure.CompoundTypes import compound_type
 from SNDG.Structure.PDBs import PDBs as PDBsIterator
 
-import re
+init_log()
+
+mkdir("/data/databases/pdb/processed/")
 
 PDB_PATH = "/data/databases/pdb/divided/"
 
@@ -31,6 +34,8 @@ aminoacidcompounds = [x for x, y in compound_type.items() if y in ["MODIFIED", "
 drugcompounds = othercompounds + drugcompounds
 
 pdbs_with_drug_path = "/data/databases/pdb/processed/pdbs_with_drug.txt"
+
+
 
 pdbs_procesados = []
 if os.path.exists("/tmp/pdbs_ex_dn_procesados.txt"):
@@ -125,7 +130,7 @@ def juan(pdb_raw):
             pdbs_procesados.append(pdb_raw)
             with open("pdbs_ex_dn_procesados.txt", "a") as handle:
                 handle.write(pdb_raw + "\n")
-            print "pdbs procesados: " + str(len(pdbs_procesados))
+
 
 
 def pepe(pdb):
@@ -182,7 +187,7 @@ def pepe(pdb):
                                 handle.write("\t".join(map(str, fields)) + "\n")
 
 
-for x in set(pdbs_with_drug):
+for x in tqdm(set(pdbs_with_drug)):
     if x not in pdbs_procesados:
         juan(x)
 

@@ -27,6 +27,8 @@ from Bia.Model.collections import  Cluster
 from Bia.Programs.Cluster.CDHit import CDHit
 
 from BiaStructure.Model.structure import ExperimentalStructure, ResidueSet
+from tqdm import tqdm
+
 from Bio.PDB.PDBParser import PDBParser
 import Bio.SearchIO as bpsio
 import pandas as pd
@@ -206,11 +208,10 @@ REMARK 350 AND CHAINS: J, K, L
     pdbUtils = PDBs()
     total = ExperimentalStructure.objects().count()
     
-    for str_num, strdoc in enumerate(ExperimentalStructure.objects().no_cache()):     
-#         if str_num < 62753:
-#             continue  
+    for str_num, strdoc in tqdm(ExperimentalStructure.objects().no_cache(),total=total):
+
         try: 
-            _log.debug( "procesing %s %i/%i pdb" % (strdoc.name,str_num,total) )
+
             with open(pdbUtils.pdb_path(strdoc.name)) as h:
                 data = [l for l in h.readlines() if l.startswith("REMARK 350")]
             biomolecules_index = [i for i,l in enumerate(data) if "BIOMOLECULE:" in l] + [None]
@@ -323,7 +324,7 @@ USAGE
      
         from mongoengine import connect        
         connect(args.database_name , host=args.db_host)
-#         update_quaternary()
+        update_quaternary()
 #         # clusters cd hit
 #         update_clusters()
 #         
