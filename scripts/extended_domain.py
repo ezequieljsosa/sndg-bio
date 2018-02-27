@@ -25,6 +25,8 @@ mkdir("/data/databases/pdb/processed/")
 
 PDB_PATH = "/data/databases/pdb/divided/"
 
+"hmmscan --cut_tc --domtblout /data/databases/pdb/processed/dns_pdbs.tlb --acc --noali /data/databases/xfam/Pfam-A.hmm ./seqs_from_pdb.fasta"
+
 CONTACT_DIST = 5
 
 drugcompounds = [x for x, y in compound_type.items() if y in ["DRUG", "COFACTOR"]]
