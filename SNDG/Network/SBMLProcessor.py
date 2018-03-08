@@ -1,0 +1,154 @@
+'''
+Created on Jan 9, 2015
+
+@author: eze
+'''
+
+import os
+import re
+import logging
+
+import networkx as nx
+from libsbml import readSBML
+
+_log = logging.getLogger("SBMLProcessor")
+
+class SBMLProcessor(object):
+    '''
+    Process the output of a PathwayTools generated sbml file
+    '''
+
+    def __init__(self):
+        '''
+        Constructor
+        '''
+        self.ignore_filter = False;
+        self.ignore_reversibility = False;
+        self.sbml_file_path = None
+        self.filter_filename = "allfilters_con_c.dat";
+        self.fn_extract_genes = lambda x: [y.strip() for y in x.split()]
+        self.graph = nx.DiGraph()
+        self.pathways = {}
+        self.genes = {}
+        self.filter_list = []
+
+    def decode_sbml(self, text):
+        result = text
+        replacements = [("__45__", "-"), ("__46__", "."), ("__43__", "+"), ("_47__", "/"),
+                        ("_1", "1"), ("_2", "2"), ("_3", "3")
+            , ("_4", "4"), ("_5", "5"), ("_6", "6"), ("_7", "7"), ("_8", "8"), ("_9", "9")]
+        for original, replacement in replacements:
+            result = result.replace(original, replacement)
+        result = re.sub(r"_c$", "", result)
+        return result
+
+    def complete_reaction_data(self, reaction):
+        rxnId = self.decode_sbml(reaction.getName())
+        notas = reaction.getNotesString()
+        pathways, genes = self.extract_pathways_and_genes(rxnId, notas)
+        self.genes[rxnId] = genes
+        self.pathways[rxnId] = pathways
+
+    def extract_pathways_and_genes(self, rxnId, notas):
+
+        self.genes[rxnId] = None
+
+        genes, pathways = ([], [])
+        if (notas.find("GENE_ASSOCIATION") != -1 or
+                notas.find("SUBSYSTEM") != -1):  # possui Rv ou pathway preenchido
+            listaNotas = notas.split("<p>")
+            for l in listaNotas:
+                if l.startswith("GENE_ASSOCIATION"):
+                    locus = self.fn_extract_genes(l)  # retorna todos os matches com a ER
+                    genes = locus
+                if l.startswith("SUBSYSTEM"):
+                    pathways = l[l.find(":") + 1:l.rfind("<")].strip().split(",")
+                    pathways = [self.decode_sbml(k.strip()) for k in pathways]
+        return pathways, genes
+
+    def init(self):
+        assert self.sbml_file_path, "SBML file not set"
+        self.document = readSBML(self.sbml_file_path);
+        if os.path.exists(self.filter_filename):
+            with open(self.filter_filename, "r") as filter_file:
+                self.filter_list = [x.strip() for x in filter_file.read().lower().splitlines()]
+        else:
+            self.filter_list = []
+
+        #errors = self.document.getNumErrors();
+        #if (errors > 0):
+        #    _log.error(str(errors))
+        #    raise ("Encountered the following SBML errors:" + str(errors))
+
+        self.model = self.document.getModel();
+
+    def create_filter(self, filter_path):
+        metabolites_count = {}
+        for reaction in self.model.getListOfReactions():
+            for metabolite in set([x.species for x in reaction.getListOfProducts()] + [x.species for x in
+                                                                                       reaction.getListOfReactants()]):
+                if metabolite in metabolites_count:
+                    metabolites_count[metabolite] += 1
+                else:
+                    metabolites_count[metabolite] = 1
+        for met, count in metabolites_count.items():
+            if count > 20:
+                self.filter_list.append(self.decode_sbml(met.lower()))
+        with open(filter_path + self.filter_filename, "w") as h:
+            for x in self.filter_list:
+                h.write(x + "\n")
+
+    def add_reaction_to_graph(self, reaction):
+        if not self.graph.has_node(self.decode_sbml(reaction.getName())):
+            products = [self.decode_sbml(x.getSpecies()) for x in reaction.getListOfProducts() if
+                        self.decode_sbml(x.getSpecies()) not in self.filter_list]
+            rectants = [self.decode_sbml(x.getSpecies()) for x in reaction.getListOfReactants() if
+                        self.decode_sbml(x.getSpecies()) not in self.filter_list]
+            self.graph.add_node(self.decode_sbml(reaction.getName()), products=products, reactants=rectants)
+
+    def process_sbml(self):
+
+        listOfReactions = self.model.getListOfReactions();
+
+        for reaction in listOfReactions:
+            self.complete_reaction_data(reaction)
+            # get list of Products (and Reactants if the reaction is reversible)
+            listOfReactantsAndProducts = reaction.getListOfProducts().clone();
+
+            if self.ignore_reversibility or reaction.getReversible():
+                listOfReactantsAndProducts.appendFrom(reaction.getListOfReactants());
+
+            self.add_reaction_to_graph(reaction)
+
+            for element1 in listOfReactantsAndProducts:
+                elem1_species = element1.getSpecies();
+                if (self.ignore_filter or (self.decode_sbml(elem1_species).lower() not in self.filter_list)):
+                    listOfReactions2 = listOfReactions.clone();
+                    listOfReactions2.remove(reaction.id);  # remove reaction1 to avoid checking against itself
+                    for reaction2 in listOfReactions2:
+
+                        self.add_reaction_to_graph(reaction2)
+
+                        # get list of Reactants (and Products if the reaction is reversible)
+                        listOfReactantsAndProducts2 = reaction2.getListOfReactants().clone();
+                        if self.ignore_reversibility or reaction2.getReversible():
+                            listOfReactantsAndProducts2.appendFrom(reaction2.getListOfProducts());
+
+                        for element2 in listOfReactantsAndProducts2:
+                            elem2_species = element2.getSpecies();
+                            if self.ignore_filter or (self.decode_sbml(elem2_species).lower() not in self.filter_list):
+                                if element1.species == element2.species:
+                                    self.graph.add_edge(self.decode_sbml(reaction.getName()),
+                                                        self.decode_sbml(reaction2.getName()),
+                                                        linkedby=self.decode_sbml(element1.species))
+
+    def toSIF(self, filename):
+        with open(filename, "w") as filehandler:
+            for reaction in self.sbmlprocessor.graph.nodes_iter(data=False):
+                successors = self.sbmlprocesor.graph.successors(reaction)
+                if successors:
+                    for reaction2 in successors:
+                        link = reaction.id + "\tlinkedWith\t" + reaction2.id;
+                        print >> filehandler, self.decode_sbml(link);
+                else:
+                    print  >> filehandler, self.decode_sbml(reaction.id);

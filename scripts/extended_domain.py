@@ -3,7 +3,7 @@ Created on Jun 25, 2015
 
 @author: eze
 '''
-
+import logging
 import os
 import re
 from multiprocessing.synchronize import Lock
@@ -20,6 +20,8 @@ from SNDG.Structure.CompoundTypes import compound_type
 from SNDG.Structure.PDBs import PDBs as PDBsIterator
 
 init_log()
+
+_log = logging.getLogger("dn_ext")
 
 mkdir("/data/databases/pdb/processed/")
 
@@ -44,17 +46,22 @@ if os.path.exists("/tmp/pdbs_ex_dn_procesados.txt"):
     with open("/tmp/pdbs_ex_dn_procesados.txt") as handle:
         pdbs_procesados = [x.strip() for x in handle.readlines()]
 
+_log.info("proceced pdbs: %i" % len(pdbs_procesados))
+
 ppb = CaPPBuilder()
 p = PDBParser(PERMISSIVE=1, QUIET=1)
 
 pdbs_with_drug = []
 if os.path.exists(pdbs_with_drug_path):
+    _log.info("pdbs with drugs already loaded")
     with open(pdbs_with_drug_path) as handle:
         for x in handle.readlines():
             pdbs_with_drug.append(x.strip())
 else:
     with open(pdbs_with_drug_path, "a") as handle:
-        for pdb, file_path in PDBsIterator():
+        _log.info("pdbs with drugs will be loaded")
+        pdbs = list(PDBsIterator())
+        for pdb, file_path in tqdm(pdbs):
             try:
                 if pdb not in pdbs_with_drug:
                     structure = p.get_structure(pdb, file_path)
@@ -73,10 +80,10 @@ if not os.path.exists("/data/databases/pdb/processed/dns_pdbs2.tlb"):
     cols = ["target_name", "accession", "tlen", "query_name", "accession2",
             "qlen", "E-value", "score1", "bias1", "#", "of", "c-Evalue", "i-Evalue",
             "score2", "bias2", "from1", "to1", "from2", "to2", "from3", "to3", "acc"]
-
+    _log.info("correcting hmmer-pdb output")
     df_hmm = pd.DataFrame()
     regexp = re.compile(" +")
-    for x in open('/data/databases/pdb/processed/dns_pdbs.tlb').readlines():
+    for x in tqdm(open('/data/databases/pdb/processed/dns_pdbs.tlb').readlines()):
         if not x.startswith("#"):
             line = regexp.split(x)
             record = {c: line[i] for i, c in enumerate(cols)}
@@ -188,7 +195,7 @@ def pepe(pdb):
                                           res_drug_obj.id[1], res_drug_obj.resname, drug_atom.serial_number, distance]
                                 handle.write("\t".join(map(str, fields)) + "\n")
 
-
+_log.info("processing distances file")
 for x in tqdm(set(pdbs_with_drug)):
     if x not in pdbs_procesados:
         juan(x)
@@ -196,4 +203,4 @@ for x in tqdm(set(pdbs_with_drug)):
 # pool = ThreadPool(1)
 # pool.map(juan, set(pdbs_with_drug) - set(pdbs_procesados))
 
-print "Termine!!!"
+print "Finished!!!"

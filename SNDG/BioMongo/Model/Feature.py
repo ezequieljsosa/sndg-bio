@@ -57,7 +57,7 @@ class Feature(EmbeddedDocument):
     type = StringField(max_length=30, required=True)
     features = ListField(DynamicField())
     locus_tag = StringField(required=False)
-    alias = ListField(StringField(), required=False)
+    alias = ListField(StringField(), default=[])
     aln = EmbeddedDocumentField(SimpleAlignment)
     qualifiers = DictField(required=False)
 

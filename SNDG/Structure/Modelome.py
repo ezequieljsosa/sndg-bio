@@ -169,10 +169,10 @@ if __name__ == '__main__':
     from SNDG import execute
     from SNDG.Structure.QuickModelome import QuickModelome
 
-    m = Modelome()
-    result = m.load_result_from_dir("/data/organismos/GCF_001624625.1/structures/results/")
-    df = m.build_structures_table("/data/organismos/GCF_001624625.1/structures/results/", result["models"].items())
-    m.prepare_dir("/data/organismos/GCF_001624625.1/structures/final", df,mfilter=lambda x:x)
+
+    result = Modelome.load_result_from_dir("/data/organismos/GCF_001624625.1/structures/results/")
+    df = Modelome.build_structures_table("/data/organismos/GCF_001624625.1/structures/results/", result["models"].items())
+    Modelome.prepare_dir("/data/organismos/GCF_001624625.1/structures/final", df,mfilter=lambda x:x)
 
     # m = Modelome()
     # qm = QuickModelome()

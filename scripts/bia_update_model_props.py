@@ -25,6 +25,8 @@ from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 from mongoengine.errors import DoesNotExist
 
+from SNDG.BioMongo.Model.ResidueAln import ResidueAln
+
 init_log()
 _log = logging.getLogger(__name__)
 
@@ -72,7 +74,7 @@ USAGE
     register_connection(args.db_structure, "pdb")
     db = pymongo.MongoClient(args.db_host)[args.db_structure]
 
-    sa = StructureAnotator(args.structs_dir)
+    sa = StructureAnotator(args.structs_dir + "/")
     total = sa.total(db, args.name, {})
 
     with tqdm(sa.iterator(db, args.name, {}), total=total) as pbar:

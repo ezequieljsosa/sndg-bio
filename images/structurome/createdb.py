@@ -22,6 +22,7 @@ download_file("ftp://ftp.wwpdb.org/pub/pdb/derived_data/index/entries.idx", "/da
 pdbs = PDBs("/data/pdb/")
 pdbs.download_pdb_seq_ses()
 pdbs.update_pdb_dir()
+mkdir("/data/pdb/processed/")
 pdbs.pdbs_seq_for_modelling()
 execute("makeblastdb -dbtype prot -in /data/pdb/processed/seqs_from_pdb.fasta")
 
@@ -32,4 +33,4 @@ if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta"):
     execute("gunzip /data/uniprot/uniref/uniref90/uniref90.fasta.gz")
 
 if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta.pal"):
-    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref90.fasta")
+    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref90/uniref90.fasta")

@@ -20,6 +20,43 @@ from SNDG.Sequence.so import SO_TERMS
 _log = logging.getLogger(__name__)
 
 
+class SearchLoader():
+
+    @staticmethod
+    def update_protein_with_dbxref(protein_gene, annotations,organism):
+        p = Protein.objects(gene=protein_gene,organism=organism).get()
+        for ann in annotations:
+            word = ann.split("||")[1]
+            if ann.lower().startswith("ec") or ann.lower().startswith("go"):
+                p.ontologies.append(word)
+                p.keywords.append(word)
+            for attr in """EcoGene
+            Ensembl_PRO
+            Ensembl_TRS
+            WormBase_PRO
+            WormBase_TRS
+            UniGene
+            GeneDB
+            EuPathDB""".split():
+                if ann.startswith(attr):
+                    p.keywords.append(word)
+                    p.alias.append(word)
+            for g in ["Gene_Name","Gene_OrderedLocusName","Gene_ORFName"]:
+                if ann.startswith(g):
+                    p.keywords.append(word)
+                    p.alias.append(word)
+                    p.gene.append(word)
+
+
+        p.ontologies = list( set([x.lower() for x in p.ontologies]))
+        p.keywords = list(set([x.lower() for x in p.keywords]))
+        p.alias = list(set(p.alias))
+        p.gene = list(set(p.gene))
+        return p
+
+
+
+
 def load_hmm(organism, hmm_file, transform_query_regexp=None, transform_hit_regexp=None):
     assert os.path.exists(hmm_file)
     for query in tqdm(bpsio.parse(hmm_file, 'hmmer3-text')):

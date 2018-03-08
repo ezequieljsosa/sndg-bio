@@ -34,6 +34,22 @@ class StructureAnotator(object):
         self.struct_path = struct_path
         self.work_dir = work_dir
 
+
+    @staticmethod
+    def pocket_residue_set(pockets_json):
+        with open(pockets_json) as handle:
+            pockets_dict = json.load(handle)
+        for pocket_dict in pockets_dict:
+            rs = ResidueSet(name="Pocket_" + str(pocket_dict["number"]), type="pocket")
+            for key, value in pocket_dict["properties"].items():
+                rs[eq2[key]] = value
+
+            rs.residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
+                                    for x in model.get_atoms()
+                                    if str(x.serial_number) in pocket_dict["atoms"]]))
+        return rs
+
+
     def free_cys_tyr(self, strdoc):
         parser = PDBParser(PERMISSIVE=1, QUIET=1)
 

@@ -84,8 +84,8 @@ class BioDocFactory(object):
                     fdoc.alias.append(f.qualifiers["protein_id"][0])
 
                 if "locus_tag" in f.qualifiers:
-                    fdoc.alias.append(fdoc.locus_tag)
                     fdoc.locus_tag = f.qualifiers["locus_tag"][0]
+                    fdoc.alias.append(fdoc.locus_tag)
                 else:
                     fdoc.locus_tag = fid
 
@@ -149,7 +149,7 @@ class BioDocFactory(object):
             alias += feature.qualifiers["protein_id"]
         if "Alias" in feature.qualifiers:
             alias += feature.qualifiers["Alias"]
-        return list(set([x for x in set(alias) if x and ("unknown" not in x)]))
+        return [x for x in (set([x for x in set(alias) if x and ("unknown" not in x)])) if x.strip()]
 
     @classmethod
     def create_protein(cls, seqrecord, feature, exons=[]):

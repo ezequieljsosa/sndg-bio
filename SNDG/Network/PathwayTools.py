@@ -309,7 +309,7 @@ if __name__ == "__main__":
     from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 
     init_log()
-    pw = PathwayTools("/data/organismos/Pext14-3B/annotation/")
+    pw = PathwayTools("/data/organismos/GCF_001624625.1/annotation/")
 
     mdb = BioMongoDB("tdr")
     # contigmap = bpio.to_dict(
@@ -321,9 +321,9 @@ if __name__ == "__main__":
     # pw.execute("/opt/pathway-tools/pathway-tools")
 
     contigmap = {x.id.split(".")[0]: x for x in
-                 bpio.parse("/data/organismos/Pext14-3B/annotation/GCF_000242115.1_Pext14-3B_1.0_genomic.gbff", "gb")}
-    pw.create_genebank(mdb.organism_iterator("Pext14-3B", contigmap))
-    pw.create_organism_params(name="Pext14-3B", organism="Pseudomonas extremaustralis 14-3 substr. 14-3b", domain="TAX-2",
-                              tax="1117958")
+                 bpio.parse("/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb", "gb")}
+    pw.create_genebank(mdb.organism_iterator("GCF_001624625.1", contigmap))
+    pw.create_organism_params(name="Bartonela", organism="Bartonella bacilliformis strain USM-LMMB 07", domain="TAX-2",
+                              tax="774")
     pw.create_genetic_elements()
     pw.execute("/opt/pathway-tools/pathway-tools")

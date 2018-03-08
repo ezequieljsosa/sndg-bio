@@ -1,15 +1,15 @@
 from tqdm import tqdm
 
-from peewee import MySQLDatabase, Model, IntegrityError
+from peewee import MySQLDatabase, Model, IntegrityError, SQL
 
 from peewee import Proxy
 from peewee import CharField, BooleanField, DateTimeField, ForeignKeyField
-from playhouse.shortcuts import OperationalError
 
 from datetime import date, datetime
 import json
 
 from SNDG import grouper
+
 
 def ResultIter(cursor, arraysize=1000):
     'An iterator that uses fetchmany to keep memory usage down'
@@ -56,7 +56,7 @@ class Uniprot(PABase):
 class Mapping(PABase):
     uniprot = ForeignKeyField(Uniprot, related_name='mappings',
                               db_column="uniprot_fk")
-    db = CharField(index = True)
+    db = CharField(index=True)
     value = CharField()
 
     class Meta:
@@ -107,6 +107,27 @@ class ProteinAnnotator:
         for t in ProteinAnnotator.tables:
             t.create_table()
 
+    def uniref_annotations(self,uniref_id,unirefDB="UniRef90"):
+        """
+        :param uniref_90_id:
+        :return: a list of dbx_refs. Each item is a string with the format db:keyword, where db is any of the databases of uniprot
+        """
+        annotations = []
+        # for mapping_uniref in Mapping.select(Mapping.uniprot).where(Mapping.db == unirefDB & Mapping.value == uniref_id):
+        #     for mapping_uniprot in Mapping.select(Mapping.db,Mapping.value).where(Mapping.uniprot == mapping_uniref.uniprot):
+        #         annotations.append(mapping_uniprot.db + ":" + mapping_uniprot.value)
+
+        cmd = ("""SELECT DISTINCT  m2.db,m2.value FROM mapping m1,mapping m2 WHERE m1.db = "%s" """ +
+                """ AND m1.value = "%s" AND m1.uniprot_fk = m2.uniprot_fk;""") % (unirefDB,uniref_id)
+
+        query = Mapping.raw(cmd)
+        for mapping_uniprot in query:
+            annotations.append(mapping_uniprot.db + "||" + mapping_uniprot.value)
+
+
+        return list(set(annotations))
+
+
     def populate_sql(self, unip_id_mapping, goa_id_mapping):
         import subprocess as sp
         """
@@ -143,10 +164,7 @@ class ProteinAnnotator:
                     op = Mapping.insert_many(data, fields=fields)
                     op.execute()
         """
-        #total = int(sp.check_output("wc -l " + goa_id_mapping, shell=True).split()[0])
-
-
-        total = 460488943
+        total = int(sp.check_output("wc -l " + goa_id_mapping, shell=True).split()[0])
 
         with open(goa_id_mapping) as h:
             with tqdm(h, total=total) as pbar:
@@ -173,13 +191,14 @@ class ProteinAnnotator:
                         except IntegrityError:
                             for data in tqdm(data_m):
                                 try:
-                                    Mapping.create(**{x:data[i] for i,x in enumerate(["uniprot", "db", "value"])})
+                                    Mapping.create(**{x: data[i] for i, x in enumerate(["uniprot", "db", "value"])})
                                 except IntegrityError:
                                     pass
+
 
 if __name__ == '__main__':
     pa = ProteinAnnotator()
     pa.connect_to_db(password="mito")
-    pa.create_db()
-    pa.populate_sql("/data/uniprot/idmapping_filtered.dat",
-                    "/data/uniprot/goa/goa_uniprot_all.gpa")
+    # pa.create_db()
+    # pa.populate_sql("/data/uniprot/idmapping_filtered.dat",
+    #                "/data/uniprot/goa/goa_uniprot_all.gpa")

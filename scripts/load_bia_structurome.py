@@ -168,14 +168,14 @@ def process_model(structs_dir,pipeline,  seq_col_name,seq_col_id, model_data, mo
 
         aln_h = model_data["haln"]
         aln_q = model_data["qaln"]
-        prot_start = model_data["qstart"]
-        prot_end = model_data["qend"]
+        prot_start = int(float(model_data["qstart"]))
+        prot_end = int(float(model_data["qend"]))
 
-        pdb_start = int(model_data["hresstart"])
-        pdb_end = int(model_data.template.split("_")[-1])
+        pdb_start = int(float(model_data["hresstart"]))
+        pdb_end = int(float(model_data.template.split("_")[-1]))
 
-        hit_start = model_data["hstart"]
-        hit_end = model_data["hend"]
+        hit_start = int(float( model_data["hstart"]))
+        hit_end = int(float(model_data["hend"]))
 
         template_name = model_data["template"]
 

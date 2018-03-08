@@ -129,36 +129,42 @@ class BioMongoDB(object):
             go.load(False)
             _log.debug("GO loaded")
 
-    def copy_genome(self, name, newname=None, db=None, ):
+    def copy_genome(self, name, newname=None, dst_db=None, ):
+        """
+        :param name: of the collection in the source db
+        :param newname: of the collection
+        :param dst_db: destination database, by default is the same as the source db
+
+        """
 
         sc = self.db.sequence_collection.find_one({"name": name})
         genome_id = sc["_id"]
-        new_id = genome_id if db else ObjectId()
+        new_id = genome_id if dst_db else ObjectId()
 
-        assert bool(newname) | bool(db), "newname and db cant be none at the same time"
+        assert bool(newname) | bool(dst_db), "newname and db cant be none at the same time"
 
-        if not db:
-            db = self.db
+        if not dst_db:
+            dst_db = self.db
         if not newname:
             newname = name
 
         sc["name"] = newname
-        db.sequence_collection.insert(sc)
+        dst_db.sequence_collection.insert(sc)
 
         for contig in self.db.contig_collection.find({"seq_collection_id": genome_id}):
             contig["seq_collection_id"] = new_id
             contig["organism"] = newname
-            db.contig_collection.save(contig)
+            dst_db.contig_collection.save(contig)
 
         for protein in tqdm(self.db.proteins.find({"organism": name})):
             protein["seq_collection_id"] = new_id
             protein["organism"] = newname
-            db.proteins.save(protein)
+            dst_db.proteins.save(protein)
 
         for idx in self.db.col_ont_idx.find({"seq_collection_name": name}):
             idx["seq_collection_id"] = new_id
             idx["organism"] = newname
-            db.col_ont_idx.save(idx)
+            dst_db.col_ont_idx.save(idx)
 
     def delete_feature_type(self, organism, feature_type):
         self.db.proteins.update({"organism": organism, "features.type": feature_type},
@@ -274,6 +280,10 @@ class BioMongoDB(object):
                 p.properties.append(prop)
                 p.save()
         print i
+
+
+
+
 
     def load_metadata(self, organism_name, datafile, uploader=demo):
         import pandas as pd
