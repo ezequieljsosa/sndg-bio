@@ -6,6 +6,7 @@ Created on Jun 25, 2015
 import logging
 import os
 import re
+import traceback
 from multiprocessing.synchronize import Lock
 
 import numpy as np
@@ -81,14 +82,16 @@ if not os.path.exists("/data/databases/pdb/processed/dns_pdbs2.tlb"):
             "qlen", "E-value", "score1", "bias1", "#", "of", "c-Evalue", "i-Evalue",
             "score2", "bias2", "from1", "to1", "from2", "to2", "from3", "to3", "acc"]
     _log.info("correcting hmmer-pdb output")
-    df_hmm = pd.DataFrame()
+
     regexp = re.compile(" +")
+    items = []
     for x in tqdm(open('/data/databases/pdb/processed/dns_pdbs.tlb').readlines()):
         if not x.startswith("#"):
             line = regexp.split(x)
-            record = {c: line[i] for i, c in enumerate(cols)}
-            df_hmm = df_hmm.append(record, ignore_index=True)
+            items.append(line[0:len(cols)])
+            #record = {c: line[i] for i, c in enumerate(cols)}
 
+    df_hmm = pd.DataFrame.from_records(items,columns=cols)
     # df_hmm =  df = pd.read_table('/data/databases/pdb/processed/dns_pdbs.tlb', index_col=None, header=None, delimiter=r"\s+",comment="#",names=cols)
     # df_hmm = df_hmm.dropna()
     df_hmm = df_hmm[["accession", "query_name", "from3", "to3"]]
@@ -132,12 +135,12 @@ def residues_near_drug(drug_centroid, aa_residues):
 def juan(pdb_raw):
     try:
         pepe(pdb_raw)
-    except Exception as ex:
-        print str(ex)
+    except Exception:
+        traceback.print_exc()
     finally:
         with lock:
             pdbs_procesados.append(pdb_raw)
-            with open("pdbs_ex_dn_procesados.txt", "a") as handle:
+            with open("/tmp/pdbs_ex_dn_procesados.txt", "a") as handle:
                 handle.write(pdb_raw + "\n")
 
 
@@ -154,20 +157,23 @@ def pepe(pdb):
 
         hmm_residues = {}
 
-        pdb_seqs = ppb.build_peptides(model[chain])
-        if pdb_seqs:
+        pdb_seq = list(model[chain].get_residues())
+        if pdb_seq:
             hmm_contacts = {}
             hmm_residues = {}
-            for pdb_seq in pdb_seqs:
-                hmms = df_hmm[(df_hmm["pdb"] == pdb) & (df_hmm["chain"] == chain) & (
-                        df_hmm["start_res"] == str(pdb_seq[0].id[1]))]
-                for j, hmm in hmms.iterrows():  # @UnusedVariable
+
+            hmms = df_hmm[(df_hmm["pdb"] == pdb) & (df_hmm["chain"] == chain) & (
+                    df_hmm["start_res"] == str(pdb_seq[0].id[1]))]
+            for j, hmm in hmms.iterrows():
+                try:
                     hmm_start = int(hmm["from3"]) - 1
                     hmm_end = int(hmm["to3"]) - 1
                     hmm_chain_name = "_".join(map(str, [hmm["accession"].split(".")[0], hmm["chain"],
-                                                        pdb_seq[hmm_start].id[1], pdb_seq[hmm_end].id[1]]))
+                                                    pdb_seq[hmm_start].id[1], pdb_seq[hmm_end].id[1]]))
                     hmm_contacts[hmm_chain_name] = []
                     hmm_residues.update({res.id[1]: hmm_chain_name for res in pdb_seq[hmm_start:hmm_end]})
+                except IndexError:
+                    print (pdb,hmm["accession"],hmm["chain"],hmm_start,hmm_end,pdb_seq)
 
         aa_residues = []
         drug_molecules = []

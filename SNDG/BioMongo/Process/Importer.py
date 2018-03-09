@@ -329,27 +329,26 @@ if __name__ == '__main__':
     from peewee import MySQLDatabase
     from SNDG.BioMongo.Process.Taxon import tax_db
 
-    #tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("tdr")
-    # mdb.delete_seq_collection("GCF_001624625.1")
-    # from_ref_seq("GCF_001624625.1",
-    #              "/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb",
-    #              tax=774)
+    mdb.delete_seq_collection("GCF_001624625.1")
+    from_ref_seq("GCF_001624625.1",
+                 "/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb",
+                 tax=774)
 
 
 
-    # mdb.delete_seq_collection("cruzi")
-    # from_TriTrypDB(name="cruzi", tax=353153,
-    #                fasta="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",
-    #                gff="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like.gff"
-    #                )
+    mdb.delete_seq_collection("cruzi")
+    from_TriTrypDB(name="cruzi", tax=353153,
+                   fasta="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",
+                   gff="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like.gff"
+                   )
 
     # _common_annotations("cruzi","/tmp/cruzi/")
-    import pymongo
+    load_pathways("cruzi", "/data/organismos/cruzi/pathways/pathways-sm.sbml",
+                  pymongo.MongoClient().tdr,"/data/organismos/cruzi/pathways/")
+    load_pathways("GCF_001624625.1", "/data/organismos/GCF_001624625.1/pathways/pathways-sm.sbml",
+              pymongo.MongoClient().tdr,"/data/organismos/GCF_001624625.1/pathways/")
     load_pathways("Pext14-3B", "/data/organismos/Pext14-3B/pathways/pathways-sm.sbml",
                   pymongo.MongoClient().tdr,"/data/organismos/Pext14-3B/pathways/")
 
-    load_pathways("cruzi", "/data/organismos/cruzi/pathways/pathways-sm.sbml",
-                     pymongo.MongoClient().tdr,"/data/organismos/cruzi/pathways/")
-    load_pathways("GCF_001624625.1", "/data/organismos/GCF_001624625.1/pathways/pathways-sm.sbml",
-                  pymongo.MongoClient().tdr,"/data/organismos/GCF_001624625.1/pathways/")
