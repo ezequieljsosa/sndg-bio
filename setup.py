@@ -15,6 +15,7 @@ setup(
     scripts = ["scripts/structurome.py"],
     description = readme_md,
     author = 'Ezequiel Sosa - SNDG',
+    install_requires=["tqdm","bcbio-gff","biopython","goatools"],
     author_email = 'ezequieljsosa@gmail.com',
     url = 'https://github.com/ezequieljsosa/sndg-bio',
     download_url = 'https://github.com/ezequieljsosa/sndg-bio/archive/0.1.tar.gz',

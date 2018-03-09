@@ -171,7 +171,7 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
     _common_annotations(name, tmp_dir)
 
 
-def _common_annotations(name, tmp_dir):
+def _common_annotations(name, tmp_dir,cpu=1,remove_tmp=False):
     protein_fasta = tmp_dir + "/proteins.fasta"
     if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
         with open(protein_fasta, "w") as h:
@@ -183,17 +183,19 @@ def _common_annotations(name, tmp_dir):
         blast_result = tmp_dir + "/pdb_blast.xml"
         pdbs_path = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
         if not os.path.exists(blast_result):
-            cmd = "blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query %s -db %s -num_threads 1 -outfmt 5 -out %s"
-            subprocess.call(cmd % (protein_fasta, pdbs_path, blast_result), shell=True)
+            cmd = "blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query %s -db %s -num_threads %i -outfmt 5 -out %s"
+            subprocess.call(cmd % (protein_fasta, pdbs_path,cpu ,blast_result), shell=True)
 
         load_blast_pdb(name, blast_result)
-        # os.remove(blast_result)
+        if remove_tmp:
+            os.remove(blast_result)
 
     if not Protein.objects(__raw__={"organism": name, "features.type": SO_TERMS["polypeptide_domain"]}).count():
         hmm_result = tmp_dir + "/domains.hmm"
         Hmmer(protein_fasta, output_file=hmm_result).query()
         load_hmm(name, hmm_result)
-        os.remove(hmm_result)
+        if remove_tmp:
+            os.remove(hmm_result)
 
 
 def load_pathways( genome_name, sbml_path,db,pathways_dir, prefered_biocyc=None,
