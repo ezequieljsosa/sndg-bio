@@ -30,11 +30,12 @@ class Tax(Model):
         return "Tax(" + "".join([x + "=" + str(y) + "," for x, y in self.__data__.items()]) + ")"
 
     @classmethod
-    def parents(cls, tax):
-        if tax.parent.taxon_id != 1:
-            return [tax] + Tax.parents(tax.parent)
-        else:
+    def parents(cls, tax,return_self=True):
+        if tax.taxon_id == 1:
             return []
+        else:
+            return ([tax] if return_self else []) + Tax.parents(tax.parent)
+
 
     @classmethod
     def getTax(cls, tax_id):

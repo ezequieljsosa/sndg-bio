@@ -21,12 +21,12 @@ from SNDG.BioMongo.Process.StructureIndexer import StructuromeIndexer
 
 _log = logging.getLogger(__name__)
 
-def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism_idx=True, pathways=True,structure=False):
+def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_idx=True, pathways=True,structure=False):
 
     collection = SeqCollection.objects(name=genome).get()
 
     if ec:
-        ec2mongo = EC2Mongo(self.db)
+        ec2mongo = EC2Mongo(db)
         _log.debug("Building EC index...")
         ec2mongo.pre_build_index(collection)
         collection.ec_index = True
@@ -34,7 +34,7 @@ def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism
         collection.save()
 
     if go:
-        go2mongo = GO2Mongo("/data/databases/go/go.obo", self.db)
+        go2mongo = GO2Mongo("/data/databases/go/go.obo", db)
         go2mongo.init()
         _log.debug("Building GO index...")
         go2mongo.pre_build_index(collection)
@@ -43,7 +43,7 @@ def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism
         _log.debug("GO index finished")
 
     if pathways:
-        biocyc = BioCyc(self.db)
+        biocyc = BioCyc(db)
         biocyc.user = BioMongoDB.demo
         _log.debug("Building Biocyc index...")
         biocyc.pre_build_index(collection)
@@ -58,7 +58,7 @@ def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism
         _log.debug("indexing by keyword...")
         ki = KeywordIndexer()
         cache = {}
-        total_p = self.db.proteins.count({"organism":genome})
+        total_p = db.proteins.count({"organism":genome})
         with tqdm(Protein.objects(organism=genome).no_cache().timeout(False), total=total_p) as pbar:
 
             for prot in pbar:
@@ -92,7 +92,7 @@ def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism
 
     if organism_idx:
         _log.debug("indexing ontology by organism")
-        prots = list(self.db.proteins.find({"organism":genome, "ontologies.0":{"$exists":True}}))
+        prots = list(db.proteins.find({"organism":genome, "ontologies.0":{"$exists":True}}))
         for prot in prots:
             for term in prot["ontologies"]:
                 if (term in cache) and cache[term].ontology not in ["ec", "go"]:
@@ -103,6 +103,8 @@ def index_seq_collection(self, genome, ec=True, go=True, keywords=True, organism
                     seq_col_ont_idx.save()
         SeqColOntologyIndex.objects(count=0).delete()
         _log.debug("Organism index finished")
+    collection.save()
+    _log.info("indexing %s finished" + genome)
 
 def build_statistics(db, genome_name):
     import numpy as np
@@ -194,3 +196,14 @@ def build_statistics(db, genome_name):
         {"organism": genome_name, "features.type": "SO:0001077"}).count()))
 
     genome.save()
+
+if __name__ == '__main__':
+    import pymongo
+    from SNDG import init_log
+    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+    #from SNDG.BioMongo.Process.Index import index_seq_collection
+    init_log()
+    BioMongoDB("tdr")
+    index_seq_collection(pymongo.MongoClient().tdr,"GCF_001624625.1",
+                         ec=True, go=True, keywords=True, organism_idx=True, pathways=False,
+                         structure=False)

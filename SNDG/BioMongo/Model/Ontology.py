@@ -3,7 +3,7 @@ Created on Oct 13, 2015
 
 @author: eze
 '''
-from mongoengine.document import  DynamicDocument
+from mongoengine.document import DynamicDocument
 from mongoengine.fields import StringField, ListField
 
 
@@ -13,6 +13,7 @@ class Ontology(DynamicDocument):
     '''
     meta = {'allow_inheritance': True,
             'collection': "ontologies",
+            'strict': False,
             'indexes': [
                 'term', 'keywords',
                 {"fields": ["ontology", "term"]},
@@ -32,7 +33,7 @@ class Ontology(DynamicDocument):
     successors = ListField(StringField(), default=[])
     subclases = ListField(StringField(), default=[])
 
-    #     successors_relationships = ListField(StringField( ),default = [])
+    successors_relationships = ListField(StringField(), default=[])
 
     def __repr__(self):
         return "Ontology(" + ",".join([str(k) + "=" + v.__repr__() for k, v in self._data.items()]) + ")"

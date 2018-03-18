@@ -12,7 +12,7 @@ from mongoengine.document import Document, EmbeddedDocument, \
     DynamicEmbeddedDocument
 from mongoengine.errors import DoesNotExist
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, \
-    ReferenceField, FloatField, IntField
+    ReferenceField, FloatField, IntField,DynamicField
 
 from SNDG.BioMongo.Model import BioProperties
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment
@@ -21,6 +21,9 @@ from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.Structure.CompoundTypes import compound_type
 from SNDG.BioMongo.Model import Cluster
+from SNDG.BioMongo.Model.ResidueAln import ResidueAln #ignore unused
+
+
 
 
 _log = logging.getLogger(__name__)
@@ -208,7 +211,7 @@ class Structure(Document):
     properties = EmbeddedDocumentField(BioProperties)
     keywords = ListField(StringField(),default=[])
     qualities = ListField(EmbeddedDocumentField(StructureQuality))
-
+    sndg_index = DynamicField(required=False)
 
     def chain(self, chain_name):
         return [x for x in self.chains if x.name == chain_name][0]
@@ -290,6 +293,7 @@ class ExperimentalStructure(Structure):
     experiment = StringField()
     clusters = ListField(EmbeddedDocumentField(Cluster))
     tax = IntField(required=False)
+
 
     def cluster(self, cluster_name):
         rss = [x for x in self.clusters if x.name == cluster_name]

@@ -6,15 +6,16 @@ Created on Jul 4, 2014
 import logging
 import os
 
-from tqdm import tqdm
-
 import Bio.SeqIO as bpio
+import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqUtils import seq1
+from tqdm import tqdm
+
 from SNDG import mkdir, execute
 from SNDG.WebServices import download_file
 
@@ -36,7 +37,7 @@ class PDBs(object):
         for index_dir in os.listdir(self.pdbs_dir):
             if len(index_dir) == 2:
                 for x in os.listdir(self.pdbs_dir + "/" + index_dir):
-                    if x.endswith(self.pdb_prefix):
+                    if x.endswith(self.pdb_extention):
                         yield x[3:7], self.pdbs_dir + "/" + index_dir + "/" + x
 
     def __init__(self, pdb_dir='/data/databases/pdb/'):
@@ -45,17 +46,30 @@ class PDBs(object):
         '''
         self.pdb_dir = pdb_dir
         self.pdbs_dir = self.pdb_dir + 'divided/'
+        self.pockets_dir = self.pdb_dir + 'pockets/'
 
         self.pdb_seq_res_path = self.pdb_dir + "/pdb_seqres.txt"
         self.url_pdb_seq_res = "ftp://ftp.rcsb.org/pub/pdb/derived_data/pdb_seqres.txt"
 
         self.url_pdb_files = 'ftp://ftp.wwpdb.org/pub/pdb/data/structures/divided/pdb/'  # 00/pdb100d.ent.gz
 
-        self.pdb_prefix = ".ent"
+        self.pdb_extention = ".ent"
         self.pdb_download_extention = ".ent.gz"
 
         self.uncompress_file = True
         self.delete_compressed = True
+        self.entries_path = '/data/databases/pdb/entries.idx'
+
+    def entries_df(self):
+        entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
+                           "EXPERIMENT"]
+        return pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
+
+    def pdb_path(self, pdb):
+        return self.pdbs_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention
+
+    def pdb_pockets_path(self, pdb):
+        return self.pockets_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention + ".json"
 
     def download_pdb_seq_ses(self):
         download_file(self.url_pdb_seq_res, self.pdb_seq_res_path, ovewrite=True)
@@ -86,7 +100,7 @@ class PDBs(object):
             out_fasta = self.pdb_dir + "processed/seqs_from_pdb.fasta"
 
         with open(out_fasta, "w") as handle:
-            for  (pdb, pdb_file_path) in tqdm(pdbsIter):
+            for (pdb, pdb_file_path) in tqdm(pdbsIter):
                 struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
                 for chain in struct.get_chains():
                     residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]
@@ -111,6 +125,8 @@ if __name__ == '__main__':
 
     init_log()
     pdbs = PDBs()
-    os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
-    pdbs.update_pdb_dir()
-    pdbs.pdbs_seq_for_modelling("/tmp/pepe.fasta")
+    # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
+    # pdbs.update_pdb_dir()
+    # pdbs.pdbs_seq_for_modelling("/tmp/pepe.fasta")
+    pepe = pdbs.entries_df()
+    print pepe

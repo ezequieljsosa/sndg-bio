@@ -23,6 +23,7 @@ import pymongo
 from SNDG import init_log
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
+from SNDG.BioMongo.Process.BioMongoDB import  BioMongoDB
 from mongoengine.errors import DoesNotExist
 
 from SNDG.BioMongo.Model.ResidueAln import ResidueAln
@@ -69,9 +70,7 @@ USAGE
 
     args = parser.parse_args()
 
-    from mongoengine import connect, register_connection
-    connect(args.db_genome, host=args.db_host)
-    register_connection(args.db_structure, "pdb")
+    BioMongoDB(args.db_genome)
     db = pymongo.MongoClient(args.db_host)[args.db_structure]
 
     sa = StructureAnotator(args.structs_dir + "/")

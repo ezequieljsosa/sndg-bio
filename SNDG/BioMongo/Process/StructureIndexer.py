@@ -455,7 +455,7 @@ class StructuromeIndexer(object):
             query["organism"] = self.collection.name
             proteins = Protein.objects(__raw__=query).no_cache().timeout(False)
             prot_count = Protein.objects(__raw__=query).count()
-        with tqdm(proteins) as pbar:
+        with tqdm(proteins,total = prot_count) as pbar:
             for protein in pbar:
 
                 pbar.set_description(protein.name)
@@ -479,5 +479,7 @@ class StructuromeIndexer(object):
                             protein.search[x[0]] = None
                     protein.save()
                 except Exception as ex:
+                    error_line = protein.name + "," + protein.organism + "," + str(protein.id) + "," + str(ex)
+                    _log.warn(error_line)
                     with open(error_output, "a") as h:
-                        h.write(protein.name + "," + protein.organism + "," + str(protein.id) + "," + str(ex))
+                        h.write(error_line)

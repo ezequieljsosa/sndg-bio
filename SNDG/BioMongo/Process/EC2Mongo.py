@@ -6,6 +6,7 @@ Created on Jun 18, 2014
 
 import logging
 import re
+from tqdm import tqdm
 from pymongo.database import Database
 from pymongo.mongo_client import MongoClient
 from bson.objectid import ObjectId
@@ -114,7 +115,9 @@ class EC2Mongo(object):
                         drop=False):
         self.col_index.remove({"ontology": "ec", "seq_collection_id": genome.id})
 
-        for ont_doc in Ontology.objects(ontology="ec").no_cache():
+        _log.debug("creating empty ecs idxs")
+        ec_count = Ontology.objects(ontology="ec").count()
+        for ont_doc in tqdm(Ontology.objects(ontology="ec").no_cache(), total=ec_count):
             order = 9999999
             try:
                 order = order / int(
@@ -136,15 +139,16 @@ class EC2Mongo(object):
         #                 ]     , allowDiskUse=True
 
         #         counts = {term_count["_id"].lower() : term_count["annotations_count"] for term_count in individual_counts}
+
+        _log.debug("initializign idx ecs")
         terms_count = SeqColOntologyIndex.objects(ontology="ec", seq_collection_id=genome.id).count()
-        for i, ont_doc in enumerate(SeqColOntologyIndex.objects(ontology="ec", seq_collection_id=genome.id).order_by(
-                "-term").no_cache().timeout(False)):
+        for ont_doc in tqdm(SeqColOntologyIndex.objects(ontology="ec", seq_collection_id=genome.id).order_by(
+                "-term").no_cache().timeout(False), total=terms_count):
             if "-" in ont_doc.term:
                 str_term = ont_doc.term.replace(".", "\.").replace("-", ".+")
             else:
                 str_term = ont_doc.term
-            if not (i % 100):
-                print "%i/%i" % (i, terms_count)
+
             count = self.db[annotated_collection].count({"seq_collection_id": genome.id,
                                                          annotated_collection_field: {"$regex": '^' + str_term,
                                                                                       "$options": "-i"}})
@@ -169,6 +173,7 @@ class EC2Mongo(object):
                 "seq_collection_name": genome.name,
                 "seq_collection_id": genome.id
             })
+        _log.debug("ecs idxs done")
 
     def _process_children(self, seq_collection_id, counts, str_term):
         for successor in self._successors(str_term, counts):

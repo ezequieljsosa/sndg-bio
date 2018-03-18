@@ -17,10 +17,13 @@ from SNDG.BioMongo.Model.Ontology import Ontology
 from SNDG.BioMongo.Model.SeqColOntologyIndex import SeqColOntologyIndex
 from SNDG.BioMongo.Process.KeywordIndexer import KeywordIndexer
 from SNDG.Sequence.so import SO_ROOT_TERMS
+from tqdm import tqdm
+
 
 GO_ROOT_TERMS = ["GO:0008150", "GO:0005575", "GO:0003674"]
 
 _log = logging.getLogger(__name__)
+
 
 class GO2Mongo(object):
     """
@@ -165,7 +168,7 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
                                    successors=self.all_successors(node, []),
                                    children=successors,
                                    description=self.go_dag.query_term(node.upper()).desc,
-                                   successors_relationships=self.successors_relationships(node),
+                                   # successors_relationships=self.successors_relationships(node),
                                    subclases=list(set(
                                        [x.lower() for x in self.go_dag.query_term(node.upper()).get_all_children()]))
                                    )
@@ -190,8 +193,8 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
         term_id = term.id.lower()
         if term_id in processed: return
         processed.append(term_id)
-        if term.children or term.relationships:
-            for child in (term.children + [x[1] for x in term.relationships]):
+        if term.children:  # or term.relationships:
+            for child in term.children:  # + [x[1] for x in term.relationships]):
                 child_id = child.id.lower()
 
                 self.graph.add_node(child_id, name=child.name)
@@ -246,7 +249,8 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
             print self.col_go_index.remove({"seq_collection_id": genome.id, "ontology": self.ontology_name})
 
         ont_succ_cache = {}
-        for ont_doc in Ontology.objects(ontology=self.ontology_name):
+        for ont_doc in tqdm(Ontology.objects(ontology=self.ontology_name).no_cache(),
+                            total=Ontology.objects(ontology=self.ontology_name).count()):
             ont_succ_cache[ont_doc.term] = ont_doc.successors
             database = ""
 
@@ -264,8 +268,9 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
             seq_ont_ont_idx.save()
 
         ont_count = defaultdict(lambda: 0)
-        for p in self.db[annotated_collection].find({"seq_collection_id": genome.id, "ontologies.0": {"$exists": True}},
-                                                    {"ontologies": 1}):
+        query = {"seq_collection_id": genome.id, "ontologies.0": {"$exists": True}}
+        for p in tqdm(self.db[annotated_collection].find(query, {"ontologies": 1}),
+                      total=self.db[annotated_collection].count(query)):
             terms = [x for x in p["ontologies"] if x.startswith("go:")]
             terms = self.complete_subgraph(terms)
             for x in terms:
@@ -273,7 +278,7 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
             self.db[annotated_collection].update({"_id": p["_id"]
                                                   }, {"$addToSet": {annotated_collection_field: {"$each": terms}}})
 
-        for term, count in ont_count.items():
+        for term, count in tqdm(ont_count.items()):
             for seq_ont_ont_idx in SeqColOntologyIndex.objects(seq_collection_id=genome.id, ontology=self.ontology_name,
                                                                term=term):
                 seq_ont_ont_idx.count = count

@@ -13,6 +13,8 @@ import subprocess
 from tqdm import tqdm
 from numpy.lib.scimath import sqrt
 
+from SNDG import mkdir
+
 _log = logging.getLogger(__name__)
 
 PDB_HEADER_FIELDS = ["Pocket Score",
@@ -146,6 +148,7 @@ class FpocketOutput():
             pocket.load_alpha()
 
     def save(self, file_path):
+        mkdir(os.path.dirname(os.path.abspath(file_path)))
         with open(file_path, "w") as handle:
             json.dump(
                 [{"number": p.pocket_num, "as_lines": p.alpha_spheres, "atoms": p.atoms, "properties": p.properties}

@@ -128,6 +128,8 @@ class ProteinAnnotator:
         return list(set(annotations))
 
 
+
+
     def populate_sql(self, unip_id_mapping, goa_id_mapping):
         import subprocess as sp
         """

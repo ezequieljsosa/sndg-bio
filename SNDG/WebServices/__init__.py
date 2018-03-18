@@ -2,8 +2,9 @@
 Utilities for file download
 """
 
-import os
+import hashlib
 import logging
+import os
 
 from SNDG import execute
 
@@ -14,12 +15,26 @@ def OvewriteFileException(Exception):
     pass
 
 
-def download_file(complete_url,target,ovewrite=False,retries=3):
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
-    if not os.path.exists( os.path.dirname(target)):
+
+def md5_equal(fname, known_md5):
+    match = md5(fname) == known_md5
+    if not match:
+        _log.error("error in %s checksum" % fname)
+    return match
+
+
+def download_file(complete_url, target, ovewrite=False, retries=3):
+    if not os.path.exists(os.path.dirname(target)):
         raise Exception("%s does not exists" % os.path.dirname(target))
     if os.path.exists(target) and not ovewrite:
         raise OvewriteFileException("%s already exists" % target)
 
     execute("wget -q --tries={retries} -O {target} {url}",
-            url=complete_url,retries=retries, target=target)
+            url=complete_url, retries=retries, target=target)

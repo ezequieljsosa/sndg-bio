@@ -5,6 +5,7 @@ Created on Sep 20, 2016
 """
 
 import logging
+import json
 
 from Bio.PDB.PDBParser import PDBParser
 from SNDG.BioMongo.Model.Structure import ResidueSet, ExperimentalStructure, ModeledStructure
@@ -12,6 +13,9 @@ from SNDG.Sequence.pfam import PFamProfile, ProfileNotFoundError
 from SNDG.Structure.CompoundTypes import main_compound_types
 
 _log = logging.getLogger(__name__)
+
+from SNDG.Structure.FPocket import fpocket_properties_map
+eq2 = {v:k for k,v in fpocket_properties_map.items()}
 
 
 class StructureAnotator(object):
@@ -36,7 +40,8 @@ class StructureAnotator(object):
 
 
     @staticmethod
-    def pocket_residue_set(pockets_json):
+    def pocket_residue_set(pockets_json,structure_atoms):
+        rss = []
         with open(pockets_json) as handle:
             pockets_dict = json.load(handle)
         for pocket_dict in pockets_dict:
@@ -45,9 +50,10 @@ class StructureAnotator(object):
                 rs[eq2[key]] = value
 
             rs.residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
-                                    for x in model.get_atoms()
+                                    for x in structure_atoms
                                     if str(x.serial_number) in pocket_dict["atoms"]]))
-        return rs
+            rss.append(rs)
+        return rss
 
 
     def free_cys_tyr(self, strdoc):

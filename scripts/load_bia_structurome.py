@@ -32,9 +32,7 @@ from SNDG.BioMongo.Model.Alignment import AlnLine
 from SNDG.BioMongo.Model.ResidueAln import ResidueAln
 from SNDG.BioMongo.Model.Structure import ModeledStructure, Chain, Molecule, StructureQuality, \
     ResidueSet
-from SNDG.Structure.FPocket import fpocket_properties_map
-
-eq2 = {v: k for k, v in fpocket_properties_map.items()}
+from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 
 init_log()
 _log = logging.getLogger(__name__)
@@ -100,7 +98,6 @@ USAGE
 
     args = parser.parse_args()
 
-
     if not os.path.exists(args.properties):
         _log.error("%s does not exists" % args.properties)
         sys.exit(1)
@@ -108,15 +105,13 @@ USAGE
         _log.error("%s does not exists" % args.structs_dir)
         sys.exit(2)
 
-
-    from mongoengine import connect,register_connection
+    from mongoengine import connect, register_connection
     connect(args.genome_database_name, host=args.db_host)
     register_connection(args.database_name, "pdb")
     db = MongoClient()[args.genome_database_name]
-    collection = db.sequence_collection.find_one({"name":args.genome},{"name":1})
+    collection = db.sequence_collection.find_one({"name": args.genome}, {"name": 1})
     assert collection, "genome %s not found" % args.genome
-    #from bson.objectid import ObjectId
-    #collection = {"name":"Pext14-3B","_id":ObjectId("59a9840bbe737e704bb815ab")}
+
     df_structs = pd.read_csv(args.properties)
 
     parser = PDBParser(PERMISSIVE=1, QUIET=1)
@@ -140,9 +135,10 @@ USAGE
 
             prot = list(Protein.objects(organism=args.genome, alias__iexact=model_data["prot"]))
             if len(prot) == 0:
-                _log.warn( "Not found: " + str(model_data["prot"]))
+                _log.warn("Not found: " + str(model_data["prot"]))
             try:
-                strdoc = process_model(args.structs_dir,args.pipeline,  collection["name"],collection["_id"], model_data, model_name, model_path, parser)
+                strdoc = process_model(args.structs_dir, args.pipeline, collection["name"], collection["_id"],
+                                       model_data, model_name, model_path, parser)
                 strdoc.save()
             except Exception as ex:
                 _log.error(ex)
@@ -150,7 +146,7 @@ USAGE
     _log.info("Finished")
 
 
-def process_model(structs_dir,pipeline,  seq_col_name,seq_col_id, model_data, model_name, model_path, parser):
+def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, model_name, model_path, parser):
     structure = parser.get_structure(model_name, model_path)
     strdoc = ModeledStructure(name=model_name, seq_collection_id=seq_col_id, pipeline=pipeline,
                               organism=seq_col_name)
@@ -174,7 +170,7 @@ def process_model(structs_dir,pipeline,  seq_col_name,seq_col_id, model_data, mo
         pdb_start = int(float(model_data["hresstart"]))
         pdb_end = int(float(model_data.template.split("_")[-1]))
 
-        hit_start = int(float( model_data["hstart"]))
+        hit_start = int(float(model_data["hstart"]))
         hit_end = int(float(model_data["hend"]))
 
         template_name = model_data["template"]
@@ -202,18 +198,10 @@ def process_model(structs_dir,pipeline,  seq_col_name,seq_col_id, model_data, mo
                     strdoc.ligands.append(molecule)
 
     pockets_json = structs_dir + "/" + model_name + ".pdb.json"
-    if os.path.exists(pockets_json):
-        with open(pockets_json) as handle:
-            pockets_dict = json.load(handle)
-        for pocket_dict in pockets_dict:
-            rs = ResidueSet(name="Pocket_" + str(pocket_dict["number"]), type="pocket")
-            for key, value in pocket_dict["properties"].items():
-                rs[eq2[key]] = value
 
-            rs.residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
-                                    for x in model.get_atoms()
-                                    if str(x.serial_number) in pocket_dict["atoms"]]))
-            strdoc.pockets.append(rs)
+    if os.path.exists(pockets_json):
+        rss = StructureAnotator.pocket_residue_set(pockets_json,model.get_atoms())
+        strdoc.pockets = rss
     return strdoc
 
 

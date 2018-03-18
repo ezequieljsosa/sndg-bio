@@ -17,6 +17,8 @@ def old_or_inexistent(filepath, period=30):
 os.environ["http_proxy"] = "http://proxy.fcen.uba.ar:8080"
 os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
 
+
+
 if not os.path.exists("/data/cog/whog"):
     mkdir("/data/cog/")
     download_file("ftp://ftp.ncbi.nih.gov/pub/COG/COG/whog",
@@ -51,6 +53,7 @@ if not os.path.exists("/data/pfamtigrfam/tirgfam.hmm"):
 
 if not os.path.exists("/data/pfamtigrfam/pfam2go.txt"):
     download_file("http://geneontology.org/external2go/pfam2go", "/data/pfamtigrfam/pfam2go.txt")
+if not os.path.exists("/data/pfamtigrfam/TIGRFAMS_GO_LINK"):
     download_file("ftp://ftp.jcvi.org/pub/data/TIGRFAMs/TIGRFAMS_GO_LINK", "/data/pfamtigrfam/TIGRFAMS_GO_LINK")
 
 if old_or_inexistent("/data/pfamtigrfam/Pfam-A.hmm", 150):
@@ -75,15 +78,24 @@ if old_or_inexistent("/data/uniprot/goa/"):
 if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
     mkdir("/data/uniprot/gsm")
 
-    download_file(
-        "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz",
-        "/data/uniprot/gsm/uniprot_sprot.fasta.gz", ovewrite=True)
-    execute("gunzip /data/uniprot/gsm/uniprot_sprot.fasta.gz")
+    if old_or_inexistent("/data/uniprot/gsm/uniprot_sprot.fasta.gz"):
+        download_file(
+            "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz",
+            "/data/uniprot/gsm/uniprot_sprot.fasta.gz", ovewrite=True)
+        try:
+            execute("gunzip /data/uniprot/gsm/uniprot_sprot.fasta.gz")
+        except:
+            os.remove("/data/uniprot/gsm/uniprot_sprot.fasta.gz")
 
-    download_file(
-        "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
+    if old_or_inexistent("/data/uniprot/gsm/uniprot_trembl.fasta.gz"):
+        download_file(
+            "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
         "/data/uniprot/gsm/uniprot_trembl.fasta.gz", ovewrite=True)
-    execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz")
+        try:
+            execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz")
+        except:
+            os.remove("/data/uniprot/gsm/uniprot_trembl.fasta.gz")
+
     shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
     shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
     execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")

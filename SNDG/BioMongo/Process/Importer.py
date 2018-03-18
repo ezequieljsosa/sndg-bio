@@ -31,6 +31,8 @@ from SNDG.WebServices.NCBI import NCBI
 _log = logging.getLogger("Importer")
 
 
+
+
 def _protein_iter(contigIterator):
     for c in contigIterator:
         for f in c.features:
@@ -326,25 +328,26 @@ if __name__ == '__main__':
     init_log()
     from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
     import logging
+    import pymongo
 
     logging.getLogger("peewee").setLevel(logging.WARN)
     from peewee import MySQLDatabase
     from SNDG.BioMongo.Process.Taxon import tax_db
 
-    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    # tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("tdr")
-    mdb.delete_seq_collection("GCF_001624625.1")
-    from_ref_seq("GCF_001624625.1",
-                 "/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb",
-                 tax=774)
-
-
-
-    mdb.delete_seq_collection("cruzi")
-    from_TriTrypDB(name="cruzi", tax=353153,
-                   fasta="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",
-                   gff="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like.gff"
-                   )
+    # mdb.delete_seq_collection("GCF_001624625.1")
+    # from_ref_seq("GCF_001624625.1",
+    #              "/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb",
+    #              tax=774)
+    #
+    #
+    #
+    # mdb.delete_seq_collection("cruzi")
+    # from_TriTrypDB(name="cruzi", tax=353153,
+    #                fasta="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",
+    #                gff="/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like.gff"
+    #                )
 
     # _common_annotations("cruzi","/tmp/cruzi/")
     load_pathways("cruzi", "/data/organismos/cruzi/pathways/pathways-sm.sbml",

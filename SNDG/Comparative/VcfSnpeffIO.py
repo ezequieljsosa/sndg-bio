@@ -50,7 +50,8 @@ class SnpeffEffect():
         self.aa_alt = ""
         if self.hgvs_c:
             self.gene_pos = hgvs_c.pos.start.base
-        if self.hgvs_p:
+        if self.hgvs_p and self.hgvs_p.pos:
+
             self.aa_ref = self.hgvs_p.pos.start.aa
             try:
                 if self.hgvs_p.edit.type == "del":

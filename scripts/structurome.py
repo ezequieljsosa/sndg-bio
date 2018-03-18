@@ -24,6 +24,7 @@ import Bio.SeqIO as  bpio
 
 from SNDG import init_log
 from SNDG.Structure.PsiProfile import PsiProfile
+from SNDG.Structure.PDBs import PDBs
 
 if __name__ == '__main__':
 
@@ -54,7 +55,15 @@ if __name__ == '__main__':
     init_log(args.log_path, logging.INFO)
     _log = logging.getLogger("model_fasta")
 
-    entries = read_pdb_entries(args.entries)
+    def res_fn(y):
+        try:
+            res = float(y)
+        except:
+            res = 30
+        return res
+    entries = {x.split("\t")[0].lower(): res_fn(x.split("\t")[6]) for x in list(open(args.entries))[3:]}
+
+
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
