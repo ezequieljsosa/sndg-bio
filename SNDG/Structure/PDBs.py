@@ -68,6 +68,9 @@ class PDBs(object):
     def pdb_path(self, pdb):
         return self.pdbs_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention
 
+    def pdb_path_gzipped(self, pdb):
+        return self.pdb_path( pdb) + ".gz"
+
     def pdb_pockets_path(self, pdb):
         return self.pockets_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention + ".json"
 
@@ -84,10 +87,12 @@ class PDBs(object):
         for pdb in tqdm(pdbs):
             try:
                 mkdir(self.pdbs_dir + pdb[1:3])
-                if not os.path.exists(self.pdb_path(pdb)):
+                if os.path.exists(self.pdb_path_gzipped(pdb)):
+                    execute("gunzip " + self.pdb_path_gzipped(pdb))
+                elif not os.path.exists(self.pdb_path(pdb)):
                     download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
                                   self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
-                    execute("gunzip " + self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
+                    execute("gunzip " + self.pdb_path_gzipped(pdb))
 
             except Exception as ex:
                 _log.warn(str(ex))
@@ -98,9 +103,9 @@ class PDBs(object):
             pdbsIter = PDBs(self.pdb_dir)
         if not out_fasta:
             out_fasta = self.pdb_dir + "processed/seqs_from_pdb.fasta"
-
+        pdblist = list(pdbsIter)
         with open(out_fasta, "w") as handle:
-            for (pdb, pdb_file_path) in tqdm(pdbsIter):
+            for (pdb, pdb_file_path) in tqdm(pdblist):
                 struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
                 for chain in struct.get_chains():
                     residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]
@@ -124,9 +129,10 @@ if __name__ == '__main__':
     from SNDG import init_log
 
     init_log()
-    pdbs = PDBs()
+    pdbs = PDBs(pdb_dir="/data/pdb/")
     # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
-    # pdbs.update_pdb_dir()
+    #pdbs.download_pdb_seq_ses()
+    pdbs.update_pdb_dir()
     # pdbs.pdbs_seq_for_modelling("/tmp/pepe.fasta")
-    pepe = pdbs.entries_df()
-    print pepe
+    #pepe = pdbs.entries_df()
+    #print pepe

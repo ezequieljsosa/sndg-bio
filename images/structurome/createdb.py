@@ -13,8 +13,8 @@ def old_or_inexistent(filepath, period=30):
     return not os.path.exists(filepath) or (((time.time() - os.path.getatime(filepath)) / 60 / 60 / 24) > period)
 
 
-os.environ["http_proxy"] = "http://proxy.fcen.uba.ar:8080"
-os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
+#os.environ["http_proxy"] = "http://proxy.fcen.uba.ar:8080"
+#os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
 
 mkdir("/data/pdb/")
 download_file("ftp://ftp.wwpdb.org/pub/pdb/derived_data/index/entries.idx", "/data/pdb/entries.idx",ovewrite=True)
