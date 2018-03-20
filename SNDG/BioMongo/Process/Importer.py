@@ -243,7 +243,7 @@ def update_proteins(annotation_dir, proteome,seq_col_name, tax_id, cpus=multipro
             Uniprot.download_proteome_from_tax(str(species_tax.ncbi_taxon_id), tax_data)
 
 
-        cmd = "blastp -query %s  -db %s -evalue 0.00001 -outfmt 6 -max_target_seqs 1 -max_hsps 1 -qcov_hsp_perc 0.8 -num_threads %i -out %s"
+        cmd = "blastp -query %s  -db %s -evalue 0.00001 -outfmt 6  -max_hsps 1 -qcov_hsp_perc 0.9 -num_threads %i -out %s"
         execute(cmd % (
             proteome, species_fasta, cpus, out
         ))
@@ -406,15 +406,15 @@ if __name__ == '__main__':
              u'GCF_000769675.1', u'GCF_000188155.2', u'GCF_000213355.1', u'GCF_000179595.2', u'GCF_000213335.1',
              u'GCF_000213395.1', u'GCF_002013775.1', u'GCF_002013745.1', u'GCF_002013685.1', u'GCF_002013645.1',
              u'GCF_002013545.1']
-    for assembly in tofix:
+    for seq_col_name in tdqm(tofix):
 
-        tid = int(mdb.db.sequence_collection.find_one({"name":assembly})["tax"]["tid"])
+        tid = int(mdb.db.sequence_collection.find_one({"name":seq_col_name})["tax"]["tid"])
         tmp_dir = "/data/organismos/" + seq_col_name + "/annotation/"
         proteome_dir = "/data/organismos/" + seq_col_name + "/contigs/"
         mkdir(tmp_dir)
         mkdir(proteome_dir)
-        protein_fasta= create_proteome(proteome_dir,collection_name)
-        update_proteins(tmp_dir, protein_fasta,assembly, tid )
+        protein_fasta= create_proteome(proteome_dir,seq_col_name)
+        update_proteins(tmp_dir, protein_fasta,seq_col_name, tid )
 
-        index_seq_collection(mdb.db,assembly,pathways=False,structure=False)
-        build_statistics(mdb.db,assembly)
+        index_seq_collection(mdb.db,seq_col_name,pathways=False,structure=False)
+        build_statistics(mdb.db,seq_col_name)
