@@ -452,21 +452,21 @@ if __name__ == "__main__":
 #         print len(nombres)
 #         print len(set(nombres))
 
-from SNDG.BioMongo.Process.Taxon import Tax, tax_db
-tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-tax = Tax.getTax(1872703)
-for col in db.sequence_collection.find({"tax":{"$exists":0}, "ncbi_assembly":{"$exists":1} },{"name":1,"ncbi_assembly":1,"_id":0}):
-    esearch = Entrez.read(Entrez.esearch(db="assembly", term= col["ncbi_assembly"] ))["IdList"][0]
-    summary = Entrez.esummary(db="assembly", id=esearch)
-    summary = Entrez.read(summary, validate=False)
-    juan = dict(summary["DocumentSummarySet"]["DocumentSummary"][0])
-    #pepe["AssemblyStatus"]
-    tax = Tax.getTax(str(juan["Taxid"]))
-    tax = {
-        "tid" : float(tax.ncbi_taxon_id),
-                         "superkingdom" : [y for y in [x for x in Tax.parents(tax) if x.node_rank == "superkingdom"][0].names
-                                           if y.name_class == "scientific name"  ][0].name  ,
-        "name" : [x for x in tax.names if x.name_class == "scientific name"][0].name
-        }
-    print tax
-    print db.sequence_collection.update({"name":col["name"]},{"$set":{"tax":tax}})
+# from SNDG.BioMongo.Process.Taxon import Tax, tax_db
+# tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+# tax = Tax.getTax(1872703)
+# for col in db.sequence_collection.find({"tax":{"$exists":0}, "ncbi_assembly":{"$exists":1} },{"name":1,"ncbi_assembly":1,"_id":0}):
+#     esearch = Entrez.read(Entrez.esearch(db="assembly", term= col["ncbi_assembly"] ))["IdList"][0]
+#     summary = Entrez.esummary(db="assembly", id=esearch)
+#     summary = Entrez.read(summary, validate=False)
+#     juan = dict(summary["DocumentSummarySet"]["DocumentSummary"][0])
+#     #pepe["AssemblyStatus"]
+#     tax = Tax.getTax(str(juan["Taxid"]))
+#     tax = {
+#         "tid" : float(tax.ncbi_taxon_id),
+#                          "superkingdom" : [y for y in [x for x in Tax.parents(tax) if x.node_rank == "superkingdom"][0].names
+#                                            if y.name_class == "scientific name"  ][0].name  ,
+#         "name" : [x for x in tax.names if x.name_class == "scientific name"][0].name
+#         }
+#     print tax
+#     print db.sequence_collection.update({"name":col["name"]},{"$set":{"tax":tax}})

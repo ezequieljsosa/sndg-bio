@@ -19,6 +19,9 @@ class Size(EmbeddedDocument):
     unit = StringField(max_length=10)
     len = IntField(required=True)
 
+class EmbeddedSNDGIndex(DynamicEmbeddedDocument):
+        tax = ListField(StringField())
+
 
 class BioProperty(DynamicEmbeddedDocument):
     '''
@@ -70,6 +73,7 @@ class Sequence(Document):
     auth = ObjectIdField()
 
     search = EmbeddedDocumentField(ProteinDruggabilitySearch)
+    sndg_index = EmbeddedDocumentField(EmbeddedSNDGIndex,required=False)
 
     def __init__(self, **kwargs):
         '''

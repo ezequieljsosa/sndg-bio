@@ -110,12 +110,12 @@ def check_prot_params(g, prot_params):
 
 def validate_protein_search(g):
     check_prot_params(g, BioCyc.protein_pathway_search_params)
-    check_prot_params(g, SeqColDruggabilityParam.default_params)
-    check_prot_params(g, StructuromeIndexer.search_params)
+    # check_prot_params(g, SeqColDruggabilityParam.default_params)
+    # check_prot_params(g, StructuromeIndexer.search_params)
 
 
 def validate_genome(g):
-    validate_pathways(g)
+    # validate_pathways(g)
     validate_protein_search(g)
 
     for x in ["ec", "go", "biocyc_pw", "biocyc_reac"]:

@@ -79,7 +79,8 @@ class ProteinAnnotator:
     def __init__(self):
         pass
 
-    def connect_to_db(self, database='unipmap', user='root', password='', engine=MySQLDatabase):
+    @staticmethod
+    def connect_to_db( database='unipmap', user='root', password='', engine=MySQLDatabase):
         """class MyRetryDB(OperationalError):
             def __init__(self,engine,**kwargs):
                 super().__init__(engine,kwargs)

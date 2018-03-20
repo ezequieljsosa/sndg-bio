@@ -99,7 +99,7 @@ class SNDGUpdater(object):
 
 
 if __name__ == "__main__":
-    SNDGUpdater("saureus").process()
+    # SNDGUpdater("saureus").process()
 
     stats_dir = "/data/xomeq/krona/"
     db = pymongo.MongoClient().saureus
@@ -108,14 +108,25 @@ if __name__ == "__main__":
 
     os.chdir("/data/databases/sndg")
 
-    with open("tax_tool.tsv", "w") as h:
-        data = list(db.tools.aggregate([{"$group": {"_id": "$type", "count": {"$sum": 1}}}]))
-        for x in data:
-            h.write(str(x["_id"]) + "\t" + str(x["count"]) + "\n")
-    if os.path.exists(stats_dir + "tax_tool.tsv"):
-        os.remove(stats_dir + "tax_tool.tsv")
-    shutil.move("tax_tool.tsv", stats_dir)
+    def change_url(src_file, dst_dir, type):
+        ncbi_url = "http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=info&id="
+        sndg_url = "http://sndg.qb.fcen.uba.ar/sndg/search/results?type=" + type + "&query=&pageSize=50&start=0&taxonomia="
 
+        with open(src_file) as src:
+            with open(dst_dir + src_file, "w") as dst:
+                file_string = src.read()
+                dst.write(file_string.replace(ncbi_url, sndg_url))
+        os.remove(src_file)
+
+
+    # with open("tax_tool.tsv", "w") as h:
+    #     data = list(db.tools.aggregate([{"$group": {"_id": "$type", "count": {"$sum": 1}}}]))
+    #     for x in data:
+    #         h.write(str(x["_id"]) + "\t" + str(x["count"]) + "\n")
+    # if os.path.exists(stats_dir + "tax_tool.tsv"):
+    #     os.remove(stats_dir + "tax_tool.tsv")
+    # shutil.move("tax_tool.tsv", stats_dir)
+    #
     with open("tax_barcode.tsv", "w") as h:
         h.write("#query\t#taxID\n")
         for x in db.barcodes.find({"tax": {"$exists": 1}}, {"processid": 1, "tax": 1}):
@@ -123,7 +134,7 @@ if __name__ == "__main__":
     execute('ktImportTaxonomy  -n %s -o  tax_barcode.html tax_barcode.tsv' % "Barcodes")
     if os.path.exists(stats_dir + "tax_barcode.html"):
         os.remove(stats_dir + "tax_barcode.html")
-    shutil.move("tax_barcode.html", stats_dir)
+    change_url("tax_barcode.html", stats_dir, "barcode")
 
     taxmap = {}
 
@@ -135,7 +146,7 @@ if __name__ == "__main__":
     execute('ktImportTaxonomy -n %s -o  tax_genome.html tax_genome.tsv' % "Genomas")
     if os.path.exists(stats_dir + "tax_genome.html"):
         os.remove(stats_dir + "tax_genome.html")
-    shutil.move("tax_genome.html", stats_dir)
+    change_url("tax_genome.html", stats_dir, "genome")
 
     with open("tax_seq.tsv", "w") as h:
         h.write("#query\t#taxID\n")
@@ -145,7 +156,8 @@ if __name__ == "__main__":
     execute('ktImportTaxonomy -n %s -o  tax_seq.html tax_seq.tsv' % "Seqs_Ensambl")
     if os.path.exists(stats_dir + "tax_seq.html"):
         os.remove(stats_dir + "tax_seq.html")
-    shutil.move("tax_seq.html", stats_dir)
+
+    change_url("tax_seq.html", stats_dir, "seq")
 
     with open("tax_prot.tsv", "w") as h:
         h.write("#query\t#taxID\n")
@@ -155,7 +167,7 @@ if __name__ == "__main__":
     execute('ktImportTaxonomy -n %s -o  tax_prot.html tax_prot.tsv' % "Proteinas")
     if os.path.exists(stats_dir + "tax_prot.html"):
         os.remove(stats_dir + "tax_prot.html")
-    shutil.move("tax_prot.html", stats_dir)
+    change_url("tax_prot.html", stats_dir, "prot")
 
     with open("tax_struct.tsv", "w") as h:
         h.write("#query\t#taxID\n")
@@ -164,5 +176,5 @@ if __name__ == "__main__":
     execute('ktImportTaxonomy  -n %s -o  tax_struct.html tax_struct.tsv' % "Estructuras")
     if os.path.exists(stats_dir + "tax_struct.html"):
         os.remove(stats_dir + "tax_struct.html")
-    shutil.move("tax_struct.html", stats_dir)
+    change_url("tax_struct.html", stats_dir, "struct")
     # http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?mode=info&id= replace  http://localhost:8080/sndg/search/results?type=genome&query=&pageSize=50&start=0&taxonomia=

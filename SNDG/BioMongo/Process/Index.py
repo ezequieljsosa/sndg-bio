@@ -93,7 +93,7 @@ def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_i
     if organism_idx:
         _log.debug("indexing ontology by organism")
         prots = list(db.proteins.find({"organism":genome, "ontologies.0":{"$exists":True}}))
-        for prot in prots:
+        for prot in tqdm(prots):
             for term in prot["ontologies"]:
                 if (term in cache) and cache[term].ontology not in ["ec", "go"]:
                     seq_col_ont_idx = SeqColOntologyIndex(seq_collection_id=collection.id, term=term,

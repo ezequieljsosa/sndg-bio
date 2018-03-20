@@ -134,33 +134,33 @@ USAGE
     idx_name = "sndg_index"
     if not args.overwrite:
         query = {idx_name: {"$exists": 0}}
-    total = db.structures.count(query)
-    with tqdm(db.structures.find(query, {"organism": 1}), total=total) as pbar:
-        for struct in pbar:
-            if "organism" in struct:
-                for org in [x for x in set(struct["organism"].lower().split(";") + struct["organism"].lower().split(",") +
-                      [struct["organism"].lower().split("(")[0]]) if ";" not in x and "," not in x and "(" not in x]:
-                    org = org.strip()
-                    val = get_or_load_by_name(org, tax_cache)
-                    if val:
-                        db.structures.update({"_id": struct["_id"]}, {"$set": {idx_name + ".tax": list(val.keywords)}})
-                    else:
-                        tax_cache[org.lower()] = None
-                        _log.warn(org + " not found")
+    # total = db.structures.count(query)
+    # with tqdm(db.structures.find(query, {"organism": 1}), total=total) as pbar:
+    #     for struct in pbar:
+    #         if "organism" in struct:
+    #             for org in [x for x in set(struct["organism"].lower().split(";") + struct["organism"].lower().split(",") +
+    #                   [struct["organism"].lower().split("(")[0]]) if ";" not in x and "," not in x and "(" not in x]:
+    #                 org = org.strip()
+    #                 val = get_or_load_by_name(org, tax_cache)
+    #                 if val:
+    #                     db.structures.update({"_id": struct["_id"]}, {"$set": {idx_name + ".tax": list(val.keywords)}})
+    #                 else:
+    #                     tax_cache[org.lower()] = None
+    #                     _log.warn(org + " not found")
 
 
     # db.structures.update({"ligands.0":{"$exists",1}},  {"$set": {idx_name + ".ligand": 1}},multi=True);
 
     db = pymongo.MongoClient(args.db_host)[args.db_genome]
 
-    total = db.barcodes.count(query)
-    with tqdm(db.barcodes.find(query, {"tax": 1}), total=total) as pbar:
-        for barcode in pbar:
-            val = get_or_load_by_id(barcode["tax"], tax_cache)
-            update_element(val, db.barcodes, barcode, idx_name, tax_cache,barcode["tax"])
+    # total = db.barcodes.count(query)
+    # with tqdm(db.barcodes.find(query, {"tax": 1}), total=total) as pbar:
+    #     for barcode in pbar:
+    #         val = get_or_load_by_id(barcode["tax"], tax_cache)
+    #         update_element(val, db.barcodes, barcode, idx_name, tax_cache,barcode["tax"])
 
     total = db.sequence_collection.count(query)
-    with tqdm(db.sequence_collection.find(query, {"name": 1, "tax": 1,"assemblyStatus":1}), total=total) as pbar:
+    with tqdm(db.sequence_collection.find(query, {"name": 1, "tax": 1,"assemblyStatus":1},no_cursor_timeout=True), total=total) as pbar:
         for genome in pbar:
             if "tax" in genome:
                 val = get_or_load_by_id(int(genome["tax"]["tid"]), tax_cache)
@@ -168,15 +168,15 @@ USAGE
                 if val:
                     select = {"organism": genome["name"]}
                     kws = list(val.keywords)
-                    db.proteins.update(select, {"$set": {idx_name + ".tax": kws}})
+                    db.proteins.update(select, {"$set": {idx_name + ".tax": kws}},multi=True)
                     db.proteins.update(select, {"$addToSet": {"keywords": {"$each":
-                                                                               kws}}})
+                                                                               kws}}},multi=True)
                     db.contig_collection.update(select, {"$set": {idx_name + ".tax": kws,
                                                                   idx_name + ".assemblyStatus" :genome["assemblyStatus"]
 
-                                                                  }})
+                                                                  }},multi=True)
                     db.contig_collection.update(select, {"$addToSet": {"keywords": {"$each":
-                                                                                    kws}}})
+                                                                                    kws}}},multi=True)
 
 
     print ("Ok")
