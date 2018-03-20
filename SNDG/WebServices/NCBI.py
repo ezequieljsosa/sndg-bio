@@ -11,7 +11,7 @@ import subprocess as sp
 import sys
 
 from peewee import ForeignKeyField, CharField, Model, BooleanField, \
-    DateTimeField, CompositeKey
+    DateTimeField, CompositeKey,IntegerField
 from peewee import MySQLDatabase
 from tqdm import tqdm
 
@@ -89,7 +89,11 @@ class ExternalAssembly(ExternalResource):
     '''
     assembly_accession = CharField()
     assembly_name = CharField()
-    genome = CharField()
+    sample_source = CharField(null=True)
+    sample_date = CharField(null=True)
+    sample_location = CharField(null=True)
+    genome = CharField(null=True)
+    ncbi_tax = IntegerField(null=True)
 
     class Meta:
         database = mysql_db

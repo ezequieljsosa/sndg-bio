@@ -176,32 +176,45 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
 
     _common_annotations(name, tmp_dir)
 
-
-def _common_annotations(name, tmp_dir, cpu=1, remove_tmp=False):
-    protein_fasta = tmp_dir + "/proteins.fasta"
-    if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
-        with open(protein_fasta, "w") as h:
-            for p in Protein.objects(organism=name).no_cache():
-                bpio.write(SeqRecord(id=p.gene[0], description="", seq=Seq(p.seq)), h, "fasta")
-
-    if not Protein.objects(
-            __raw__={"organism": name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count():
+def _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu=1,process_hmm=True,process_pdb=True):
+    if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
         pdbs_path = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
         if not os.path.exists(blast_result):
             cmd = "blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query %s -db %s -num_threads %i -outfmt 5 -out %s"
             subprocess.call(cmd % (protein_fasta, pdbs_path, cpu, blast_result), shell=True)
 
+    if process_hmm:
+        hmm_result = tmp_dir + "/domains.hmm"
+        params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": cpu}
+        Hmmer(protein_fasta, output_file=hmm_result,params=params).query()
+
+
+def _common_annotations(name, tmp_dir, cpu=1, remove_tmp=False):
+    process_pdb = not Protein.objects(
+        __raw__={"organism": name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
+    process_hmm = not Protein.objects(__raw__={
+        "organism": name, "features.type": SO_TERMS["polypeptide_domain"]}).count()
+
+    _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
+    protein_fasta = tmp_dir + "/proteins.fasta"
+    if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
+        with open(protein_fasta, "w") as h:
+            for p in Protein.objects(organism=name).no_cache():
+                bpio.write(SeqRecord(id=p.gene[0], description="", seq=Seq(p.seq)), h, "fasta")
+
+    if process_pdb:
         load_blast_pdb(name, blast_result)
         if remove_tmp:
-            os.remove(blast_result)
+            if os.path.exists(blast_result):
+                os.remove(blast_result)
 
-    if not Protein.objects(__raw__={"organism": name, "features.type": SO_TERMS["polypeptide_domain"]}).count():
-        hmm_result = tmp_dir + "/domains.hmm"
-        Hmmer(protein_fasta, output_file=hmm_result).query()
+    if process_hmm:
         load_hmm(name, hmm_result)
         if remove_tmp:
-            os.remove(hmm_result)
+            if os.path.exists(hmm_result):
+                os.remove(hmm_result)
+
 
 
 def update_proteins(db, seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
@@ -378,7 +391,7 @@ if __name__ == '__main__':
     from SNDG.BioMongo.Process.Taxon import tax_db
     from SNDG.BioMongo.Process.Index import index_seq_collection,build_statistics
 
-    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    #tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("saureus")
 
     tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
