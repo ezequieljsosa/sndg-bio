@@ -176,6 +176,15 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
 
     _common_annotations(name, tmp_dir)
 
+def create_proteome(tmp_dir,collection_name):
+    protein_fasta = tmp_dir + "/proteins.fasta"
+    if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
+        with open(protein_fasta, "w") as h:
+            for p in Protein.objects(organism=collection_name).no_cache():
+                bpio.write(SeqRecord(id=p.gene[0], description="", seq=Seq(p.seq)), h, "fasta")
+    return protein_fasta
+
+
 def _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu=1,process_hmm=True,process_pdb=True):
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
@@ -190,35 +199,33 @@ def _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu=1,process_hmm=True,
         Hmmer(protein_fasta, output_file=hmm_result,params=params).query()
 
 
-def _common_annotations(name, tmp_dir, cpu=1, remove_tmp=False):
+def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
     process_pdb = not Protein.objects(
-        __raw__={"organism": name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
+        __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not Protein.objects(__raw__={
-        "organism": name, "features.type": SO_TERMS["polypeptide_domain"]}).count()
+        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count()
 
-    _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
-    protein_fasta = tmp_dir + "/proteins.fasta"
-    if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
-        with open(protein_fasta, "w") as h:
-            for p in Protein.objects(organism=name).no_cache():
-                bpio.write(SeqRecord(id=p.gene[0], description="", seq=Seq(p.seq)), h, "fasta")
+    protein_fasta= create_proteome(tmp_dir,collection_name)
+
+    _common_annotations_cmd(collection_name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
+
 
     if process_pdb:
-        load_blast_pdb(name, blast_result)
+        load_blast_pdb(collection_name, blast_result)
         if remove_tmp:
             if os.path.exists(blast_result):
                 os.remove(blast_result)
 
     if process_hmm:
-        load_hmm(name, hmm_result)
+        load_hmm(collection_name, hmm_result)
         if remove_tmp:
             if os.path.exists(hmm_result):
                 os.remove(hmm_result)
 
 
 
-def update_proteins(db, seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
-    annotation_dir = "/data/organismos/" + seq_col_name + "/annotation"
+def update_proteins(annotation_dir, proteome,seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
+
     mkdir(annotation_dir)
     out = annotation_dir + "/species_blast.tbl"
 
@@ -234,7 +241,7 @@ def update_proteins(db, seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
         species_fasta =tax_data  + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
         if not os.path.exists(species_fasta):
             Uniprot.download_proteome_from_tax(str(species_tax.ncbi_taxon_id), tax_data)
-        proteome = "/data/organismos/" + seq_col_name + "/contigs/genoma.fasta"
+
 
         cmd = "blastp -query %s  -db %s -evalue 0.00001 -outfmt 6 -max_target_seqs 1 -max_hsps 1 -qcov_hsp_perc 0.8 -num_threads %i -out %s"
         execute(cmd % (
@@ -402,7 +409,12 @@ if __name__ == '__main__':
     for assembly in tofix:
 
         tid = int(mdb.db.sequence_collection.find_one({"name":assembly})["tax"]["tid"])
-        update_proteins(mdb.db,assembly, tid )
+        tmp_dir = "/data/organismos/" + seq_col_name + "/annotation/"
+        proteome_dir = "/data/organismos/" + seq_col_name + "/contigs/"
+        mkdir(tmp_dir)
+        mkdir(proteome_dir)
+        protein_fasta= create_proteome(proteome_dir,collection_name)
+        update_proteins(tmp_dir, protein_fasta,assembly, tid )
 
         index_seq_collection(mdb.db,assembly,pathways=False,structure=False)
         build_statistics(mdb.db,assembly)
