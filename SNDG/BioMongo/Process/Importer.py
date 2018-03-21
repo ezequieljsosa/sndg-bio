@@ -213,7 +213,7 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
 
     protein_fasta= create_proteome(tmp_dir,collection_name)
 
-    results = _common_annotations_cmd(collection_name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
+    results = _common_annotations_cmd( tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
 
 
     if process_pdb:
