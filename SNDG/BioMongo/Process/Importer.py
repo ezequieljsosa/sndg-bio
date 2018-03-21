@@ -197,7 +197,7 @@ def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,proce
 
     if process_hmm:
         hmm_result = tmp_dir + "/domains.hmm"
-        params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": cpu}
+        params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": str(cpu)}
         Hmmer(protein_fasta, output_file=hmm_result,params=params).query()
 
     return {"blast_pdb":blast_result,"hmm_result":hmm_result}
