@@ -185,7 +185,9 @@ def create_proteome(tmp_dir,collection_name):
     return protein_fasta
 
 
-def _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu=1,process_hmm=True,process_pdb=True):
+def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,process_pdb=True):
+    blast_result = None
+    hmm_result = None
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
         pdbs_path = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
@@ -198,25 +200,31 @@ def _common_annotations_cmd(name, tmp_dir,protein_fasta, cpu=1,process_hmm=True,
         params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": cpu}
         Hmmer(protein_fasta, output_file=hmm_result,params=params).query()
 
+    return {"blast_pdb":blast_result,"hmm_result":hmm_result}
+
 
 def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
-    process_pdb = not Protein.objects(
-        __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
+    process_pdb = Protein.objects(
+        __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count() == 0
     process_hmm = not Protein.objects(__raw__={
-        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count()
+        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count() == 0
+
+    print (process_pdb,process_hmm)
 
     protein_fasta= create_proteome(tmp_dir,collection_name)
 
-    _common_annotations_cmd(collection_name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
+    results = _common_annotations_cmd(collection_name, tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
 
 
     if process_pdb:
+        blast_result = results["blast_pdb"]
         load_blast_pdb(collection_name, blast_result)
         if remove_tmp:
             if os.path.exists(blast_result):
                 os.remove(blast_result)
 
     if process_hmm:
+        hmm_result = results["hmm_result"]
         load_hmm(collection_name, hmm_result)
         if remove_tmp:
             if os.path.exists(hmm_result):
@@ -416,5 +424,5 @@ if __name__ == '__main__':
         protein_fasta= create_proteome(proteome_dir,seq_col_name)
         update_proteins(tmp_dir, protein_fasta,seq_col_name, tid )
 
-        index_seq_collection(mdb.db,seq_col_name,pathways=False,structure=False)
-        build_statistics(mdb.db,seq_col_name)
+        index_seq_collection(mdb.db,seq_col_name,keywords=False,pathways=False,structure=False)
+        #build_statistics(mdb.db,seq_col_name)
