@@ -398,7 +398,7 @@ if __name__ == '__main__':
     from SNDG.BioMongo.Process.Taxon import tax_db
     from SNDG.BioMongo.Process.Index import index_seq_collection,build_statistics
 
-    #tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("saureus")
 
     tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
@@ -406,7 +406,7 @@ if __name__ == '__main__':
              u'GCF_000769675.1', u'GCF_000188155.2', u'GCF_000213355.1', u'GCF_000179595.2', u'GCF_000213335.1',
              u'GCF_000213395.1', u'GCF_002013775.1', u'GCF_002013745.1', u'GCF_002013685.1', u'GCF_002013645.1',
              u'GCF_002013545.1']
-    for seq_col_name in tdqm(tofix):
+    for seq_col_name in tqdm(tofix):
 
         tid = int(mdb.db.sequence_collection.find_one({"name":seq_col_name})["tax"]["tid"])
         tmp_dir = "/data/organismos/" + seq_col_name + "/annotation/"
