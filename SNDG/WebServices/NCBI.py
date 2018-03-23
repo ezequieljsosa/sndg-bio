@@ -11,12 +11,13 @@ import subprocess as sp
 import sys
 
 from peewee import ForeignKeyField, CharField, Model, BooleanField, \
-    DateTimeField, CompositeKey,IntegerField
+    DateTimeField, CompositeKey, IntegerField
 from peewee import MySQLDatabase
 from tqdm import tqdm
 
 from Bio import Entrez
 from SNDG import execute, init_log
+from SNDG.WebServices import download_file
 
 mysql_db = MySQLDatabase('sndg', user="root", password="mito")
 
@@ -132,7 +133,7 @@ class ExternalAssembly(ExternalResource):
         os.chdir(dst_dir)
         cmd = "ftp_proxy=http://proxy.fcen.uba.ar:8080/ wget --timeout=20 -q " + self.ftpurl(dtype)
         sp.call(cmd, shell=True)
-        sp.call("gunzip " + self.file_name(dtype), shell=True)
+        sp.call("gunzip -f " + self.file_name(dtype), shell=True)
         os.chdir(current)
         return dst_dir + "/" + self.file_name(dtype).replace(".gz", "")
 
@@ -255,7 +256,22 @@ class NCBI(object):
 
         }
 
+    @staticmethod
+    def download_assembly(assembly_accession, dst_dir, dtype="genomic.gbff.gz"):
+        assembly_name,last_assembly_accession = NCBI.assembly_name_from_acc(assembly_accession)
 
+        url = "/".join([ftp_url
+                           , last_assembly_accession[0:3], last_assembly_accession[4:7]
+                           , last_assembly_accession[7:10], last_assembly_accession[10:13]
+                           , last_assembly_accession + "_" + assembly_name.replace(" ", "_").replace("#", "_")
+                           , last_assembly_accession + "_" + assembly_name.replace(" ", "_").replace("#",
+                                                                                                "_") + "_" + dtype
+                        ])
+        out_file = dst_dir + assembly_accession + "." + dtype
+        if not os.path.exists(out_file):
+            download_file(url, out_file,ovewrite=False)
+        execute("gunzip -c  " + out_file + " > " +  out_file[:-3])
+        return  out_file[:-3]
 
     def download(self, accesion, db, dst, dstformat):
         cmd = 'wget -O %s "https://www.ncbi.nlm.nih.gov/sviewer/viewer.cgi?tool=portal&save=file&log$=seqview&db=%s&report=%s&sort=&id=%s&from=begin&to=end"'
@@ -263,11 +279,8 @@ class NCBI(object):
 
         execute(cmd % params, shell=True)
 
-
-
-
-
-    def assembly_name_from_acc(self, assembly_accession, dst="/tmp/assembly.gb"):
+    @staticmethod
+    def assembly_name_from_acc( assembly_accession):
         # https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=assembly&term=GCA_000009645.1
         esearch = Entrez.read(Entrez.esearch(db="assembly", term=assembly_accession))
 
@@ -276,7 +289,8 @@ class NCBI(object):
             #             https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=assembly&id=31148
             summary = Entrez.esummary(db="assembly", id=assembly_id)
             summary = Entrez.read(summary, validate=False)
-            return summary["DocumentSummarySet"]["DocumentSummary"][0]["AssemblyName"]
+            data = summary["DocumentSummarySet"]["DocumentSummary"][0]
+            return (data["AssemblyName"],data['LastMajorReleaseAccession'])
         else:
             raise AssemblyNotFoundError(assembly_accession)
 

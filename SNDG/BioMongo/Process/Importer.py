@@ -17,7 +17,7 @@ from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
 
 from SNDG import init_log ,mkdir ,execute
-
+from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Model.SeqCollection import SeqCollection, AnnotationPipelineResult
 from SNDG.BioMongo.Model.Sequence import BioProperty
@@ -203,13 +203,17 @@ def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,proce
     return {"blast_pdb":blast_result,"hmm_result":hmm_result}
 
 
-def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
+def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
     process_pdb = Protein.objects(
-        __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count() == 0
-    process_hmm = not Protein.objects(__raw__={
-        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count() == 0
+        __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
+    process_hmm = not (Protein.objects(__raw__={
+        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count() )
 
-    print (process_pdb,process_hmm)
+    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp,process_pdb,process_hmm)
+
+
+def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False,process_pdb=True,process_hmm=True):
+
 
     protein_fasta= create_proteome(tmp_dir,collection_name)
 
@@ -256,7 +260,7 @@ def update_proteins(annotation_dir, proteome,seq_col_name, tax_id, cpus=multipro
             proteome, species_fasta, cpus, out
         ))
 
-    ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+
 
     with tqdm(list(bpsio.parse(out, "blast-tab"))) as pbar:
         for query in pbar:
@@ -397,7 +401,7 @@ def correct_chokes(self, name):
 
 if __name__ == '__main__':
     init_log()
-    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+
     import logging
     import pymongo
 
@@ -408,6 +412,7 @@ if __name__ == '__main__':
 
     tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("saureus")
+    ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
     tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
              u'GCF_000805695.1', u'GCF_001580035.1', u'GCF_000333795.1', u'GCF_000788295.1', u'GCF_000510935.1',

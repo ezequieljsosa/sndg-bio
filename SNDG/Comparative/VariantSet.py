@@ -56,7 +56,8 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
             alternatives = []
             for sample in variant.samples:
                 sample_name = sample.sample.split(".variant")[0]
-                if sample.called:
+
+                if sample.called :
                     vresult[sample_name] = str(variant.ALT[int(sample.data.GT) - 1])
                     if effect.aa_pos:
                         vresult["aa_pos"] = effect.aa_pos
@@ -68,8 +69,13 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
             if len(set(alternatives)) > 1:
                 rows.append(vresult)
                 # df_result = df_result.append(vresult, ignore_index=True)
+        samples = [x.sample.split(".variant")[0] for x in  variant.samples]
+        df = pd.DataFrame(rows)
+        onlyref = [ len(set([ r[sample_name]  for sample_name in samples ])) == 1
+                    for _,r in  df.iterrows() ]
+        df = df[~onlyref]
 
-        return pd.DataFrame(rows)
+        return df
 
     def dist_variants(self, df_variants, samples):
         dist = defaultdict(lambda: defaultdict(lambda: 0))

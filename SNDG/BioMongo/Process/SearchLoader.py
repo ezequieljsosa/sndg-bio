@@ -105,7 +105,6 @@ def load_pdb_domains(organism, blast_file, feature_type="SO:0001079",
                      min_identity=0.9, min_query_coverage=0.9, min_hit_coverage=0.9):
     queries = list(bpsio.parse(blast_file, 'blast-xml'))
     features_added = 0
-    total = len(queries)
     with tqdm(queries) as pbar:
         for query in queries:
             pbar.set_description(query.id)

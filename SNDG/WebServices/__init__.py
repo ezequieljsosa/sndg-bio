@@ -11,7 +11,12 @@ from SNDG import execute
 
 _log = logging.getLogger(__name__)
 
-
+PROXIES = {}
+def proxy_vars():
+    vars = ""
+    for k,v in PROXIES.items():
+        vars= k + "=" + v
+    return vars
 def OvewriteFileException(Exception):
     pass
 
@@ -37,5 +42,5 @@ def download_file(complete_url, target, ovewrite=False, retries=3):
     if os.path.exists(target) and not ovewrite:
         raise OvewriteFileException("%s already exists" % target)
 
-    execute('wget -q --timeout=20 --tries={retries} -O {target} "{url}"',
+    execute(proxy_vars() + ' wget  --timeout=20 --tries={retries} -O {target} "{url}"',
             url=complete_url, retries=retries, target=target)

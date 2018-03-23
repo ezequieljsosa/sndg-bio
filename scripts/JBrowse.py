@@ -214,20 +214,26 @@ if __name__ == "__main__":
     #                     extra_features[r.id].append(f)
     #                 elif f.type == "TSS":
     #                     extra_features[r.id].append(f)
-
-    jw = JBrowse(db=BioMongoDB("tdr").db)
+    mdb = BioMongoDB("saureus")
+    jw = JBrowse(db=mdb.db)
+    for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
+        if not os.path.exists("/data/xomeq/jbrowse/data/"+ genome + "/xomeq" ):
+            try:
+                jw.create_genome(genome)
+            except Exception as ex:
+                _log.warn(ex)
     # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
     # jw.create_genome("SAureusN315") #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False, extra_features=dict(extra_features)
 
 
-    jw.load_sequences("/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",seq_format="fasta")
-    jw.create_genome("cruzi")
-
-    jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
-    jw.create_genome("Pext14-3B")
-
-    jw.load_sequences("/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb")
-    jw.create_genome("GCF_001624625.1")
+    # jw.load_sequences("/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",seq_format="fasta")
+    # jw.create_genome("cruzi")
+    #
+    # jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
+    # jw.create_genome("Pext14-3B")
+    #
+    # jw.load_sequences("/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb")
+    # jw.create_genome("GCF_001624625.1")
 
 #     for s in [ "15-6324_S3_L001","2003_S4_L001"]:
 #         vcf = "/data/projects/PiuriTB/analysis/variant_call_h37/" + s + "/variants.ann.vcf"
