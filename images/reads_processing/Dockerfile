@@ -29,7 +29,7 @@ RUN cd /app/ && tar xfv samtools-1.7.tar.bz2 && cd samtools-1.7 && ./configure &
       cd /app/ && tar xfv SPAdes-3.11.1-Linux.tar.gz && ln -s /app/SPAdes-3.11.1-Linux/bin/spades.py /usr/local/bin && \
       cd /app/ && tar xfv quast-4.6.3.tar.gz && cd quast-4.6.3 && ./install.sh && ln -s /app/quast-4.6.3/quast.py /usr/local/bin
 
-RUN pip install tqdm pandas biopython
+RUN pip install tqdm pandas biopython goatools bcbio-gff
 
 ENV GATK /app/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar
 ENV TRIMMOMATIC /app/Trimmomatic-0.36/trimmomatic-0.36.jar
@@ -38,7 +38,7 @@ ENV SNPEFF /app/snpEff/snpEff.jar
 
 ADD run.sh /app
 
-#RUN pip install sndg-bio==0.1.13
+RUN pip install sndg-bio==0.1.14
 
 
 #ENTRYPOINT ["/app/run.sh"]

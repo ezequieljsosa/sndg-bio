@@ -43,26 +43,26 @@ class Mapping:
     def alignment(work_dir,record, read1, read2,cpus=multiprocessing.cpu_count(),strain="sample1",species=None):
         if not species:
             species = strain
-        work_dir = work_dir + "/"
+        work_dir = os.path.abspath(work_dir) + "/"
         read1 = os.path.abspath(read1)
         read2 = os.path.abspath(read2)
         record = os.path.abspath(record)
         # Quality control
-        # e("prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean 25 -trim_left 20 -trim_right 2 -trim_qual_right 25 -trim_qual_window 5 -min_len 35 -out_good trimmed",
-        #   work_dir, read1_full = read1, read2_full = read2)
-        # e("fastqc trimmed_1.fastq",work_dir)
-        # e("fastqc trimmed_2.fastq",work_dir)
-        #
-        # e("cat trimmed_1_singletons.fastq >> trimmed_s.fastq",work_dir)
-        # e("cat trimmed_2_singletons.fastq >> trimmed_s.fastq",work_dir)
-        # os.remove(work_dir + "trimmed_1_singletons.fastq")
-        # os.remove(work_dir  + "trimmed_2_singletons.fastq")
-        #
-        # # Generate a SAM file containing aligned reads
-        # e("bwa mem -t {cpus} -M -R \'@RG\\tID:group1\\tSM:{strain}\\tPL:illumina\\tLB:{species}\' {record_name} trimmed_1.fastq trimmed_2.fastq > aligned_reads.sam"
-        # ,work_dir,record_name = record,strain=strain,species=species,cpus=cpus)
-        # # Filter mapped reads and convert to BAM
-        # e("samtools view -@ {cpus} -F 4 -S -b -h aligned_reads.sam > mapped_reads.bam",work_dir,cpus=cpus)
+        e("prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean 25 -trim_left 20 -trim_right 2 -trim_qual_right 25 -trim_qual_window 5 -min_len 35 -out_good trimmed",
+          work_dir, read1_full = read1, read2_full = read2)
+        e("fastqc trimmed_1.fastq",work_dir)
+        e("fastqc trimmed_2.fastq",work_dir)
+
+        e("cat trimmed_1_singletons.fastq >> trimmed_s.fastq",work_dir)
+        e("cat trimmed_2_singletons.fastq >> trimmed_s.fastq",work_dir)
+        os.remove(work_dir + "trimmed_1_singletons.fastq")
+        os.remove(work_dir  + "trimmed_2_singletons.fastq")
+
+        # Generate a SAM file containing aligned reads
+        e("bwa mem -t {cpus} -M -R \'@RG\\tID:group1\\tSM:{strain}\\tPL:illumina\\tLB:{species}\' {record_name} trimmed_1.fastq trimmed_2.fastq > aligned_reads.sam"
+        ,work_dir,record_name = record,strain=strain,species=species,cpus=cpus)
+        # Filter mapped reads and convert to BAM
+        e("samtools view -@ {cpus} -F 4 -S -b -h aligned_reads.sam > mapped_reads.bam",work_dir,cpus=cpus)
         e("samtools view -@ {cpus} -f 4 -S -b -h aligned_reads.sam > unmapped_reads.bam",work_dir,cpus=cpus)
         os.remove(work_dir + "aligned_reads.sam")
         # Convert back to FASTQ for quality control
@@ -77,6 +77,7 @@ class Mapping:
 
     @staticmethod
     def variant_call(work_dir,record,alignment,strain):
+        work_dir = os.path.abspath(work_dir) + "/"
         record = os.path.abspath(record)
         alignment = os.path.abspath(alignment)
 
