@@ -1,9 +1,12 @@
 import os
 from tqdm import tqdm
 import pandas as pd
+import multiprocessing
 
-from SNDG import execute, mkdir
+from SNDG import execute as e
+from SNDG import  mkdir
 from SNDG.Comparative.CoverageAnalysis import CoverageAnalysis
+
 
 
 """
@@ -16,7 +19,7 @@ example:
 #!/bin/bash
 java -jar /opt/GATK/GenomeAnalysisTK.jar $@
 
-
+bam2fastq --aligned --force --strict -o mapped#.fq [assembly.bam]
 
 """
 
@@ -25,23 +28,80 @@ class Mapping:
 
     @staticmethod
     def init_ref(path):
-        cwd = os.getcwd()
-        try:
-            os.chdir(os.path.dirname(path))
-            filename = os.path.basename(path)
-            execute("bwa index -a is  {record_name}".format(record_name=filename))
-            execute(
-                "picard CreateSequenceDictionary R={record_name} O={record_name}.dict".format(record_name=filename))
-            execute("samtools faidx {record_name}".format(record_name=filename))
-            execute("bowtie2-build {record_name} {record_name}".format(record_name=filename))
-            execute("makeblastdb -dbtype nucl -in {record_name} ".format(record_name=filename))
-        finally:
-            os.chdir(cwd)
+        filename = os.path.basename(path)
+        workdir = os.path.dirname(path)
+        e("cd {workdir};bwa index -a is  {record_name}",record_name=filename,workdir=workdir)
+        e(
+            "cd {workdir};java -jar $PICARD CreateSequenceDictionary R={record_name} O={record_name}.dict",
+            record_name=filename,workdir=workdir)
+        e("cd {workdir};samtools faidx {record_name}",record_name=filename,workdir=workdir)
+        #e("bowtie2-build {record_name} {record_name}".format(record_name=filename))
+        e("cd {workdir};makeblastdb -dbtype nucl -in {record_name} ",record_name=filename,workdir=workdir)
+
+
+    @staticmethod
+    def alignment(work_dir,record, read1, read2,cpus=multiprocessing.cpu_count(),strain="sample1",species=None):
+        if not species:
+            species = strain
+        work_dir = work_dir + "/"
+        read1 = os.path.abspath(read1)
+        read2 = os.path.abspath(read2)
+        record = os.path.abspath(record)
+        # Quality control
+        # e("prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean 25 -trim_left 20 -trim_right 2 -trim_qual_right 25 -trim_qual_window 5 -min_len 35 -out_good trimmed",
+        #   work_dir, read1_full = read1, read2_full = read2)
+        # e("fastqc trimmed_1.fastq",work_dir)
+        # e("fastqc trimmed_2.fastq",work_dir)
+        #
+        # e("cat trimmed_1_singletons.fastq >> trimmed_s.fastq",work_dir)
+        # e("cat trimmed_2_singletons.fastq >> trimmed_s.fastq",work_dir)
+        # os.remove(work_dir + "trimmed_1_singletons.fastq")
+        # os.remove(work_dir  + "trimmed_2_singletons.fastq")
+        #
+        # # Generate a SAM file containing aligned reads
+        # e("bwa mem -t {cpus} -M -R \'@RG\\tID:group1\\tSM:{strain}\\tPL:illumina\\tLB:{species}\' {record_name} trimmed_1.fastq trimmed_2.fastq > aligned_reads.sam"
+        # ,work_dir,record_name = record,strain=strain,species=species,cpus=cpus)
+        # # Filter mapped reads and convert to BAM
+        # e("samtools view -@ {cpus} -F 4 -S -b -h aligned_reads.sam > mapped_reads.bam",work_dir,cpus=cpus)
+        e("samtools view -@ {cpus} -f 4 -S -b -h aligned_reads.sam > unmapped_reads.bam",work_dir,cpus=cpus)
+        os.remove(work_dir + "aligned_reads.sam")
+        # Convert back to FASTQ for quality control
+        e("samtools fastq mapped_reads.bam > mapped_reads.fastq",work_dir)
+        e("fastqc mapped_reads.fastq",work_dir)
+        # Sort and mark duplicates
+        e("java -jar $PICARD SortSam INPUT=mapped_reads.bam OUTPUT=sorted_reads.bam SORT_ORDER=coordinate",work_dir)
+        e("java -jar $PICARD MarkDuplicates INPUT=sorted_reads.bam OUTPUT=dedup_reads.bam METRICS_FILE=metrics.txt",work_dir)
+        e("java -jar $PICARD BuildBamIndex INPUT=dedup_reads.bam",work_dir)
+
+        return work_dir + "dedup_reads.bam"
+
+    @staticmethod
+    def variant_call(work_dir,record,alignment,strain):
+        record = os.path.abspath(record)
+        alignment = os.path.abspath(alignment)
+
+        # Call variants in the sequence data
+        e("java -jar $GATK -T HaplotypeCaller -R {record_name} -I {alignment} -gt_mode DISCOVERY -ploidy 1 -stand_call_conf 30 -o raw_variants.vcf"
+          ,work_dir,record_name = record,alignment=alignment)
+        # Apply hard filters to a call set
+        e("java -jar $GATK -T SelectVariants -R {record_name} -V raw_variants.vcf  -selectType SNP -o raw_snps.vcf"
+          ,work_dir,record_name = record)
+        e("java -jar $GATK -T VariantFiltration -R {record_name} -V raw_snps.vcf  -filter \"QD < 2.0 || FS > 60.0 || MQ < 40.0 || MQRankSum < -12.5 || ReadPosRankSum < -8.0\" --filterName \"my_snp_filter\" -o filtered_snps.vcf",
+            work_dir,record_name = record)
+        e("java -jar $GATK -T SelectVariants -R {record_name} -V raw_variants.vcf  -selectType INDEL -o raw_indels.vcf",
+          work_dir,record_name = record)
+        e("java -jar $GATK -T VariantFiltration -R {record_name} -V raw_indels.vcf  -filter \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20.0\" --filterName \"my_indel_filter\" -o filtered_indels.vcf",
+          work_dir,record_name = record)
+        e("java -jar $GATK -T CombineVariants --assumeIdenticalSamples -R {record_name} -V filtered_snps.vcf -V filtered_indels.vcf -genotypeMergeOptions UNIQUIFY -o concatenated.vcf",
+          work_dir,record_name = record)
+        # e("sed \'/^#[^#]/ {{s/\\tsample1\\.variant2//}}\' concatenated.vcf > %s.vcf" % '_'.join(read1.split('_')[:2])) # Removes column from vcf header
+        return strain + ".vcf"
+
 
     @staticmethod
     def realign(bam_file, ref_fasta):
         out_bwa_bam = "sorted_" + bam_file
-        execute("samtools sort -o %s %s" % (out_bwa_bam, bam_file))
+        e("samtools sort -o %s %s" % (out_bwa_bam, bam_file))
         out_bwa_final_bam = "realigned2_" + bam_file
         out_bwa_intervals = bam_file + ".intervals"
         out_bwa_intervals2 = bam_file + ".intervals"
@@ -49,20 +109,20 @@ class Mapping:
         duplicates = "duplicates_" + bam_file
         bwa_iter1 = "iter1_" + bam_file
         if not os.path.exists(out_bwa_final_bam):
-            execute("samtools index %s" % out_bwa_bam)
-            execute("gatk -T RealignerTargetCreator -R {ref} -I {input} -o {out}",
+            e("samtools index %s" % out_bwa_bam)
+            e("gatk -T RealignerTargetCreator -R {ref} -I {input} -o {out}",
                     ref=ref_fasta, input=out_bwa_bam, out=out_bwa_intervals)
-            execute("gatk -T IndelRealigner -R {ref} -I {input} -targetIntervals {intervals} -o {output}",
+            e("gatk -T IndelRealigner -R {ref} -I {input} -targetIntervals {intervals} -o {output}",
                     ref=ref_fasta, input=out_bwa_bam, intervals=out_bwa_intervals, output=bwa_realigned)
             # Aca se recomienda correr el BaseRecalibrator de GATK pero no se tiene un vcf con variantes comunes
-            execute("picard MarkDuplicates I={input}   REMOVE_DUPLICATES=true O={output} M={duplicates}",
+            e("picard MarkDuplicates I={input}   REMOVE_DUPLICATES=true O={output} M={duplicates}",
                     input=bwa_realigned, output=bwa_iter1, duplicates=duplicates)
-            execute("samtools index {input}", input=bwa_iter1)
-            execute("gatk -T RealignerTargetCreator -R {ref} -I {input} -o {intervals}",
+            e("samtools index {input}", input=bwa_iter1)
+            e("gatk -T RealignerTargetCreator -R {ref} -I {input} -o {intervals}",
                     ref=ref_fasta, input=bwa_iter1, intervals=out_bwa_intervals2)
-            execute("gatk -T IndelRealigner -R {ref} -I {input} -targetIntervals {intervals} -o {output}",
+            e("gatk -T IndelRealigner -R {ref} -I {input} -targetIntervals {intervals} -o {output}",
                     ref=ref_fasta, input=bwa_iter1, intervals=out_bwa_intervals2, output=out_bwa_final_bam)
-            execute("samtools index %s" % out_bwa_final_bam)
+            e("samtools index %s" % out_bwa_final_bam)
 
         for x in [bam_file, out_bwa_intervals, out_bwa_intervals2, bwa_realigned, bwa_iter1, bwa_iter1 + ".bai"]:
             if os.path.exists(x):
@@ -94,16 +154,16 @@ class Mapping:
             out_unmapped_pe_bam = "unmapped.bam"
 
             if not os.path.exists(out_bwa_bam_idx) and not os.path.exists(out_bwa_pe_bam):
-                execute(
+                e(
                     'bwa mem -R "@RG\\tID:illumina\\tSM:{ncepa}\\tLB:{ncepa}"  {ref_fasta} {pe1} {pe2}  >  ' + out_bwa_pe,
                     ref_fasta=ref_fasta, ncepa=strain,
                     pe1=read_paths[0],
                     pe2=read_paths[1])
-                execute("samtools view -F 4 -Sbh %s > %s" % (out_bwa_pe, out_bwa_pe_bam))
-                execute("samtools view -f 4 -Sbh %s > %s" % (out_bwa_pe, out_unmapped_pe_bam))
+                e("samtools view -F 4 -Sbh %s > %s" % (out_bwa_pe, out_bwa_pe_bam))
+                e("samtools view -f 4 -Sbh %s > %s" % (out_bwa_pe, out_unmapped_pe_bam))
                 unmapped_pair_1 = "unmapped_pair_1.fastq"
                 unmapped_pair_2 = "unmapped_pair_2.fastq"
-                execute("bedtools bamtofastq -i {ubam} -fq {upair}   -fq2 {upair2}",
+                e("bedtools bamtofastq -i {ubam} -fq {upair}   -fq2 {upair2}",
                         upair2=unmapped_pair_2, upair=unmapped_pair_1, ubam=out_unmapped_pe_bam)
                 out_bwa_pe_bam = Mapping.realign(out_bwa_pe_bam, ref_fasta)
 
@@ -115,14 +175,14 @@ class Mapping:
             out_bwa_se_bam = "bwa_se.bam"
             out_unmapped_se_bam = "unmapped_se.bam"
             if not os.path.exists(out_bwa_bam_idx) and not os.path.exists(out_bwa_se_bam):
-                execute('bwa mem -R "@RG\\tID:illumina\\tSM:{ncepa}\\tLB:{ncepa}"  {ref_fasta} {s1}   >  ' + out_bwa_se,
+                e('bwa mem -R "@RG\\tID:illumina\\tSM:{ncepa}\\tLB:{ncepa}"  {ref_fasta} {s1}   >  ' + out_bwa_se,
                         ref_fasta=ref_fasta, ncepa=strain,
                         s1=read_paths[2])
-                execute("samtools view -F 4 -Sbh %s > %s" % (out_bwa_se, out_bwa_se_bam))
-                execute("samtools view -f 4 -Sbh %s > %s" % (out_bwa_se, out_unmapped_se_bam))
+                e("samtools view -F 4 -Sbh %s > %s" % (out_bwa_se, out_bwa_se_bam))
+                e("samtools view -f 4 -Sbh %s > %s" % (out_bwa_se, out_unmapped_se_bam))
 
                 unmapped_single = "unmapped_single.fastq"
-                execute("bedtools bamtofastq -i {ubam} -fq {upair}   ",
+                e("bedtools bamtofastq -i {ubam} -fq {upair}   ",
                         upair=unmapped_single, ubam=out_unmapped_se_bam)
                 out_bwa_se_bam = Mapping.realign(out_bwa_se_bam, ref_fasta)
 
@@ -135,11 +195,11 @@ class Mapping:
             out_bwa_fm_sort_bam = "bwa_fm_sort.bam"
 
             if not os.path.exists(out_bwa_bam_idx):
-                execute("samtools merge %s %s %s " % (out_bwa_raw_bam, out_bwa_pe_bam, out_bwa_se_bam))
-                execute("samtools sort -n -o %s %s" % (out_bwa_fm_sort_bam, out_bwa_raw_bam))
-                execute("samtools fixmate  %s %s" % (out_bwa_fm_sort_bam, out_bwa_fm_bam))
-                execute("samtools sort -o %s %s" % (out_bwa_bam, out_bwa_fm_bam))
-                execute("samtools index %s" % out_bwa_bam)
+                e("samtools merge %s %s %s " % (out_bwa_raw_bam, out_bwa_pe_bam, out_bwa_se_bam))
+                e("samtools sort -n -o %s %s" % (out_bwa_fm_sort_bam, out_bwa_raw_bam))
+                e("samtools fixmate  %s %s" % (out_bwa_fm_sort_bam, out_bwa_fm_bam))
+                e("samtools sort -o %s %s" % (out_bwa_bam, out_bwa_fm_bam))
+                e("samtools index %s" % out_bwa_bam)
 
             for x in [out_bwa_raw_bam, out_bwa_fm_bam, out_bwa_fm_sort_bam,
                       out_bwa_pe_bam, out_bwa_se_bam, out_bwa_pe_bam + ".bai", out_bwa_se_bam + ".bai"]:
@@ -147,7 +207,7 @@ class Mapping:
                     os.remove(x)
 
             if not os.path.exists("flagstat.txt"):
-                execute("samtools flagstat %s > %s" % (out_bwa_bam, "flagstat.txt"))
+                e("samtools flagstat %s > %s" % (out_bwa_bam, "flagstat.txt"))
         finally:
             os.chdir(cwd)
 
@@ -171,20 +231,52 @@ class Mapping:
 
         return df
 
-    @staticmethod
-    def variant_call(in_bam, ref_fasta, snpeffdb, work_dir="./", cpus=1):
-        mkdir(work_dir)
-        variants_file = work_dir + "/variants.vcf"
-        variants_ann_file = work_dir + "/variants.ann.vcf"
+    # @staticmethod
+    # def variant_call(in_bam, ref_fasta, snpeffdb, work_dir="./", cpus=1):
+    #     mkdir(work_dir)
+    #     variants_file = work_dir + "/variants.vcf"
+    #     variants_ann_file = work_dir + "/variants.ann.vcf"
+    #
+    #     if not os.path.exists(variants_file):
+    #         e(
+    #             "gatk -T HaplotypeCaller -ploidy 1 -R {ref} -I {aln} --num_cpu_threads_per_data_thread {cpus} --genotyping_mode DISCOVERY -stand_call_conf 30 -o {vcf}",
+    #             ref=ref_fasta, aln=in_bam, vcf=variants_file, cpus=cpus)
+    #     if not os.path.exists(variants_ann_file):
+    #         e("snpEff {database} {input} > {output}",
+    #                 database=snpeffdb, input=variants_file, output=variants_ann_file)
 
-        if not os.path.exists(variants_file):
-            execute(
-                "gatk -T HaplotypeCaller -ploidy 1 -R {ref} -I {aln} --num_cpu_threads_per_data_thread {cpus} --genotyping_mode DISCOVERY -stand_call_conf 30 -o {vcf}",
-                ref=ref_fasta, aln=in_bam, vcf=variants_file, cpus=cpus)
-        if not os.path.exists(variants_ann_file):
-            execute("snpEff {database} {input} > {output}",
-                    database=snpeffdb, input=variants_file, output=variants_ann_file)
+    @staticmethod
+    def create_snpeff_db():
+        """
+        cat NC_002505.1.gbk NC_002506.1.gbk > genes.gbk
+        vibrio.genome : Vibrio Cholerae
+	        vibrio.chromosomes : NC_002505.1, NC_002506.1
+	        vibrio.NC_002505.1.codonTable : Bacterial_and_Plant_Plastid
+	    java -jar snpEff.jar build -genbank -v CP000730
+        :return:
+        """
+        pass
 
     @staticmethod
     def vcf_stats(in_vcf):
         pass
+
+
+if __name__ == '__main__':
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description = 'Mapping to variant calls pipeline.')
+    required = parser.add_argument_group('required arguments')
+    required.add_argument('-R', '--reference', action = 'store', dest = 'reference', required = True)
+    required.add_argument('-A', '--annotation', action = 'store', dest = 'annotation', required = True)
+    required.add_argument('-S', '--strain', action = 'store', dest = 'strain', default = "sample")
+    required.add_argument('-R1', '--read1', action = 'store', dest = 'read1', required = True)
+    required.add_argument('-R2', '--read2', action = 'store', dest = 'read2', required = True)
+    parser.add_argument('--useSingletons', action = 'store_true', dest = 'singletons')
+
+    args = parser.parse_args()
+
+    Mapping.init_ref(args.reference)
+    alignment_path = Mapping.alignment(args.reference,args.read1,args.read2,args.strain)
+    Mapping.variant_call(args.reference,alignment_path)

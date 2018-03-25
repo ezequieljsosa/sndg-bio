@@ -256,10 +256,7 @@ def main(argv=None):  # IGNORE:C0111
 
 
         args = parser.parse_args()
-        verbose = args.verbose
 
-        if verbose > 0:
-            print("Verbose mode on")
 
         #         pdbs = PDBs()
         #         pdbs.update('/data/pdb/divided/')

@@ -69,7 +69,7 @@ class Hmmer(object):
         if (not os.path.exists(domains_fasta_path)) or (os.path.getsize(domains_fasta_path) == 0):
             sequences = {x.id: x.seq for x in bpio.parse(self.seq_query, "fasta")}
             with open(domains_fasta_path, "w") as handle:
-                for query in self.query():
+                for query in self._parse_output():
                     for hit in query:
                         for hsp in hit:
                             dn_id = "_".join([query.id, hit.id, str(hsp.query_start), str(hsp.query_end)])

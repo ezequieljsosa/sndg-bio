@@ -12,10 +12,11 @@ warnings.simplefilter('ignore', BiopythonParserWarning)
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 _log = logging.getLogger(__name__)
 
+test_execution = []
 
 def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
     default_formatter = logging.Formatter(log_format)
@@ -33,11 +34,14 @@ def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
     root.setLevel(rootloglevel)
 
 
-def execute(cmd_unformated, **kargs):
-    cmd = cmd_unformated.format(**kargs)
-    _log.debug(cmd)
+def execute(cmd_unformated,wd="./", **kargs):
+    cmd = "cd " + wd + ";" + cmd_unformated.format(**kargs)
+    _log.debug( cmd)
     try:
-        sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
+        if not test_execution:
+            sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
+        else:
+            print(cmd)
         _log.debug(cmd + " -> OK")
     except CalledProcessError as ex:
         _log.warn(ex.message)
