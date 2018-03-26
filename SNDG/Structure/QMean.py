@@ -18,7 +18,15 @@ class QMean:
         pdb = LoadPDB(pdb_path)
         assessment = AssessModelQuality(pdb, output_dir=output_dir)
         shutil.rmtree(output_dir)
-        return assessment[0].qmean4.__dict__
+        result = {}
+        for x in assessment[0].all_scores:
+            result[x.name + "_norm"] = x.norm
+            result[x.name + "_zscore"] = x.z_score
+        result["residues"] = {}
+        for row in assessment[1].score_table.rows:
+            r = {f:row[i] for i,f in enumerate(assessment[1].score_table.col_names[4:],4) }
+            result["residues"][  row[0]  + "_" +  str(row[2]) + "_" +  str(row[3])] = r
+        return result
 
 
 if __name__ == '__main__':
