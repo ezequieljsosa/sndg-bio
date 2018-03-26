@@ -39,7 +39,7 @@ def md5_equal(fname, known_md5):
 def download_file(complete_url, target, ovewrite=False, retries=3):
     if not target.strip():
         target = "./"
-    if not os.path.exists(os.path.dirname(target)):
+    if not os.path.exists(os.path.dirname(os.path.abspath(target))):
         raise Exception("%s does not exists" % os.path.dirname(target))
     if os.path.exists(target) and not ovewrite:
         raise OvewriteFileException("%s already exists" % target)
