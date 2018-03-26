@@ -4,6 +4,7 @@
 from tqdm import tqdm
 from SNDG.WebServices import download_file
 import requests
+import os
 
 
 class EBI:
