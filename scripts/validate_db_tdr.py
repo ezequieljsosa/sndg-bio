@@ -115,7 +115,7 @@ def validate_protein_search(g):
 
 
 def validate_genome(g):
-    # validate_pathways(g)
+    validate_pathways(g)
     validate_protein_search(g)
 
     for x in ["ec", "go", "biocyc_pw", "biocyc_reac"]:

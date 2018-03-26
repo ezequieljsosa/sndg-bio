@@ -17,6 +17,7 @@ from tqdm import tqdm
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio.SeqRecord import SeqRecord
+import Bio.SeqIO as bpio
 from SNDG import init_log
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParam
@@ -281,10 +282,6 @@ class BioMongoDB(object):
                 p.save()
         print i
 
-
-
-
-
     def load_metadata(self, organism_name, datafile, uploader=demo):
         import pandas as pd
         from tqdm import tqdm
@@ -355,6 +352,13 @@ class BioMongoDB(object):
 
         seqCollection.uploads.append(upload);
         seqCollection.save()
+
+    @staticmethod
+    def protein_fasta(outfile_path, organism):
+        with open(outfile_path, "w") as h:
+            for p in Protein.objects(organism=organism).no_cache():
+                r = SeqRecord(id=p.gene[0], description="", seq=Seq(p.seq))
+                bpio.write(r, h, "fasta")
 
     def organism_iterator(self, organism, seq_map=None):
         for dbcontig in Contig.objects(organism=organism).no_cache():

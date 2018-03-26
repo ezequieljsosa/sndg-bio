@@ -21,10 +21,12 @@ class EBI:
                     sample_accession, experiment_accession, run_accession, fastq_ftp = l.split("\t")
                     if len(fastq_ftp.split(";")) == 2:
                         basefilename = "_".join([sample_accession, experiment_accession, run_accession])
-                        download_file(fastq_ftp.split(";")[0],
-                                      basefilename + "_1.fastq.gz")
-                        download_file(fastq_ftp.split(";")[1],
-                                      basefilename + "_2.fastq.gz")
+                        if not os.path.exists(basefilename + "_1.fastq.gz"):
+                            download_file(fastq_ftp.split(";")[0],
+                                          basefilename + "_1.fastq.gz")
+                        if not os.path.exists(basefilename + "_2.fastq.gz"):
+                            download_file(fastq_ftp.split(";")[1],
+                                          basefilename + "_2.fastq.gz")
 
         else:
             raise Exception("request error %i" % r.status_code)

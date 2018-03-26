@@ -64,9 +64,17 @@ class Offtargeting(object):
 
 
 
-    # @staticmethod
-    # def offtargets(proteome,dst_resutls,offtarget_dbs=):
-    #     for db in []
+    @staticmethod
+    def offtargets(proteome,dst_resutls,offtarget_dbs=offtarget_p):
+        pname = proteome.split("/")[-1].split(".")[0]
+        results = []
+        for db in offtarget_dbs:
+            dbname = db.split("/")[-1].split(".")[0]
+            out = dst_resutls + pname  + "_" + dbname + ".xml"
+            execute("blastp -evalue 1e-5 -max_hsps 1 -outfmt 5 -max_target_seqs 1 -db {db} -query {query} -out {out}",
+                    db=db,query=proteome,out=out)
+            results.append(out)
+        return results
 
 if __name__ == "__main__":
     from SNDG import init_log

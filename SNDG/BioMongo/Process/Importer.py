@@ -204,7 +204,7 @@ def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,proce
 
 
 def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
-    process_pdb = Protein.objects(
+    process_pdb = not Protein.objects(
         __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not (Protein.objects(__raw__={
         "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count() )

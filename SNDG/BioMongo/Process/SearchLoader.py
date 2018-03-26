@@ -10,9 +10,12 @@ from bson.objectid import ObjectId
 from tqdm import tqdm
 
 import Bio.SearchIO as bpsio
+from SNDG.WebServices.Offtargeting import Offtargeting
+from SNDG import mkdir
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
 from SNDG.BioMongo.Model.Feature import Feature, Location
 from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Process.BioDocFactory import BioDocFactory
 from SNDG.Sequence import identity, coverage, hit_coverage
 from SNDG.Sequence.so import SO_TERMS
@@ -21,6 +24,22 @@ _log = logging.getLogger(__name__)
 
 
 class SearchLoader():
+
+    @staticmethod
+    def offtarget(organism,offtarget_databases,offtarget_names,tmp_dir=None):
+        if not tmp_dir:
+            tmp_dir = "/data/organismos/" + organism + "/annotation/"
+        mkdir(tmp_dir)
+        proteins = tmp_dir + "proteins.fasta"
+        if not os.path.exists(proteins):
+            BioMongoDB.protein_fasta(proteins,organism)
+        results = Offtargeting.offtargets(proteins,tmp_dir,offtarget_databases)
+        for i,name in enumerate(offtarget_names):
+            load_blast_features( organism, results[i], name,
+                                 min_identity=0.4, min_query_coverage=0.4, min_hit_coverage=0.4)
+
+
+
 
     @staticmethod
     def update_protein_with_dbxref(protein_gene, annotations,organism):
