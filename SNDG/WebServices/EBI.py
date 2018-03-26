@@ -37,7 +37,7 @@ class EBI:
                                 download_file(fastq_ftp.split(";")[1],
                                               basefilename + "_2.fastq.gz")
                             except:
-                                _log.warninig("error downloading: " + basefilename + "_2.fastq.gz")
+                                _log.warn("error downloading: " + basefilename + "_2.fastq.gz")
 
         else:
             raise Exception("request error %i" % r.status_code)
