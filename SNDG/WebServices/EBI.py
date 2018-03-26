@@ -12,7 +12,8 @@ class EBI:
     # sample_accession,secondary_sample_accession,experiment_accession,run_accession,tax_id,scientific_name,fastq_ftp&download
 
     @staticmethod
-    def download_ena_project(project_id):
+    def download_ena_project(project_id,dst_dir):
+        dst_dir = os.path.abspath(dst_dir)
         url_template = "https://www.ebi.ac.uk/ena/data/warehouse/filereport?accession=" + project_id + "&result=read_run&fields=sample_accession,experiment_accession,run_accession,fastq_ftp&download=txt"
         r = requests.get(url_template)
         if r.status_code == 200:
@@ -21,7 +22,7 @@ class EBI:
                 if len(l.strip().split("\t")) > 3:
                     sample_accession, experiment_accession, run_accession, fastq_ftp = l.split("\t")
                     if len(fastq_ftp.split(";")) == 2:
-                        basefilename = "_".join([sample_accession, experiment_accession, run_accession])
+                        basefilename = dst_dir + "/" + "_".join([sample_accession, experiment_accession, run_accession])
                         if not os.path.exists(basefilename + "_1.fastq.gz"):
                             download_file(fastq_ftp.split(";")[0],
                                           basefilename + "_1.fastq.gz")
