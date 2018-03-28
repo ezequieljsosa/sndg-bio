@@ -42,9 +42,12 @@ def process_chain(pdb_path, code, chain_id, pdb_model):
 
     for k,v in residues_qm.items():
         chain, resid, resname = k.split("_")
+
+
+
         r = Residue(pdb=pdb_model,chain=chain,resname=resname,resid=int(resid))
         for prop,val in v.items():
-            if math.isnan(val):
+            if not math.isnan(val):
                 ResidueProperty(residue=r,name=prop,value=val).save()
 
     del qm["residues"]

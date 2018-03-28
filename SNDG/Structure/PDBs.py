@@ -58,7 +58,7 @@ class PDBs(object):
 
         self.uncompress_file = True
         self.delete_compressed = True
-        self.entries_path = '/data/databases/pdb/entries.idx'
+        self.entries_path = pdb_dir + '/entries.idx'
 
     def entries_df(self):
         entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
