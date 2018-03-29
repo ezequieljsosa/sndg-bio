@@ -8,6 +8,8 @@ https://stackoverflow.com/questions/11685716/how-to-extract-chains-from-a-pdb-fi
 
 import os
 import logging
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+
 from Bio import PDB
 from Bio.Data.IUPACData import protein_letters_1to3
 
@@ -93,21 +95,19 @@ class ChainSplitter:
 
 
 if __name__ == "__main__":
-    """ Parses PDB id's desired chains, and creates new PDB structures. """
-    import sys
+    from SNDG import init_log
 
-    if not len(sys.argv) == 2:
-        print("Usage: $ python %s 'pdb.txt'" % __file__)
-        sys.exit()
+    init_log()
 
-    pdb_textfn = sys.argv[1]
+    parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument("-i", "--inputpdb", required=True)
+    parser.add_argument("-c", "--chain", required=True)
+    parser.add_argument("-o", "--outdir", default="./")
 
+    args = parser.parse_args()
 
-    splitter = ChainSplitter("/home/steve/chain_pdbs")
+    pdb = ".".join( args.inputpdb.split("/")[-1].split(".")[:-1])
 
-    with open(pdb_textfn) as pdb_textfile:
-        for line in pdb_textfile:
-            pdb_id = line[:4].lower()
-            chain = line[4]
-            pdb_fn = pdbList.retrieve_pdb_file(pdb_id)
-            splitter.make_pdb(pdb_fn, chain)
+    splitter = ChainSplitter(args.outdir)
+
+    splitter.make_pdb(args.inputpdb,pdb,chain=args.chain,overwrite=True)
