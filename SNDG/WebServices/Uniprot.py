@@ -72,7 +72,12 @@ class Uniprot(object):
     def download_and_load_seqrecord(self, uniprot_id):
         res = requests.get(self.uniprot_url + uniprot_id + ".xml", )
         if res.status_code == 200:
-            return bpio.read(StringIO.StringIO(res.text), "uniprot-xml")
+            try:
+                return bpio.read(StringIO.StringIO(res.text), "uniprot-xml")
+            except:
+                _log.warn("error parsing: " + uniprot_id )
+                pass
+        return None
 
     def download_alias(self, dst):
         execute("wget %s -O %s" % (self.alias_download_url, dst), shell=True)

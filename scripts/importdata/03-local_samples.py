@@ -13,7 +13,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     init_log()
     search = '("Potentilla"[Organism] OR "Argentina"[Organism] OR argentina[All Fields]) AND "attribute geographic location"[filter]'
-    esearch = Entrez.read(Entrez.esearch(db="biosample", term=search, retmax=10000))["IdList"][119:]
+    esearch = Entrez.read(Entrez.esearch(db="biosample", term=search, retmax=10000))["IdList"]
     for biosample_id in tqdm(esearch):
         links = Entrez.read(Entrez.elink(dbfrom="biosample", id=biosample_id, linkname="biosample_assembly"))
 

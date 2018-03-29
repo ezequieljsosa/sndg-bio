@@ -11,7 +11,7 @@ _log = logging.getLogger(__name__)
 class BBH:
 
     @staticmethod
-    def bbhs_from_blast(path_file1, path_file2):
+    def bbhs_from_blast(path_file1, path_file2,ident_threshold=80):
         """
         :param path_file1: blast result table format (6)
         :param path_file2: blast result table format (6)
@@ -21,14 +21,14 @@ class BBH:
         for query in bpsio.parse(path_file1, "blast-tab"):
             for hit in query:
                 hsp = hit[0]
-                if hsp.ident_pct > 0.9:
+                if hsp.ident_pct > ident_threshold:
                     query_dict[query.id][hit.id] = 1
 
         bbhs = []
         for query in bpsio.parse(path_file2, "blast-tab"):
             for hit in query:
                 hsp = hit[0]
-                if hsp.ident_pct > 0.9:
+                if hsp.ident_pct > ident_threshold:
                     if query.id in query_dict[hit.id]:
                         bbhs.append(hit.id,query.id)
         return bbhs

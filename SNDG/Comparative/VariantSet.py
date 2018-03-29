@@ -87,7 +87,7 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
                             dist[s1][s2] += 1
         return dist
 
-    def diff_variants(self, df_variants, samples):
+    def diff_variants(self, df_variants, samples, columns=["chrom", "pos", "gene", "type"]):
         # diff = defaultdict(lambda: defaultdict(lambda: []))
         df = df_variants
         idx = df.pos != df.pos
@@ -98,21 +98,14 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
             idx = idx | idx2
 
         df = df[idx]
-        """
-        for _, row in tqdm(df.iterrows(), total=len(df)):
-            for i, s1 in enumerate(samples):
-                for j, s2 in enumerate(samples):
-                    if i > j:
-                        if row[s1] != row[s2]:
-                            diff[s1][s2].append((row.chrom, row.pos, row.gene, row["type"], row[s1], row[s2]))
-        """
-        return df[["chrom", "pos", "gene", "type"] + samples]
+
+        return df[columns + samples]
 
 
 if __name__ == '__main__':
     import glob
     from SNDG import init_log
-
+    """
     init_log()
     vcfs = glob.glob("/home/eze/workspace/git/msmegmatis_mut/data/processed/variant_call/**/*.vcf")
     vcfs = [x for x in vcfs if "ann" not in x]
@@ -124,3 +117,4 @@ if __name__ == '__main__':
     df.to_csv("/tmp/pepe.csv", columns=["pos", "gene", "type", "ref"] +
                                        ["MUT-11","MUT-12","MUT-7","WT1"] + ["aa_pos", "aa_ref", "aa_alt"])
     print pepe
+    """

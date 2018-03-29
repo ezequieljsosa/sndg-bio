@@ -216,12 +216,14 @@ if __name__ == "__main__":
     #                     extra_features[r.id].append(f)
     mdb = BioMongoDB("saureus")
     jw = JBrowse(db=mdb.db)
-    for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
-        if not os.path.exists("/data/xomeq/jbrowse/data/"+ genome + "/xomeq" ):
-            try:
-                jw.create_genome(genome)
-            except Exception as ex:
-                _log.warn(ex)
+    #http://localhost:8080/sndg/genome/Eco109B
+    jw.create_genome("Eco109B")
+    # for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
+    #     if not os.path.exists("/data/xomeq/jbrowse/data/"+ genome + "/xomeq" ):
+    #         try:
+    #             jw.create_genome(genome)
+    #         except Exception as ex:
+    #             _log.warn(ex)
     # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
     # jw.create_genome("SAureusN315") #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False, extra_features=dict(extra_features)
 
