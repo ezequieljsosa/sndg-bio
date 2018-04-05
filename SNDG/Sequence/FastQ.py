@@ -3,27 +3,42 @@
 """
 import gzip
 import os
+import re
 from glob import glob
 
+import Bio.SeqIO as bpio
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import Bio.SeqIO as bpio
 from SNDG import execute, mkdir
+
+
+def default_index_extract(filename):
+    m = re.search('.*_R(.)_.*', filename)
+    if m:
+        return m.group(1)
+    raise Exception("no read index detected")
+
+
+def default_index_extract2(filename):
+    return filename.split("_")[1].split(".")[0]
 
 
 class FastQ:
 
     @staticmethod
-    def rawstats(workdir, strains="", ref_size=None):
-        columns = ["entry", "size_mb", "read_size_bp", "readcount"]
+    def rawstats(workdir, strains="", ref_size=None,
+                 files_fn=lambda workdir, strain: glob(workdir + "/" + strain +  "*.gz"),
+                 extract_idx_fn=default_index_extract):
+        workdir = os.path.abspath(workdir)
+        columns = ["entry", "index", "size_mb", "read_size_bp", "readcount"]
         if ref_size:
             columns.append("depth")
         dicts = []
         for strain in tqdm(strains):
-            for filename in glob(workdir + "/" + strain + "*.gz"):
-                entry = os.path.basename(filename).replace(".fastq.gz", "").replace(".fq.gz", "")
+            for filename in files_fn(workdir, strain):
+
                 total_bp = 0
                 read_count = 0
                 with gzip.open(filename) as h:
@@ -34,44 +49,61 @@ class FastQ:
                 size = os.path.getsize(filename) * 1.0 / 1024 / 1024
                 if ref_size:
                     cov = total_bp / ref_size
-                    dicts.append((entry, size, total_bp / read_count, read_count, cov,))
+                    dicts.append((strain, strain + "_" + extract_idx_fn(filename), size, total_bp / read_count,
+                                  read_count, cov,))
                 else:
-                    dicts.append((entry, size, total_bp / read_count, read_count,))
+                    dicts.append(
+                        (strain, strain + "_" + extract_idx_fn(filename), size, total_bp / read_count, read_count,))
 
         df = pd.DataFrame.from_records(dicts, index=None, columns=columns)
         return df
 
     @staticmethod
-    def filteredstats(workdir, strains="", ref_size=None, rawdf=None):
-        columns = ["entry", "f_size_mb", "f_total_bp", "f_readcount"]
+    def filteredstats(workdir, strains="", files_fn=lambda workdir, strain: glob(workdir + "/" + strain + "*.gz"),
+                      ref_size=None, rawdf=None, extract_idx_fn=default_index_extract2):
+        """
+
+        :param workdir: base dir for all read files
+        :param strains: strain read file names
+        :param files_fn: function to map workdir and strain to a file,
+            default: lambda workdir,strain:glob(workdir + "/" + strain + "*.gz")
+        :param ref_size: size of the reference
+        :param rawdf: data frame with the analysis of the raw reads
+        :return:
+        """
+        columns = ["entry", "index", "f_size_mb", "f_total_bp", "f_readcount"]
 
         if ref_size:
             columns.append("f_depth")
         dicts = []
 
         for strain in tqdm(strains):
-            for filename in glob(workdir + "/" + strain + "*.gz"):
 
-                entry = os.path.basename(filename).replace(".fastq.gz", "").replace(".fq.gz", "")
+            entry = strain
+            for filename in files_fn(workdir, strain):
                 total_bp = 0
                 read_count = 0
-                with gzip.open(filename) as h:
+                try:
+                    h = gzip.open(filename) if filename.endswith(".gz") else open(filename)
                     for read in bpio.parse(h, "fastq"):
                         read_count += 1
                         total_bp += len(read)
+                finally:
+                    h.close()
 
                 size = os.path.getsize(filename) * 1.0 / 1024 / 1024
 
                 if ref_size:
                     cov = total_bp * 1.0 / ref_size
-                    dicts.append((entry, size, total_bp, read_count, cov,))
+                    dicts.append((entry, strain + "_" + extract_idx_fn(filename), size, total_bp, read_count, cov,))
                 else:
-                    dicts.append((entry, size, total_bp, read_count,))
+                    dicts.append((entry, strain + "_" + extract_idx_fn(filename), size, total_bp, read_count,))
 
         df = pd.DataFrame.from_records(dicts, index=None, columns=columns)
 
         try:
-            return pd.merge(rawdf, df, on=["entry"], how='right')
+            df = df.drop('entry', 1)
+            return pd.merge(rawdf, df, on=["index"], how='right')
         except:
             return df
 
@@ -96,7 +128,7 @@ class FastQ:
             for c, fn in [("read_size_bp", lambda xs: sum(xs) / len(xs)),
                           ("f_total_bp", sum), ("depth", sum),
                           ("f_depth", sum), ("readcount", sum), ("f_readcount", sum)]:
-                value =  round(fn([x[c] for x in rows if not np.isnan(x[c])]),2)
+                value = round(fn([x[c] for x in rows if not np.isnan(x[c])]), 2)
                 new_row.append(value)
             srows.append(new_row)
         cols = ["strain", "read_size_bp", "f_total_bp",

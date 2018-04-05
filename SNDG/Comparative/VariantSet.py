@@ -40,6 +40,9 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
         self.total_variants = int(sp.check_output('grep -vc "^#" ' + path_gvcf, shell=True))
         self.reference = reference
         self.gvcf = VcfSnpeffIO.parse(path_gvcf)
+        self.validate_variant_fn = lambda sample_data: hasattr(sample_data, "AD") and sample_data.DP and (
+                sum(sample_data.AD) > 20) and (((sample_data.AD[1] + 1) * 1.0 / (sample_data.AD[0] + 1)) >= 0.75)
+        self.default_value_fn = lambda variant, sample_data,alt: alt
 
     def build_table(self):
 
@@ -57,9 +60,17 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
             for sample in variant.samples:
                 sample_name = sample.sample.split(".variant")[0]
 
-                if sample.called :
-                    vresult[sample_name] = str(variant.ALT[int(sample.data.GT) - 1])
-                    if effect.aa_pos:
+                if sample.called:
+                    alt = str(variant.ALT[int(sample.data.GT) - 1])
+
+                    vresult[sample_name + "_ada"] = sample.data.AD[1] if  hasattr(sample.data, "AD") else 0
+                    vresult[sample_name + "_adr"] = sample.data.AD[0] if  hasattr(sample.data, "AD") else 0
+
+                    if self.validate_variant_fn(sample.data):
+                        vresult[sample_name] = alt
+                    else:
+                        vresult[sample_name] = self.default_value_fn(variant, sample.data,alt)
+                    if (alt == vresult[sample_name]) and effect.aa_pos:
                         vresult["aa_pos"] = effect.aa_pos
                         vresult["aa_ref"] = effect.aa_ref
                         vresult["aa_alt"] = effect.aa_alt
@@ -69,11 +80,11 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
             if len(set(alternatives)) > 1:
                 rows.append(vresult)
                 # df_result = df_result.append(vresult, ignore_index=True)
-        samples = [x.sample.split(".variant")[0] for x in  variant.samples]
+        samples = [x.sample.split(".variant")[0] for x in variant.samples]
         df = pd.DataFrame(rows)
-        onlyref = [ len(set([ r[sample_name]  for sample_name in samples ])) == 1
-                    for _,r in  df.iterrows() ]
-        df = df[~onlyref]
+        onlyref = [len(set([r[sample_name] for sample_name in samples])) != 1
+                   for _, r in df.iterrows()]
+        df = df.iloc[onlyref]
 
         return df
 
@@ -105,6 +116,7 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
 if __name__ == '__main__':
     import glob
     from SNDG import init_log
+
     """
     init_log()
     vcfs = glob.glob("/home/eze/workspace/git/msmegmatis_mut/data/processed/variant_call/**/*.vcf")

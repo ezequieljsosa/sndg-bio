@@ -40,13 +40,11 @@ class Mapping:
 
 
     @staticmethod
-    def alignment(work_dir,record, read1, read2,cpus=multiprocessing.cpu_count(),strain="sample1",species=None):
-        if not species:
-            species = strain
+    def clean_reads(work_dir, read1, read2):
         work_dir = os.path.abspath(work_dir) + "/"
         read1 = os.path.abspath(read1)
         read2 = os.path.abspath(read2)
-        record = os.path.abspath(record)
+
         # Quality control
         e("prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean 25 -trim_left 20 -trim_right 2 -trim_qual_right 25 -trim_qual_window 5 -min_len 35 -out_good trimmed",
           work_dir, read1_full = read1, read2_full = read2)
@@ -58,9 +56,19 @@ class Mapping:
         os.remove(work_dir + "trimmed_1_singletons.fastq")
         os.remove(work_dir  + "trimmed_2_singletons.fastq")
 
+    @staticmethod
+    def alignment(work_dir,record, trimmed_1="trimmed_1.fastq",
+                  trimmed_2="trimmed_2.fastq",cpus=multiprocessing.cpu_count(),
+                  strain="sample1",species=None):
+        if not species:
+            species = strain
+
+        work_dir = os.path.abspath(work_dir) + "/"
+        record = os.path.abspath(record)
         # Generate a SAM file containing aligned reads
-        e("bwa mem -t {cpus} -M -R \'@RG\\tID:group1\\tSM:{strain}\\tPL:illumina\\tLB:{species}\' {record_name} trimmed_1.fastq trimmed_2.fastq > aligned_reads.sam"
-        ,work_dir,record_name = record,strain=strain,species=species,cpus=cpus)
+        e("bwa mem -t {cpus} -M -R \'@RG\\tID:group1\\tSM:{strain}\\tPL:illumina\\tLB:{species}\' {record_name} {trimmed_1} {trimmed_2} > aligned_reads.sam"
+        ,work_dir,record_name = record,strain=strain,species=species,cpus=cpus,
+          trimmed_1=trimmed_1,trimmed_2=trimmed_2)
         # Filter mapped reads and convert to BAM
         e("samtools view -@ {cpus} -F 4 -S -b -h aligned_reads.sam > mapped_reads.bam",work_dir,cpus=cpus)
         e("samtools view -@ {cpus} -f 4 -S -b -h aligned_reads.sam > unmapped_reads.bam",work_dir,cpus=cpus)
@@ -95,7 +103,8 @@ class Mapping:
           work_dir,record_name = record)
         e("java -jar $GATK -T CombineVariants --assumeIdenticalSamples -R {record_name} -V filtered_snps.vcf -V filtered_indels.vcf -genotypeMergeOptions UNIQUIFY -o concatenated.vcf",
           work_dir,record_name = record)
-        # e("sed \'/^#[^#]/ {{s/\\tsample1\\.variant2//}}\' concatenated.vcf > %s.vcf" % '_'.join(read1.split('_')[:2])) # Removes column from vcf header
+        # Removes column from vcf header
+        e("sed \'/^#[^#]/ {{s/\\t%s\\.variant2//}}\' concatenated.vcf > %s.vcf" % (strain,"final.vcf"),work_dir)
         return strain + ".vcf"
 
 

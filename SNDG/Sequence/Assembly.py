@@ -21,7 +21,7 @@ class Assembly:
         assert libraries, "libraries cannot be empty"
         mkdir(out)
 
-        template = """spades {libs} {tcont} {utcont} --cov-cutoff {cov_cutoff} -o {out}"""
+        template = """spades.py {libs} {tcont} {utcont} --cov-cutoff {cov_cutoff} -o {out}"""
         libs = ""
         for i, lib in enumerate(libraries, 1):
             libs += " --pe{i}-1 {r1} --pe{i}-2 {r2} ".format(i=i, r1=lib[0], r2=lib[1])
