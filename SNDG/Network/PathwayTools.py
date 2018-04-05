@@ -30,58 +30,11 @@ from Bio.SeqRecord import SeqRecord
 from SNDG import execute, mkdir
 
 _log = logging.getLogger(__name__)
-go_dag = GODag("/data/databases/go/go.obo", load_obsolete=True)
-
-
-def process_go_db(db, go_code):
-    go = go_dag[go_code]
-    if go.namespace == db and go.level > 0:
-        return "|".join([go.name.strip().replace("\n", ""), go_code.split(":")[1], "1", "ISS"])
-    else:
-        return None
-
-
-def process_go_cc(go_code):
-    """
-    GO term name, GO term ID, citation PubMed ID, and evidence code, separated by vertical bars. Example:
-    antimicrobial humoral response|0019730|16163390|IMP
-    http://geneontology.org/page/guide-go-evidence-codes -->
-    Inferred from Sequence or structural Similarity (ISS) = default
-    """
-    return process_go_db("cellular_component", go_code)
-
-
-def process_go_mf(go_code):
-    return process_go_db("molecular_function", go_code)
-
-
-def process_go_bp(go_code):
-    return process_go_db("biological_process", go_code)
 
 
 class PathwayTools:
-    default_mappings = map_data = {
-        "gene.mRNA": {
-            "type": "CDS",
-            "qualifiers": {
-                "gene_symbol": "gene",
-                "locus_tag": "locus_tag",
-                "description": "product",
-                "Note": "note",
 
-                "EC": ("EC_number", lambda x: x.split(":")[1]),
-                "x": "product_comment",
-                "x": "gene_comment",
-                "x": "pseudo",
-                "x": "alt_name",
-                "x": "db_xref",
-                "GO": {"go_component": process_go_cc,
-                       "go_function": process_go_mf,
-                       "go_process": process_go_bp}
-            }}
-    }
-
-    def __init__(self, workdir, assembly_level="CHRSM"):
+    def __init__(self, workdir, go_db="/data/databases/go/go.obo",assembly_level="CHRSM"):
         """
         :param workdir:
         :param assembly_level:  "CHRSM", "PLASMID", "MT" (mitochondrial chromosome),"PT" (chloroplast chromosome), or "CONTIG"
@@ -89,6 +42,49 @@ class PathwayTools:
         self.workdir = workdir
         self.assembly_level = assembly_level
         self.gb_file = workdir + "/pwtools.gb"
+        self.go_dag = GODag(go_db, load_obsolete=True)
+        self.default_mappings = {
+            "gene.mRNA": {
+                "type": "CDS",
+                "qualifiers": {
+                    "gene_symbol": "gene",
+                    "locus_tag": "locus_tag",
+                    "description": "product",
+                    "Note": "note",
+
+                    "EC": ("EC_number", lambda x: x.split(":")[1] if len(x.split(":")) > 1 else x ),
+                    "x": "product_comment",
+                    "x": "gene_comment",
+                    "x": "pseudo",
+                    "x": "alt_name",
+                    "x": "db_xref",
+                    "GO": {"go_component": self.process_go_cc,
+                           "go_function": self.process_go_mf,
+                           "go_process": self.process_go_bp}
+                }}
+        }
+
+    def process_go_db(self, db, go_code):
+        go = self.go_dag[go_code]
+        if go.namespace == db and go.level > 0:
+            return "|".join([go.name.strip().replace("\n", ""), go_code.split(":")[1], "1", "ISS"])
+        else:
+            return None
+
+    def process_go_cc(self, go_code):
+        """
+        GO term name, GO term ID, citation PubMed ID, and evidence code, separated by vertical bars. Example:
+        antimicrobial humoral response|0019730|16163390|IMP
+        http://geneontology.org/page/guide-go-evidence-codes -->
+        Inferred from Sequence or structural Similarity (ISS) = default
+        """
+        return self.process_go_db("cellular_component", go_code)
+
+    def process_go_mf(self, go_code):
+        return self.process_go_db("molecular_function", go_code)
+
+    def process_go_bp(self, go_code):
+        return self.process_go_db("biological_process", go_code)
 
     def create_genetic_elements(self):
         """
@@ -206,7 +202,10 @@ DOMAIN\t{domain}"""
         with open(self.workdir + "organism-params.dat", "w")  as h:
             h.write(template.format(name=name, organism=organism, tax=tax, domain=domain))
 
-    def create_genebank(self, contig_iterator, mappings=default_mappings):
+    def create_genebank(self, contig_iterator, mappings=None):
+        if not mappings:
+            mappings = self.default_mappings
+
         def dbfeature2seqfeature(org_feature):
             seqf = SeqFeature(
                 FeatureLocation(org_feature.location.start, org_feature.location.end, org_feature.location.strand),
@@ -223,14 +222,17 @@ DOMAIN\t{domain}"""
                 if f.type.lower() == "gene":
                     seqfeature = dbfeature2seqfeature(f)
                 elif f.type.lower() in ["rrna", "trna", "ncrna"]:
+                    note = f.qualifiers["Note"] if "Note" in f.qualifiers else ""
+                    desc = f.qualifiers["description"] if "description" in f.qualifiers else ""
                     seqfeature = SeqFeature(f.location,
                                             f.type.replace("ncrna", "misc_RNA"),
-                                            id=f.id, qualifiers={"locus_tag": f.id, "note": f.qualifiers["Note"]
-                            , "description": f.qualifiers["description"]
-                            , "gene": f.qualifiers["Note"]
-                            , "alt name": f.qualifiers["description"]
-                            , "product": f.qualifiers["description"]})
-                elif f.type.lower() in ["contig", "exon", "cdsvi","CDS"]:
+                                            id=f.id, qualifiers={"locus_tag": f.id,
+                            "note": note
+                            , "description": desc
+                            , "gene": note
+                            , "alt name": desc
+                            , "product": desc})
+                elif f.type.lower() in ["contig", "exon", "cdsvi", "CDS"]:
                     seqfeature = None
                 else:
                     _log.warning("unknow feature " + f.type)
@@ -250,8 +252,11 @@ DOMAIN\t{domain}"""
         """
          :param pwtools_path: complete path to pathway-tools binary. by default assumes that it is in the PATH
         """
-        cmd = proxy + ' ' + pwtools_path + ' -no-cel-overview -no-web-cel-overview  -patho ' + self.workdir
+        cmd = self.cmd_pwtools(pwtools_path, proxy)
         execute(cmd)
+
+    def cmd_pwtools(self, pwtools_path, proxy):
+        return proxy + ' ' + pwtools_path + ' -no-cel-overview -no-web-cel-overview  -patho ' + self.workdir
 
     def copy_qualifiers(self, mapping, f_in, f_out):
         for k, v in mapping.items():
@@ -305,25 +310,52 @@ DOMAIN\t{domain}"""
 
 
 if __name__ == "__main__":
+    """
+    example
+    python SNDG/Network/PathwayTools.py -o /tmp/pepe2 -n "Saureus" -desc "Saureus"  -ann /home/eze/Downloads/ncbi_BIA_1.gff3 -s /home/eze/Downloads/ncbi_BIA_1.gbf -db TAX-2 -t 158879
+    """
     from SNDG import init_log
+    from SNDG.Sequence import smart_parse
     from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 
     init_log()
-    pw = PathwayTools("/data/organismos/GCF_001624625.1/annotation/")
 
-    mdb = BioMongoDB("tdr")
-    # contigmap = bpio.to_dict(
-    #     bpio.parse("/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta", "fasta"))
-    # pw.create_genebank(mdb.organism_iterator("cruzi", contigmap))
-    # pw.create_organism_params(name="cruzi", organism="Trypanosoma cruzi strain CL Brener", domain="TAX-2759",
-    #                           tax="353153")
-    # pw.create_genetic_elements()
-    # pw.execute("/opt/pathway-tools/pathway-tools")
+    import argparse
 
-    contigmap = {x.id.split(".")[0]: x for x in
-                 bpio.parse("/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb", "gb")}
-    pw.create_genebank(mdb.organism_iterator("GCF_001624625.1", contigmap))
-    pw.create_organism_params(name="Bartonela", organism="Bartonella bacilliformis strain USM-LMMB 07", domain="TAX-2",
-                              tax="774")
+    parser = argparse.ArgumentParser(description='Mapping to variant calls pipeline.')
+
+    parser.add_argument('-o', '--work_dir', dest='work_dir', required=True)
+    parser.add_argument('-n', '--name', dest='name', required=True)
+    parser.add_argument('-desc', '--description', dest='description', required=True)
+    parser.add_argument('-ann', '--annotation', dest='annotation', required=True)
+    parser.add_argument('-t', '--tax', dest='tax', required=True)
+    parser.add_argument('-anntype', '--annotation_type', dest='annotation_type',
+                        choices=["gff", "gb", "mongo"], default="gff")
+    parser.add_argument('-db', '--mongodb', dest='mongodb', default=None)
+    parser.add_argument('-go', '--go_db', dest='go_db', default="/data/databases/go/go.obo")
+
+    parser.add_argument('-dn', '--domain', dest='domain', default="TAX-2",
+                        help='"TAX-2" (Bacteria), "TAX-2759" (Eukaryota), and "TAX-2157" (Archaea)',
+                        choices=["TAX-2", "TAX-2759", "TAX-2157"])
+    parser.add_argument('-s', '--sequences', dest='sequences', default=None,
+                        help="fasta file. Used when the annotation doesnt have the sequences")
+
+    args = parser.parse_args()
+
+    pw = PathwayTools(args.work_dir,args.go_db)
+    contigmap = None
+    if args.sequences:
+        contigmap = {x.id: x.seq for x in
+                     smart_parse(args.sequences)}
+
+    if args.annotation_type == "mongo":
+        mdb = BioMongoDB(args.mongodb)
+        iterator = mdb.organism_iterator(args.annotation, contigmap)
+    else:
+        iterator = smart_parse(args.annotation, contigmap)
+
+    pw.create_genebank(iterator)
+    pw.create_organism_params(name=args.name, organism=args.description, domain=args.domain,
+                              tax=args.tax)
     pw.create_genetic_elements()
-    pw.execute("/opt/pathway-tools/pathway-tools")
+    print(pw.cmd_pwtools("pathway-tools", ""))

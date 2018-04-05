@@ -3,7 +3,7 @@
 """
 from collections import defaultdict
 
-
+from SNDG import Struct
 
 import Bio.SeqIO as bpio
 import Bio.SearchIO as bpsio
@@ -31,7 +31,7 @@ blast_columns = ["query", "hit", "identity", "aln_len", "mismatches", "gap_openi
 def read_blast_table(blast_table_file):
     import pandas as pd
     return pd.read_table(blast_table_file,
-                  sep="\t", names=blast_columns, index_col=False)
+                         sep="\t", names=blast_columns, index_col=False)
 
 
 def search_iterator(bps_iter):
@@ -49,47 +49,64 @@ def add_blast_xml_props(sndg_iter):
         yield (query, hit, hsp)
 
 
-def smart_parse(path):
+def smart_parse(path, seqs=None):
+    """
+
+    :param path: sequence path
+    :param seqs: dictionary of sequences. key=sequence name, value=Bio.Seq.Seq object
+    :return: sequences iterator
+    """
+    it = None
     if path.endswith(".fasta"):
-        return bpio.parse(path, "fasta")
+        it = bpio.parse(path, "fasta")
     if path.endswith(".faa"):
-        return bpio.parse(path, "fasta")
+        it = bpio.parse(path, "fasta")
     if path.endswith(".fna"):
-        return bpio.parse(path, "fasta")
+        it = bpio.parse(path, "fasta")
 
     if path.endswith(".gb"):
-        return bpio.parse(path, "gb")
+        it = bpio.parse(path, "gb")
+    if path.endswith(".gbf"):
+        it = bpio.parse(path, "gb")
+
     if path.endswith(".gbk"):
-        return bpio.parse(path, "gb")
+        it = bpio.parse(path, "gb")
     if path.endswith(".genebank"):
-        return bpio.parse(path, "gb")
-    if path.endswith(".gbff"):
-        return bpio.parse(path, "gb")
+        it = bpio.parse(path, "gb")
 
     if path.endswith(".embl"):
-        return bpio.parse(path, "embl")
+        it = bpio.parse(path, "embl")
 
-    if path.endswith(".gbff"):
-        with open(path) as h:
-            return GFF(h)
+    if path.endswith(".gbff") or path.endswith(".gff") or path.endswith(".gff3"):
+        it = GFF.parse(open(path))
 
     if path.endswith(".fq"):
-        return bpio.parse(path, "fastq")
+        it = bpio.parse(path, "fastq")
     if path.endswith(".fastq"):
-        return bpio.parse(path, "fastq")
+        it = bpio.parse(path, "fastq")
 
     if path.endswith(".hmm"):
-        return search_iterator(bpsio.parse(path, "hmmer3-text"))
+        it = search_iterator(bpsio.parse(path, "hmmer3-text"))
 
     if path.endswith(".xml"):
         with open(path) as h:
             h.readline()
             l = h.readline()
             if "BlastOutput" in l:
-                return add_blast_xml_props(search_iterator(bpsio.parse(path, "blast-xml")))
+                it = add_blast_xml_props(search_iterator(bpsio.parse(path, "blast-xml")))
             if "<uniprot" in l:
-                return bpio.parse(path, "uniprot-xml")
+                it = bpio.parse(path, "uniprot-xml")
+    if it:
+        if seqs:
+            def witer():
+                for x in it:
+                    if x.id in seqs:
+                        x.seq = seqs[x.id]
+                    yield x
 
+            return Struct(__iter__=witer)
+        else:
+            return it
     raise Exception("invalid format")
 
 
