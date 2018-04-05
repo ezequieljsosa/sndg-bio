@@ -50,11 +50,11 @@ class Mapping:
         e("fastqc trimmed_1.fastq", work_dir)
         e("fastqc trimmed_2.fastq", work_dir)
 
-        if not os.path.exists(work_dir  + "trimmed_1_singletons.fastq"):
+        if os.path.exists(work_dir  + "trimmed_1_singletons.fastq"):
             e("cat trimmed_1_singletons.fastq >> trimmed_s.fastq", work_dir)
             os.remove(work_dir + "trimmed_1_singletons.fastq")
 
-        if not os.path.exists(work_dir  + "trimmed_2_singletons.fastq"):
+        if os.path.exists(work_dir  + "trimmed_2_singletons.fastq"):
             e("cat trimmed_2_singletons.fastq >> trimmed_s.fastq", work_dir)
             os.remove(work_dir + "trimmed_2_singletons.fastq")
 
