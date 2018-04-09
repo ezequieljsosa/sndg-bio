@@ -11,22 +11,22 @@ import subprocess as sp
 import sys
 
 from peewee import ForeignKeyField, CharField, Model, BooleanField, \
-    DateTimeField, CompositeKey, IntegerField
-from peewee import MySQLDatabase
+    DateTimeField, CompositeKey, IntegerField,ManyToManyField,TextField
+from peewee import Proxy
 from tqdm import tqdm
 
 from Bio import Entrez
 from SNDG import execute, init_log
 from SNDG.WebServices import download_file
 
-mysql_db = MySQLDatabase('sndg', user="root", password="mito")
+mysql_db = Proxy()
 
 ftp_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all"
 
 
 class Submitter(Model):
     '''
-    classdocs
+
     '''
 
     # parent = ForeignKeyField('self', related_name='children')
@@ -77,6 +77,37 @@ class ExternalResource(Model):
         indexes = (
             (('submitter', 'identifier',), True),
         )
+
+class BioProject(Model):
+    '''
+
+    '''
+    # id = IntegerField(primary_key=True)
+    name = TextField()
+    identifier = CharField()
+    material = CharField()
+    scope = CharField()
+    description = TextField()
+    created = DateTimeField(default=datetime.datetime.now)
+    modified = DateTimeField()
+    submitters = ManyToManyField(Submitter,backref="projects")
+
+    def save(self, *args, **kwargs):
+        self.modified = datetime.datetime.now()
+        return super(BioProject, self).save(*args, **kwargs)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str(self.__data__)
+
+
+
+    class Meta:
+        database = mysql_db
+
+
 
 
 class ExternalAssembly(ExternalResource):
@@ -151,8 +182,8 @@ class ExternalAssembly(ExternalResource):
 
 
 class AssemblySubmitters(Model):
-    submitter = ForeignKeyField(Submitter)
-    resource = ForeignKeyField(ExternalAssembly)
+    submitter = ForeignKeyField(Submitter,backref="assemblies")
+    resource = ForeignKeyField(ExternalAssembly,backref="submitters")
 
     def __repr__(self):
         return self.__str__()

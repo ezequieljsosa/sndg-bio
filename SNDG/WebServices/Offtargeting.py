@@ -6,6 +6,7 @@ from SNDG.WebServices import download_file
 from tqdm import tqdm
 from SNDG import execute,mkdir
 from SNDG.WebServices.NCBI import NCBI
+import multiprocessing
 
 from Bio import Entrez
 
@@ -65,14 +66,14 @@ class Offtargeting(object):
 
 
     @staticmethod
-    def offtargets(proteome,dst_resutls,offtarget_dbs=offtarget_p):
+    def offtargets(proteome,dst_resutls,offtarget_dbs=offtarget_p,cpus=multiprocessing.cpu_count()):
         pname = proteome.split("/")[-1].split(".")[0]
         results = []
         for db in offtarget_dbs:
             dbname = db.split("/")[-1].split(".")[0]
-            out = dst_resutls + pname  + "_" + dbname + ".xml"
-            execute("blastp -evalue 1e-5 -max_hsps 1 -outfmt 5 -max_target_seqs 1 -db {db} -query {query} -out {out}",
-                    db=db,query=proteome,out=out)
+            out = dst_resutls + pname  + "_" + dbname + ".tbl"
+            execute("blastp -evalue 1e-5 -max_hsps 1 -outfmt 6 -max_target_seqs 1 -db {db} -query {query} -out {out} -num_threads {cpus}",
+                    db=db,query=proteome,out=out,cpus=cpus)
             results.append(out)
         return results
 
@@ -84,6 +85,10 @@ if __name__ == "__main__":
     #Offtargeting.download_deg()
     #Offtargeting.download_human_prots()
     Offtargeting.create_human_microbiome()
+
+    # Offtargeting.offtargets("/data/organismos/Pext14-3B/contigs/genoma.fasta",
+    #                         "/data/organismos/Pext14-3B/annotation/offtarget/"
+    #                         )
 
     # or x in SeqCollection.objects():
     #    ...:     if x.tax:

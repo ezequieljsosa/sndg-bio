@@ -38,23 +38,28 @@ class Mapping:
         e("cd {workdir};makeblastdb -dbtype nucl -in {record_name} ", record_name=filename, workdir=workdir)
 
     @staticmethod
-    def clean_reads(work_dir, read1, read2):
+    def clean_reads(work_dir, read1, read2, min_qual_mean=25, trim_left=20,
+                    trim_qual_right=25, trim_qual_window=5, min_len=35):
         work_dir = os.path.abspath(work_dir) + "/"
         read1 = os.path.abspath(read1)
         read2 = os.path.abspath(read2)
 
         # Quality control
         e(
-            "prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean 25 -trim_left 20 -trim_right 2 -trim_qual_right 25 -trim_qual_window 5 -min_len 35 -out_good trimmed",
-            work_dir, read1_full=read1, read2_full=read2)
+            "prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean {min_qual_mean}" +
+            " -trim_left {trim_left}  -trim_qual_right {trim_qual_right} -trim_qual_window {trim_qual_window}" +
+            " -min_len {min_len} -out_good trimmed",
+            work_dir, read1_full=read1, read2_full=read2, trim_left=trim_left, trim_qual_right=trim_qual_right,
+            min_qual_mean=min_qual_mean, trim_qual_window=trim_qual_window, min_len=min_len
+        )
         e("fastqc trimmed_1.fastq", work_dir)
         e("fastqc trimmed_2.fastq", work_dir)
 
-        if os.path.exists(work_dir  + "trimmed_1_singletons.fastq"):
+        if os.path.exists(work_dir + "trimmed_1_singletons.fastq"):
             e("cat trimmed_1_singletons.fastq >> trimmed_s.fastq", work_dir)
             os.remove(work_dir + "trimmed_1_singletons.fastq")
 
-        if os.path.exists(work_dir  + "trimmed_2_singletons.fastq"):
+        if os.path.exists(work_dir + "trimmed_2_singletons.fastq"):
             e("cat trimmed_2_singletons.fastq >> trimmed_s.fastq", work_dir)
             os.remove(work_dir + "trimmed_2_singletons.fastq")
 

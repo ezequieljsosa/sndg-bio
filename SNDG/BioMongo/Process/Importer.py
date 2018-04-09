@@ -1,38 +1,38 @@
 """
 
 """
+import datetime
 import logging as logging
-import os
 import multiprocessing
+import os
 import pickle
 import re
 import subprocess
 from collections import defaultdict
 
-import Bio.SeqIO as bpio
 import Bio.SearchIO as bpsio
-import datetime
+import Bio.SeqIO as bpio
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
 
-from SNDG import init_log ,mkdir ,execute
-from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+from SNDG import init_log, mkdir, execute
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Model.SeqCollection import SeqCollection, AnnotationPipelineResult
 from SNDG.BioMongo.Model.Sequence import BioProperty
 from SNDG.BioMongo.Process.BioDocFactory import BioDocFactory
+from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
+from SNDG.BioMongo.Process.SearchLoader import SearchLoader
 from SNDG.BioMongo.Process.SearchLoader import load_hmm, load_blast_pdb
 from SNDG.BioMongo.Process.Taxon import Tax
+from SNDG.Sequence import identity, read_blast_table,coverage
 from SNDG.Sequence import smart_parse as sp
 from SNDG.Sequence.Hmmer import Hmmer
 from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
-from SNDG.BioMongo.Process.SearchLoader import SearchLoader
-
 
 _log = logging.getLogger("Importer")
 
@@ -176,7 +176,8 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
 
     _common_annotations(name, tmp_dir)
 
-def create_proteome(tmp_dir,collection_name):
+
+def create_proteome(tmp_dir, collection_name):
     protein_fasta = tmp_dir + "/proteins.fasta"
     if not os.path.exists(protein_fasta) or (not os.path.getsize(protein_fasta)):
         with open(protein_fasta, "w") as h:
@@ -185,7 +186,7 @@ def create_proteome(tmp_dir,collection_name):
     return protein_fasta
 
 
-def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,process_pdb=True):
+def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, process_pdb=True):
     blast_result = None
     hmm_result = None
     if process_pdb:
@@ -198,27 +199,24 @@ def _common_annotations_cmd( tmp_dir,protein_fasta, cpu=1,process_hmm=True,proce
     if process_hmm:
         hmm_result = tmp_dir + "/domains.hmm"
         params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": str(cpu)}
-        Hmmer(protein_fasta, output_file=hmm_result,params=params).query()
+        Hmmer(protein_fasta, output_file=hmm_result, params=params).query()
 
-    return {"blast_pdb":blast_result,"hmm_result":hmm_result}
+    return {"blast_pdb": blast_result, "hmm_result": hmm_result}
 
 
 def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
     process_pdb = Protein.objects(
         __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not (Protein.objects(__raw__={
-        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count() )
+        "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count())
 
-    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp,process_pdb,process_hmm)
-
-
-def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False,process_pdb=True,process_hmm=True):
+    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp, process_pdb, process_hmm)
 
 
-    protein_fasta= create_proteome(tmp_dir,collection_name)
+def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True):
+    protein_fasta = create_proteome(tmp_dir, collection_name)
 
-    results = _common_annotations_cmd( tmp_dir,protein_fasta, cpu,process_hmm,process_pdb)
-
+    results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb)
 
     if process_pdb:
         blast_result = results["blast_pdb"]
@@ -235,9 +233,7 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False,proces
                 os.remove(hmm_result)
 
 
-
-def update_proteins(annotation_dir, proteome,seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
-
+def update_proteins(annotation_dir, proteome, seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
     mkdir(annotation_dir)
     out = annotation_dir + "/species_blast.tbl"
 
@@ -250,17 +246,14 @@ def update_proteins(annotation_dir, proteome,seq_col_name, tax_id, cpus=multipro
                 break
 
         tax_data = "/data/xomeq/tax/"
-        species_fasta =tax_data  + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
+        species_fasta = tax_data + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
         if not os.path.exists(species_fasta):
             Uniprot.download_proteome_from_tax(str(species_tax.ncbi_taxon_id), tax_data)
-
 
         cmd = "blastp -query %s  -db %s -evalue 0.00001 -outfmt 6  -max_hsps 1 -qcov_hsp_perc 0.9 -num_threads %i -out %s"
         execute(cmd % (
             proteome, species_fasta, cpus, out
         ))
-
-
 
     with tqdm(list(bpsio.parse(out, "blast-tab"))) as pbar:
         for query in pbar:
@@ -399,35 +392,98 @@ def correct_chokes(self, name):
         p.save()
 
 
+def import_prop_blast(db, genome_name, offtarget_name, blast_output,
+                      blast_output_type="table", description=None,
+                      value_fn=lambda x: x, default_value=0, no_hit_value=0,
+                      choices=[], type="number",defaultOperation=">"):
+    genome = db.sequence_collection.find_one({"name": genome_name})
+    drug_prop = [x for x in genome["druggabilityParams"] if x["name"] == offtarget_name]
+
+    if drug_prop:
+        drug_prop = drug_prop[0]
+    else:
+        if not description:
+            description = offtarget_name
+        drug_prop = {
+            "target": "protein",
+            "defaultGroupOperation": "max",
+            "defaultValue": default_value,
+            "name": offtarget_name,
+            "defaultOperation": defaultOperation,
+            "_cls": "SeqColDruggabilityParam",
+            "uploader": "demo",
+            "_class": "ar.com.bia.entity.SeqCollectionDoc",
+            "type": type,
+            "options": choices,
+            "description": description
+        }
+        genome["druggabilityParams"].append(drug_prop)
+        db.sequence_collection.save(genome)
+    if blast_output_type == "xml":
+        for query in bpsio.parse(blast_output, "blast-xml"):
+            value = no_hit_value
+            for hit in query:
+                hsp = hit[0]
+                value = value_fn(hsp)
+            db.proteins.update({"organism": genome_name, "gene": query.id},
+                               {"$set": {"search." + offtarget_name: value}})
+
+    else:
+        db.proteins.update({"organism": genome_name, "gene": query.id},
+                           {"$set": {"search." + offtarget_name: no_hit_value}})
+        for _, r in read_blast_table(blast_output).iterrows():
+            db.proteins.update({"organism": genome_name, "gene": query.id},
+                               {"$set": {"search." + offtarget_name: value_fn(r)}})
+
+
 if __name__ == '__main__':
     init_log()
-
-    import logging
     import pymongo
 
-    logging.getLogger("peewee").setLevel(logging.WARN)
-    from peewee import MySQLDatabase
-    from SNDG.BioMongo.Process.Taxon import tax_db
-    from SNDG.BioMongo.Process.Index import index_seq_collection,build_statistics
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "hit_in_deg",
+                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_degaa-p.xml",
+                      "xml", "Hit in DEG database",
+                      value_fn=lambda x: identity(x) > 0.7,
+                      default_value=True,
+                      no_hit_value=False, choices=[True, False], type="value",defaultOperation="equal")
 
-    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-    mdb = BioMongoDB("saureus")
-    ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "human_offtarget",
+                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_gencode.xml",
+                      "xml", "Human offtarget score (1 - best hit identity)",
+                      value_fn=lambda x: 1 - identity(x),
+                      default_value=0.4,
+                      no_hit_value=1)
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "gut_microbiota_offtarget",
+                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_gut_microbiota.xml",
+                      "xml", "Gut microbiota offtarget score (1 - best hit identity)",
+                      value_fn=lambda x: 1 - identity(x),
+                      default_value=0.4,
+                      no_hit_value=1)
 
-    tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
-             u'GCF_000805695.1', u'GCF_001580035.1', u'GCF_000333795.1', u'GCF_000788295.1', u'GCF_000510935.1',
-             u'GCF_000769675.1', u'GCF_000188155.2', u'GCF_000213355.1', u'GCF_000179595.2', u'GCF_000213335.1',
-             u'GCF_000213395.1', u'GCF_002013775.1', u'GCF_002013745.1', u'GCF_002013685.1', u'GCF_002013645.1',
-             u'GCF_002013545.1']
-    for seq_col_name in tqdm(tofix):
-
-        tid = int(mdb.db.sequence_collection.find_one({"name":seq_col_name})["tax"]["tid"])
-        tmp_dir = "/data/organismos/" + seq_col_name + "/annotation/"
-        proteome_dir = "/data/organismos/" + seq_col_name + "/contigs/"
-        mkdir(tmp_dir)
-        mkdir(proteome_dir)
-        protein_fasta= create_proteome(proteome_dir,seq_col_name)
-        update_proteins(tmp_dir, protein_fasta,seq_col_name, tid )
-
-        index_seq_collection(mdb.db,seq_col_name,keywords=False,pathways=False,structure=False)
-        #build_statistics(mdb.db,seq_col_name)
+    # import logging
+    #
+    # logging.getLogger("peewee").setLevel(logging.WARN)
+    # from peewee import MySQLDatabase
+    # from SNDG.BioMongo.Process.Taxon import tax_db
+    # from SNDG.BioMongo.Process.Index import index_seq_collection
+    #
+    # tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    # mdb = BioMongoDB("saureus")
+    # ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+    #
+    # tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
+    #          u'GCF_000805695.1', u'GCF_001580035.1', u'GCF_000333795.1', u'GCF_000788295.1', u'GCF_000510935.1',
+    #          u'GCF_000769675.1', u'GCF_000188155.2', u'GCF_000213355.1', u'GCF_000179595.2', u'GCF_000213335.1',
+    #          u'GCF_000213395.1', u'GCF_002013775.1', u'GCF_002013745.1', u'GCF_002013685.1', u'GCF_002013645.1',
+    #          u'GCF_002013545.1']
+    # for seq_col_name in tqdm(tofix):
+    #     tid = int(mdb.db.sequence_collection.find_one({"name": seq_col_name})["tax"]["tid"])
+    #     tmp_dir = "/data/organismos/" + seq_col_name + "/annotation/"
+    #     proteome_dir = "/data/organismos/" + seq_col_name + "/contigs/"
+    #     mkdir(tmp_dir)
+    #     mkdir(proteome_dir)
+    #     protein_fasta = create_proteome(proteome_dir, seq_col_name)
+    #     update_proteins(tmp_dir, protein_fasta, seq_col_name, tid)
+    #
+    #     index_seq_collection(mdb.db, seq_col_name, keywords=False, pathways=False, structure=False)
+    #     # build_statistics(mdb.db,seq_col_name)

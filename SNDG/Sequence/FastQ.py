@@ -41,15 +41,20 @@ class FastQ:
 
                 total_bp = 0
                 read_count = 0
-                with gzip.open(filename) as h:
+                idx = extract_idx_fn(filename)
+
+                try:
+                    h = gzip.open(filename) if filename.endswith(".gz") else open(filename)
                     for read in bpio.parse(h, "fastq"):
                         read_count += 1
                         total_bp += len(read)
+                finally:
+                    h.close()
 
                 size = os.path.getsize(filename) * 1.0 / 1024 / 1024
                 if ref_size:
                     cov = total_bp / ref_size
-                    dicts.append((strain, strain + "_" + extract_idx_fn(filename), size, total_bp / read_count,
+                    dicts.append((strain, strain + "_" + idx, size, total_bp / read_count,
                                   read_count, cov,))
                 else:
                     dicts.append(

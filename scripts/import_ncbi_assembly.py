@@ -67,6 +67,11 @@ if __name__ == "__main__":
         update_proteins(tmp_dir, protein_fasta, ea.assembly_accession, tid, cpus=args.cpus)
         index_seq_collection(mdb.db, ea.assembly_accession, pathways=False, structure=True)
         build_statistics(mdb.db, ea.assembly_accession)
+
+
+        jw = JBrowse(db=mdb.db)
+        jw.create_genome(ea.assembly_accession)
+
     except Exception as ex:
         _log.warn(str(ex))
         traceback.print_exc()

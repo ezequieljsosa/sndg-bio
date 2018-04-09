@@ -1,17 +1,17 @@
-def obtener_proyectos_argentinos(self):
+def obtener_proyectos_argentinos():
     all_arg_proj = Entrez.read(Entrez.esearch(db="bioproject", term="argentina", retmax=10000))
     _log.info("existen %s proyectos con la palabra argentina" % all_arg_proj["Count"])
     for pid in tqdm(all_arg_proj["IdList"]):
         yield Entrez.read(Entrez.esummary(db="bioproject", id=pid))["DocumentSummarySet"]["DocumentSummary"][0]
 
-def obtener_submitters(self):
+def obtener_submitters():
     submitters = []
-    for bioproject in self.obtener_proyectos_argentinos():
+    for bioproject in obtener_proyectos_argentinos():
         submitters = submitters + bioproject["Submitter_Organization_List"]
 
     return set(submitters)
 
-def actualizar_submitters(self, submitters):
+def actualizar_submitters( submitters):
 
     for submitter_raw in tqdm(submitters):
         submitter = str(submitter_raw.encode("utf-8"))
@@ -27,11 +27,11 @@ def update_assemblies(self, submitters):
         for recurso_id in data["IdList"]:
             er_in_db = ExternalAssembly.select().where(ExternalAssembly.identifier == recurso_id)
             if not er_in_db.exists():
-                recurso = Entrez.read(Entrez.esummary(db=db, id=recurso_id))
-                data = self.resource_handler[db].attributes(recurso)
-                name = str(self.resource_handler[db].name(recurso))
+                recurso = Entrez.read(Entrez.esummary(db="assembly", id=recurso_id))
+                data = NCBI().resource_handler["assembly"].attributes(recurso)
+                name = str(NCBI().resource_handler["assembly"].name(recurso))
                 genome = str(data["SpeciesName"])
-                ea = ExternalAssembly(type=db, name=name, identifier=recurso_id
+                ea = ExternalAssembly(type="assembly", name=name, identifier=recurso_id
                                       , assembly_accession=data['AssemblyAccession'], genome=genome
                                       , assembly_name=data['AssemblyName'])
                 ea.save(force_insert=True)
@@ -40,7 +40,7 @@ def update_assemblies(self, submitters):
 
             AssemblySubmitters.create(submitter=submitter, resource=ea)
 
-def actualizar_recursos_externos(self):
+def actualizar_recursos_externos():
     submitters = Submitter.select().where((Submitter.source == "ncbi") & (Submitter.rejected == False))
     for submitter in submitters:
         for db in NCBI.dbs_con_submitter:

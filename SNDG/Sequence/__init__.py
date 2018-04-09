@@ -74,10 +74,15 @@ def smart_parse(path, seqs=None):
     if path.endswith(".genebank"):
         it = bpio.parse(path, "gb")
 
+    if path.endswith(".gbff"):
+        it = bpio.parse(path, "gb")
+
+
     if path.endswith(".embl"):
         it = bpio.parse(path, "embl")
 
-    if path.endswith(".gbff") or path.endswith(".gff") or path.endswith(".gff3"):
+
+    if  path.endswith(".gff") or path.endswith(".gff3"):
         it = GFF.parse(open(path))
 
     if path.endswith(".fq"):
