@@ -47,11 +47,11 @@ class BioMongoDB(object):
     demo = "demo"
     GENE_FIELD_IMPORT = "id"
 
-    def __init__(self, dbname, host='127.0.0.1', basefs='/data/'):
+    def __init__(self, dbname,port=27017, host='127.0.0.1', basefs='/data/'):
 
-        self.db = pymongo.MongoClient(host)[dbname]
+        self.db = pymongo.MongoClient(host=host,port=port)[dbname]
         self.fs_resolver = FilesystemResolver(basefs)
-        connect(dbname)
+        connect(dbname,host=host,port=port)
         register_connection("pdb", "pdb")
 
         self.paths = {

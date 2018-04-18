@@ -24,4 +24,5 @@ for i in {A..Z}
     done 
 
 done
+exit 0
 

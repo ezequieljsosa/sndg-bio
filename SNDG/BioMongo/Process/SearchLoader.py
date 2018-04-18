@@ -66,11 +66,12 @@ class SearchLoader():
                     p.alias.append(word)
                     p.gene.append(word)
 
-
+        #if "Uncharacterized" in p.description:
+        #    p.description =
         p.ontologies = list( set([x.lower() for x in p.ontologies]))
         p.keywords = list(set([x.lower() for x in p.keywords]))
         p.alias = list(set(p.alias))
-        p.gene = list(set(p.gene))
+        p.gene = [protein_gene] +  [x for x in set(p.gene) if x != protein_gene]
         return p
 
 

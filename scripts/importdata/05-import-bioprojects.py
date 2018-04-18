@@ -40,6 +40,7 @@ def to_utf8(string):
         return string.encode("utf-8").decode("utf-8")
 
 for pid in tqdm(esearch):
+    data = Entrez.read(Entrez.esearch(db=db, term='"' + submitter.name + '"[Submitter Organization]'))
     bioproject = Entrez.read(Entrez.esummary(db="bioproject", id=pid))["DocumentSummarySet"]["DocumentSummary"][0]
     submitters = []
     for x in bioproject["Submitter_Organization_List"]:
@@ -55,7 +56,8 @@ for pid in tqdm(esearch):
 
 
     bp = BioProject(
-        identifier=to_utf8(bioproject["Project_Acc"]),
+        accession=to_utf8(bioproject["Project_Acc"]),
+        identifier=to_utf8(bioproject["Identifier"]),
         name=to_utf8(bioproject["Project_Title"]),
         description=to_utf8(bioproject["Project_Description"]),
         material=to_utf8(bioproject["Project_Target_Capture"]),

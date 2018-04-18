@@ -285,10 +285,13 @@ class Mapping:
 
 if __name__ == '__main__':
     import argparse
+    from SNDG import init_log
+
+    init_log()
 
     parser = argparse.ArgumentParser(description='Mapping to variant calls pipeline.')
     required = parser.add_argument_group('required arguments')
-    required.add_argument('-o', '--work_dir', action='store', dest='working_dir', required=True)
+    required.add_argument('-o', '--work_dir', action='store', dest='work_dir', required=True)
     required.add_argument('-R', '--reference', action='store', dest='reference', required=True)
     required.add_argument('-A', '--annotation', action='store', dest='annotation', required=True)
     required.add_argument('-S', '--strain', action='store', dest='strain', default="sample")
@@ -299,6 +302,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mkdir(args.work_dir)
-    Mapping.clean_reads(args.work_dir, args.read1, args.read1)
-    alignment_path = Mapping.alignment(args.work_dir, reference_seq, strain=args.strain)
+    Mapping.clean_reads(args.work_dir, args.read1, args.read2)
+    alignment_path = Mapping.alignment(args.work_dir, args.reference, strain=args.strain)
     Mapping.variant_call(args.work_dir, args.reference, alignment_path, args.strain)

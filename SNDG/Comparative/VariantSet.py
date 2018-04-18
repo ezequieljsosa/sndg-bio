@@ -77,9 +77,10 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
                         vresult["aa_ref"] = effect.aa_ref
                         vresult["aa_alt"] = effect.aa_alt
                 else:
-                    pileup = [str(x) for x in self.bam.pileup(variant.CHROM, variant.POS, variant.POS)]
-                    vresult[sample_name + "_ada"] = len([x for x in pileup if x != variant.REF])
-                    vresult[sample_name + "_adr"] = len(pileup) - vresult[sample_name + "_ada"]
+                    if self.bam:
+                        pileup = [str(x) for x in self.bam.pileup(variant.CHROM, variant.POS, variant.POS)]
+                        vresult[sample_name + "_ada"] = len([x for x in pileup if x != variant.REF])
+                        vresult[sample_name + "_adr"] = len(pileup) - vresult[sample_name + "_ada"]
 
                     vresult[sample_name] = variant.REF
                 alternatives.append(vresult[sample_name])

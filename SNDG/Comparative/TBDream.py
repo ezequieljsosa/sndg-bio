@@ -5,11 +5,13 @@ Created on Aug 11, 2014
 '''
 import logging
 import math
-
-import pandas as pd
+from collections import defaultdict
 
 import Bio.SeqUtils as bpsutils
+import pandas as pd
 from Bio import SeqUtils
+from tqdm import tqdm
+from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 
 _log = logging.getLogger(__name__)
 
@@ -19,6 +21,81 @@ class TBDream:
     Base de SNPs de Resistencia
     https://tbdreamdb.ki.se/Info/
     '''
+
+    """
+    rna positions in NC_000962.3
+    """
+    rna_pos = {'RVnc0001': 2139418,
+               'RVnc0002': 918263,
+               'RVnc0003': 2299744,
+               'RVnc0004': 4099385,
+               'RVnc0005': 704186,
+               'RVnc0006': 4168153,
+               'RVnc0008': 293603,
+               'RVnc0010': 1914961,
+               'RVnc0012': 1283692,
+               'RVnc0013': 1413093,
+               'RVnc0015': 1535416,
+               'RVnc0018': 2517031,
+               'RVnc0021': 1471618,
+               'RVnc0024': 2692171,
+               'RVnc0034': 1220387,
+               'RVnc0035': 1547128,
+               'RVnc0036': 1960666,
+               'RVnc0036a': 4100668,
+               'RVnc0040': 4317072,
+               'RVnc0046': 3467966,
+               'RVnc0047': 1952290,
+               'Rvnr01': 1471845,
+               'Rvnr02': 1473657,
+               'Rvnr03': 1476898,
+               'Rvns01': 2500444,
+               'Rvnt01': 10886,
+               'Rvnt02': 11111,
+               'Rvnt03': 25643,
+               'Rvnt04': 386203,
+               'Rvnt05': 658108,
+               'Rvnt06': 731493,
+               'Rvnt07': 731602,
+               'Rvnt08': 733523,
+               'Rvnt09': 850641,
+               'Rvnt10': 923802,
+               'Rvnt11': 923998,
+               'Rvnt12': 924109,
+               'Rvnt13': 924212,
+               'Rvnt14': 1025320,
+               'Rvnt15': 1113510,
+               'Rvnt16': 1138075,
+               'Rvnt17': 1177395,
+               'Rvnt18': 1446192,
+               'Rvnt19': 1512727,
+               'Rvnt20': 1828014,
+               'Rvnt21': 1946612,
+               'Rvnt22': 2401986,
+               'Rvnt23': 2510597,
+               'Rvnt24': 2581763,
+               'Rvnt25': 2619406,
+               'Rvnt26': 2765330,
+               'Rvnt27': 2765540,
+               'Rvnt28': 2794175,
+               'Rvnt29': 2827853,
+               'Rvnt30': 2835493,
+               'Rvnt31': 2969496,
+               'Rvnt32': 2969752,
+               'Rvnt33': 2969854,
+               'Rvnt34': 2969941,
+               'Rvnt35': 3348546,
+               'Rvnt36': 3348658,
+               'Rvnt37': 3431839,
+               'Rvnt38': 3559369,
+               'Rvnt39': 4081364,
+               'Rvnt40': 4126540,
+               'Rvnt41': 4168344,
+               'Rvnt42': 4199130,
+               'Rvnt43': 4216864,
+               'Rvnt44': 4216967,
+               'Rvnt45': 4222580
+               }
 
     drugs = ["AMI", "EMB", "FLQ", "INH", "PAS", "PZA", "RIF", "SM", "OTH"]
 
@@ -63,6 +140,8 @@ class TBDream:
         '''
         aminoacid = dict_snp["AminoAcid"].replace(" /", "/").replace("/ ", "/")
         aa = aminoacid.split(" ")[0]
+        if "Frameshift" in aa:
+            return "frameshift"
         if "/" in aa:
             (aa_original, aa_replacement) = aa.split("/")
             if aa_original != "STOP" and aa_replacement != "STOP" and len(aa_replacement) == 3 and len(
@@ -159,6 +238,7 @@ class TBDream:
         self._df["nu_ref"] = map(lambda x: x.split("/")[0].strip(), self._df["Polymorphism"])
         self._df["nu_alt"] = map(self.nu_alt, self._df["Polymorphism"])
         self._df["raw"] = line
+        self._df["rna"] = map(lambda x: True if x == None else False, self._df["change"])
 
         _log.info("SNPs loaded:" + str(len(self._df)))
         _log.info("Errors: " + str(len(errors)))
@@ -172,8 +252,38 @@ class TBDream:
         '''
         return self._df.iterrows()
 
-    def variant_rv(self, rv):
+    def process_vcf(self, vcf):
+        data = defaultdict(lambda: defaultdict(lambda: {}))
+        for variant, effects in tqdm(VcfSnpeffIO.parse(vcf)):
+            effect = effects[0]
+            for sample in variant.samples:
+                sample_name = sample.sample.split(".variant")[0]
+                if sample.called and "synonymous_variant" not in effect.annotation:
 
+                    if self.variant_rv(effect.geneid):
+                        level = "gene"
+                        drugs = set([x["drug"] for x in self.variant_rv(effect.geneid)])
+                        for drug in drugs:
+                            data[sample_name][effect.geneid][drug] = level
+                        pos = effect.aa_pos if effect.geneid not in self.rna_pos else (
+                                effect.gene_pos - self.rna_pos[effect.geneid])
+                        if (pos != None) and self.variant_pos(effect.geneid, pos):
+                            level = "pos"
+                            drugs = set([x["drug"] for x in self.variant_pos(effect.geneid, pos)])
+                            for drug in drugs:
+                                data[sample_name][effect.geneid][drug] = level
+
+                            alt = str(variant.ALT[int(sample.data.GT) - 1])
+                            ref = effect.aa_ref if effect.geneid not in self.rna_pos else variant.REF
+                            alt = effect.aa_alt if effect.geneid not in self.rna_pos else alt
+                            if self.exists_variant(effect.geneid, pos, ref, alt):
+                                level = "reported"
+                                drug = self.exists_variant(effect.geneid, pos, ref, alt)
+                                data[sample_name][effect.geneid][drug] = level
+
+        return {x: dict(y) for x, y in data.items()}
+
+    def variant_rv(self, rv):
         row = self._df[(self._df["rv"] == rv.lower()) | (self._df["gene"] == rv.lower())]
         if len(row):
             return [{"ref": x["ref"], "change": x["mutation"], "pos": x["codon"], "drug": x["Drug"],
@@ -182,10 +292,10 @@ class TBDream:
 
     def variant_pos(self, rv, aa_pos):
         '''
-        Supone aa_pos numerado desde 0 
+        Supone aa_pos numerado desde 1
         '''
-        aa_pos = aa_pos + 1  # en csa se numera desde 1
-        row = self._df[(self._df["rv"] == rv.lower()) & (self._df["codon"] == int(aa_pos))]
+        row = self._df[(self._df["rv"] == rv.lower()) & ((self._df["codon"] == int(aa_pos)) |
+                                                         (self._df["rna"] & (self._df["nu_pos"] == int(aa_pos))))]
         if len(row):
             return [{"ref": x["ref"], "change": x["mutation"], "pos": x["codon"], "drug": x["Drug"],
                      "pattern": x["ResistancePattern"]} for i, x in row.iterrows()]
@@ -193,9 +303,8 @@ class TBDream:
 
     def variant_pos_df(self, rv, aa_pos):
         '''
-        Supone aa_pos numerado desde 0 
+        Supone aa_pos numerado desde 1
         '''
-        aa_pos = aa_pos + 1  # en csa se numera desde 1
         row = self._df[(self._df["rv"] == rv.lower()) & (self._df["codon"] == int(aa_pos))]
         if len(row):
             return row.to_dict()
@@ -203,9 +312,8 @@ class TBDream:
 
     def exists_variant(self, rv, aa_pos, aa_ref, aa_change):
         '''
-        Supone aa_pos numerado desde 0 
+        Supone aa_pos numerado desde 1
         '''
-        aa_pos = aa_pos + 1  # en csa se numera desde 1
         row = self._df[(self._df["rv"] == rv.lower()) & (self._df["codon"] == int(aa_pos))
                        & (self._df["ref"] == aa_ref) & (self._df["mutation"] == aa_change)]
         if len(row):
@@ -297,3 +405,12 @@ class TBDream:
                     prot.search.resistance = True
                     prot.search[r.Drug] = True
                 prot.save()
+
+
+if __name__ == '__main__':
+    from SNDG.Comparative.TBDream import TBDream
+
+    tbd = TBDream()
+    tbd.csv_db_path = "/home/eze/Downloads/DownloadDB_CSV_corregido_28feb2018.csv"
+    tbd.load()
+    tbd.process_vcf("/data/projects/mtbxdr/processed/h37rv_processing/strains.ann.gvcf")
