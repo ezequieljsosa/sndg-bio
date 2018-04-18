@@ -100,11 +100,11 @@ if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
     shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
     execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/",retcodes=[0,1])
 
-if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta"):
-    mkdir("/data/uniprot/uniref/uniref90")
-    download_file("ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz",
-                  "/data/uniprot/uniref/uniref90/uniref90.fasta.gz", ovewrite=True)
-    execute("gunzip /data/uniprot/uniref/uniref90/uniref90.fasta.gz")
+if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta"):
+    mkdir("/data/uniprot/uniref/uniref50")
+    download_file("ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref50/uniref50.fasta.gz",
+                  "/data/uniprot/uniref/uniref50/uniref50.fasta.gz", ovewrite=True)
+    execute("gunzip /data/uniprot/uniref/uniref50/uniref50.fasta.gz")
 
-if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta.pal"):
-    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref90/uniref90.fasta")
+if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta.pal"):
+    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref50/uniref50.fasta")

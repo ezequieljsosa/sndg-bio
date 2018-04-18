@@ -11,7 +11,7 @@ The required layout is the following:
 base (any directory of your choosing, example: /home/sndg/data)  
 ├── uniprot  
 │     ├── uniref  
-│     │     ├── uniref90.fasta  
+│     │     ├── uniref50.fasta  
 │     └── goa_uniprot_all.gpa.gz  
 ├── pfamtigrfam  
 │     ├── pfamatigrfam.hmm  

@@ -22,8 +22,8 @@ RUN cd /app/hmmer-2.3.1 && ./configure && make && \
 RUN pip install sndg-bio==0.1.15
 
 ADD ./README.md /app/README.md
-ADD ./p_procariota /app/p_procariota
 ADD ./run.sh /app/run.sh
+ADD ./p_procariota /app/p_procariota
 
 RUN chmod +x /app/p_procariota/annotate.sh
 
