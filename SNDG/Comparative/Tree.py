@@ -1,7 +1,6 @@
 """
 BEFORE installing  ete3
-sudo apt-get install python-pyqt5 python-pyqt5.qtopengl python-pyqt5.qtsvggit s
-
+pip install pyqt5 pyqt5.qtopengl pyqt5.qtsvggit
 
 
 """

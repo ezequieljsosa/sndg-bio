@@ -429,10 +429,10 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
                                {"$set": {"search." + offtarget_name: value}})
 
     else:
-        db.proteins.update({"organism": genome_name, "gene": query.id},
-                           {"$set": {"search." + offtarget_name: no_hit_value}})
+        db.proteins.update({"organism": genome_name},
+                           {"$set": {"search." + offtarget_name: no_hit_value}},multi=True)
         for _, r in read_blast_table(blast_output).iterrows():
-            db.proteins.update({"organism": genome_name, "gene": query.id},
+            db.proteins.update({"organism": genome_name, "gene": r["query"]},
                                {"$set": {"search." + offtarget_name: value_fn(r)}})
 
 
@@ -440,23 +440,24 @@ if __name__ == '__main__':
     init_log()
     import pymongo
 
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "hit_in_deg",
-                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_degaa-p.xml",
-                      "xml", "Hit in DEG database",
-                      value_fn=lambda x: identity(x) > 0.7,
+
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "hit_in_deg",
+                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_degaa-p.tbl",
+                      "table", "Hit in DEG database",
+                      value_fn=lambda x: x.identity  > 70,
                       default_value=True,
                       no_hit_value=False, choices=[True, False], type="value",defaultOperation="equal")
 
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "human_offtarget",
-                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_gencode.xml",
-                      "xml", "Human offtarget score (1 - best hit identity)",
-                      value_fn=lambda x: 1 - identity(x),
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "human_offtarget",
+                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gencode.tbl",
+                      "table", "Human offtarget score (1 - best hit identity)",
+                      value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
                       default_value=0.4,
                       no_hit_value=1)
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "Pext14-3B", "gut_microbiota_offtarget",
-                      "/data/organismos/Pext14-3B/annotation/offtarget/genoma_gut_microbiota.xml",
-                      "xml", "Gut microbiota offtarget score (1 - best hit identity)",
-                      value_fn=lambda x: 1 - identity(x),
+    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "gut_microbiota_offtarget",
+                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gut_microbiota.tbl",
+                      "table", "Gut microbiota offtarget score (1 - best hit identity)",
+                      value_fn=lambda x: 1 - (x.identity  * 1.0 / 100),
                       default_value=0.4,
                       no_hit_value=1)
 

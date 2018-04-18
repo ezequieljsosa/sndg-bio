@@ -34,7 +34,7 @@ if not os.path.exists("/data/ec/PRIAM_MAR15/priam"):
     mkdir("/data/ec/")
     download_file("http://priam.prabi.fr/REL_MAR15/Distribution.zip",
                   "/data/ec/PRIAM_MAR15.zip")
-    execute_from("unzip /data/ec/PRIAM_MAR15.zip; exit 0;", "/data/ec/")
+    execute_from("unzip /data/ec/PRIAM_MAR15.zip; exit 0;", "/data/ec/",retcodes=[0,1])
 
     execute_from("ls /data/ec/PRIAM_MAR15/PROFILES/*.chk > priam", "/data/ec/PRIAM_MAR15/")
     execute_from("formatrpsdb -i /data/ec/PRIAM_MAR15/priam -o T", "/data/ec/PRIAM_MAR15/")
@@ -73,7 +73,7 @@ if old_or_inexistent("/data/uniprot/goa/"):
                   "/data/uniprot/goa/goa_uniprot_all.gpa.gz", ovewrite=True)
     shutil.copy("/app/p_procariota/goagenerator.py", "/data/uniprot/goa/")
     execute("gunzip /data/uniprot/goa/goa_uniprot_all.gpa.gz")
-    execute_from("./goagenerator.py", "/data/uniprot/goa/")
+    execute_from("./goagenerator.py", "/data/uniprot/goa/",retcodes=[0,1])
 
 if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
     mkdir("/data/uniprot/gsm")
@@ -98,7 +98,7 @@ if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
 
     shutil.copy("/app/p_procariota/genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
     shutil.copy("/app/p_procariota/genesymbolmapgenerator.py", "/data/uniprot/gsm/")
-    execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/")
+    execute_from("./genesymbolmapgenerator.sh", "/data/uniprot/gsm/",retcodes=[0,1])
 
 if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta"):
     mkdir("/data/uniprot/uniref/uniref90")
@@ -107,4 +107,4 @@ if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta"):
     execute("gunzip /data/uniprot/uniref/uniref90/uniref90.fasta.gz")
 
 if old_or_inexistent("/data/uniprot/uniref/uniref90/uniref90.fasta.pal"):
-    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref90//uniref90.fasta")
+    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref90/uniref90.fasta")

@@ -22,3 +22,11 @@ setup(
     keywords = ['bioinformatics', 'sequence', 'example'],
     classifiers = [ 'Programming Language :: Python','Topic :: Scientific/Engineering :: Bio-Informatics','Intended Audience :: Science/Research',],
 )
+
+# python setup.py sdist bdist_wheel
+# twine upload dist/*
+# ~/.pypirc
+# [pypi]
+# repository:https://upload.pypi.org/legacy/
+# username = xxxxx
+# password = xxxxx

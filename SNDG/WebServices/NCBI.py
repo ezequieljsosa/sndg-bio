@@ -78,34 +78,6 @@ class ExternalResource(Model):
             (('submitter', 'identifier',), True),
         )
 
-class BioProject(Model):
-    '''
-
-    '''
-    # id = IntegerField(primary_key=True)
-    name = TextField()
-    identifier = CharField()
-    material = CharField()
-    scope = CharField()
-    description = TextField()
-    created = DateTimeField(default=datetime.datetime.now)
-    modified = DateTimeField()
-    submitters = ManyToManyField(Submitter,backref="projects")
-
-    def save(self, *args, **kwargs):
-        self.modified = datetime.datetime.now()
-        return super(BioProject, self).save(*args, **kwargs)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return str(self.__data__)
-
-
-
-    class Meta:
-        database = mysql_db
 
 
 
@@ -179,6 +151,38 @@ class ExternalAssembly(ExternalResource):
 
     def download_prots(self, dst_dir):
         return self.dowload_from_ftp("protein.faa.gz", dst_dir)
+
+
+class BioProject(Model):
+    '''
+
+    '''
+    # id = IntegerField(primary_key=True)
+    name = TextField()
+    identifier = CharField()
+    accession = CharField()
+    material = CharField()
+    scope = CharField()
+    description = TextField()
+    created = DateTimeField(default=datetime.datetime.now)
+    modified = DateTimeField()
+    submitters = ManyToManyField(Submitter,backref="projects")
+    assemblies = ManyToManyField(ExternalAssembly,backref="projects")
+
+    def save(self, *args, **kwargs):
+        self.modified = datetime.datetime.now()
+        return super(BioProject, self).save(*args, **kwargs)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str(self.__data__)
+
+
+
+    class Meta:
+        database = mysql_db
 
 
 class AssemblySubmitters(Model):
