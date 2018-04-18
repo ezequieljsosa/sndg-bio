@@ -23,7 +23,7 @@ def help():
     print  ("Busqueda inicial de similitud con BlastP.\n\
 Opciones:\n\
 	-i	Archivo de contigs o scaffolds. Default: contigs.fasta\n\
-	-d 	Base de datos para busqueda de similitud. Default: /data/uniprot/uniref/uniref90/uniref90.fasta\n\
+	-d 	Base de datos para busqueda de similitud. Default: /data/uniprot/uniref/uniref50/uniref50.fasta\n\
 	-e	Umbral de e-value para la busqueda de similitud. Default: 1e-5\n\
 	-a	Numero de procesadores a usar. Default: maximo disponible\n\
 	-h 	Imprime este mensaje de ayuda\n")
@@ -38,7 +38,7 @@ except getopt.GetoptError as err:
 # Parametros configurables:
 params = {}
 params["i"] = "contigs.fasta"  # Archivo de contigs de entrada por defecto
-params["d"] = "/data/uniprot/uniref/uniref90/uniref90.fasta"  # Base de datos por defecto
+params["d"] = "/data/uniprot/uniref/uniref50/uniref50.fasta"  # Base de datos por defecto
 params["e"] = "1e-5"  # Umbral de e-value
 params["a"] = "%d" % cpu_count()  # Numero de procesadores
 
