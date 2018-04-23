@@ -36,7 +36,6 @@ class Residue(Model):
     has_ca = BooleanField(null=True, default=None)
     only_ca = BooleanField(null=True, default=None)
 
-
     class Meta:
         database = sqldb
 
@@ -56,10 +55,8 @@ class Atom(Model):
     anisou = DoubleField(null=True)
     element = CharField()
 
-
     class Meta:
         database = sqldb
-
 
 
 class ResidueSet(Model):
@@ -92,11 +89,12 @@ class Property(Model):
     class Meta:
         database = sqldb
 
+
 class PDBProperty(Model):
     id = AutoField(primary_key=True)
     pdb = ForeignKeyField(PDB, related_name='properties',
                           db_column="pdb_id")
-    property = ForeignKeyField(PDB,db_column="property_id")
+    property = ForeignKeyField(PDB, db_column="property_id")
 
     value = DoubleField(null=True)
     tag = CharField(null=True)
@@ -109,7 +107,7 @@ class ResidueProperty(Model):
     id = AutoField(primary_key=True)
     residue = ForeignKeyField(Residue, related_name='properties',
                               db_column="residue_id")
-    property = ForeignKeyField(PDB,db_column="property_id")
+    property = ForeignKeyField(PDB, db_column="property_id")
     value = DoubleField(null=True)
     tag = CharField(null=True)
 
@@ -121,7 +119,7 @@ class ResidueSetProperty(Model):
     id = AutoField(primary_key=True)
     residue_set = ForeignKeyField(ResidueSet, related_name='properties',
                                   db_column="residue_set_id")
-    property = ForeignKeyField(PDB,db_column="property_id")
+    property = ForeignKeyField(PDB, db_column="property_id")
     value = DoubleField(null=True)
     tag = CharField(null=True)
 
@@ -134,7 +132,7 @@ class ChainProperty(Model):
     pdb = ForeignKeyField(PDB, related_name='chain_props',
                           db_column="pdb_id")
     chain = CharField()
-    property = ForeignKeyField(PDB,db_column="property_id")
+    property = ForeignKeyField(PDB, db_column="property_id")
     value = DoubleField(null=True)
     tag = CharField(null=True)
 
@@ -146,16 +144,12 @@ class AtomProperty(Model):
     id = AutoField(primary_key=True)
     atom = ForeignKeyField(PDB, related_name='properties',
                            db_column="atom_id")
-    property = ForeignKeyField(PDB,db_column="property_id")
+    property = ForeignKeyField(PDB, db_column="property_id")
     value = DoubleField(null=True)
     tag = CharField(null=True)
 
     class Meta:
         database = sqldb
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -169,3 +163,18 @@ if __name__ == "__main__":
     #     x.drop_table()
     # for x in tables:
     #     x.create_table()
+
+    # Property.create_table()
+    # qmean_s = ['qr_solvation', 'qr_ss_agreement', 'qr_QMEANDisCo', 'qr_exposed', 'qr_cbeta', 'qr_all_atom', 'qr_QMEAN',
+    #            'qr_acc_agreement', 'qr_dist_const', 'qr_torsion']
+    # qmean_r = ['q_torsion_zscore', 'q_QMEAN6_zscore', 'q_cbeta_zscore', 'q_interaction_norm', 'q_acc_agreement_zscore',
+    #            'q_QMEAN4_norm', 'q_torsion_norm', 'q_packing_zscore', 'q_interaction_zscore', 'q_QMEAN6_norm',
+    #            'q_QMEAN4_zscore', 'q_residues', 'q_packing_norm', 'q_ss_agreement_norm', 'q_ss_agreement_zscore',
+    #            'q_cbeta_norm', 'q_acc_agreement_norm']
+    # fpocket = ['f_Volume score', 'f_Polarity score', 'f_Proportion of polar atoms', 'f_Druggability Score',
+    #            'f_Cent of mass - Alpha Sphere max dist', 'f_Flexibility', 'f_Alpha sphere density', 'f_Charge score',
+    #            'f_Apolar alpha sphere proportion', 'f_Number of Alpha Spheres', 'f_Volume', 'f_Hydrophobicity score',
+    #            'f_Apolar SASA', 'f_Score', 'f_Mean local hydrophobic density', 'f_Polar SASA', 'f_Total SASA',
+    #            'f_Mean alpha sphere radius', 'f_Mean alp sph solvent access']
+    # for f in qmean_r + qmean_s + fpocket:
+    #     Property(name=f).save()
