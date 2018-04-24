@@ -1,4 +1,4 @@
-def annotate_variants(self, organism_name, strain_name, database, parse_change):
+def annotate_variants( organism_name, strain_name, database, parse_change):
     """
     parse_change: function that transforms  dbvar.qualifiers["change"] into aa_ref, aa_alt
     """
@@ -64,7 +64,7 @@ def annotate_variants(self, organism_name, strain_name, database, parse_change):
                 p.save()
 
 
-def annotate_variants_with_prots(self, organism_name, dbs, drugs, force=False):
+def annotate_variants_with_prots( organism_name, dbs, drugs, force=False):
     """
     drugs: list of strings, example TBDream.drugs or Saureus.drugs
     """
@@ -118,8 +118,8 @@ def annotate_variants_with_prots(self, organism_name, dbs, drugs, force=False):
             vd.save()
 
 
-def indexVariants(self, organism):
-    print self.db.var_col_ont_idx.remove({"seq_collection_name": organism})
+def indexVariants(db, organism):
+    print db.var_col_ont_idx.remove({"seq_collection_name": organism})
     for ont in SeqColOntologyIndex.objects(seq_collection_name=organism):
         ont.id = ObjectId()
         ont.count = VarDoc.objects(organism=organism, ontologies=ont.term).count()

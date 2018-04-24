@@ -43,7 +43,7 @@ if not os.path.exists("/data/pfamtigrfam/tirgfam.hmm"):
     mkdir("/data/pfamtigrfam/INFO")
     download_file("ftp://ftp.jcvi.org/pub/data/TIGRFAMs/TIGRFAMs_15.0_HMM.LIB.gz",
                   "/data/pfamtigrfam/TIGRFAMs_15.0_HMM.LIB.gz")
-    execute("gunzip /data/pfamtigrfam/TIGRFAMs_15.0_HMM.LIB.gz")
+    execute("gunzip /data/pfamtigrfam/TIGRFAMs_15.0_HMM.LIB.gz",retcodes=[0,2])
     execute_from("hmmconvert TIGRFAMs_15.0_HMM.LIB > tirgfam.hmm", "/data/pfamtigrfam/")
 
     download_file("ftp://ftp.jcvi.org/pub/data/TIGRFAMs/TIGRFAMs_15.0_INFO.tar.gz",
@@ -59,7 +59,7 @@ if not os.path.exists("/data/pfamtigrfam/TIGRFAMS_GO_LINK"):
 if old_or_inexistent("/data/pfamtigrfam/Pfam-A.hmm", 150):
     download_file("ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz",
               "/data/pfamtigrfam/Pfam-A.hmm.gz")
-    execute("gunzip /data/pfamtigrfam/Pfam-A.hmm.gz")
+    execute("gunzip /data/pfamtigrfam/Pfam-A.hmm.gz",retcodes=[0,2])
 
 if old_or_inexistent("/data/pfamtigrfam/pfamatigrfam.hmm", 150):
     execute_from("cat tirgfam.hmm Pfam-A.hmm > pfamatigrfam.hmm", "/data/pfamtigrfam/")
@@ -72,7 +72,7 @@ if old_or_inexistent("/data/uniprot/goa/"):
     download_file("ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpa.gz",
                   "/data/uniprot/goa/goa_uniprot_all.gpa.gz", ovewrite=True)
     shutil.copy("/app/p_procariota/goagenerator.py", "/data/uniprot/goa/")
-    execute("gunzip /data/uniprot/goa/goa_uniprot_all.gpa.gz")
+    execute("gunzip /data/uniprot/goa/goa_uniprot_all.gpa.gz",retcodes=[0,2])
     execute_from("./goagenerator.py", "/data/uniprot/goa/",retcodes=[0,1])
 
 if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
@@ -83,7 +83,7 @@ if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
             "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz",
             "/data/uniprot/gsm/uniprot_sprot.fasta.gz", ovewrite=True)
         try:
-            execute("gunzip /data/uniprot/gsm/uniprot_sprot.fasta.gz")
+            execute("gunzip /data/uniprot/gsm/uniprot_sprot.fasta.gz",retcodes=[0,2])
         except:
             os.remove("/data/uniprot/gsm/uniprot_sprot.fasta.gz")
 
@@ -92,7 +92,7 @@ if old_or_inexistent("/data/uniprot/gsm/uniprotheaders",150):
             "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
         "/data/uniprot/gsm/uniprot_trembl.fasta.gz", ovewrite=True)
         try:
-            execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz")
+            execute("gunzip /data/uniprot/gsm/uniprot_trembl.fasta.gz",retcodes=[0,2])
         except:
             os.remove("/data/uniprot/gsm/uniprot_trembl.fasta.gz")
 
@@ -104,7 +104,7 @@ if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta"):
     mkdir("/data/uniprot/uniref/uniref50")
     download_file("ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref50/uniref50.fasta.gz",
                   "/data/uniprot/uniref/uniref50/uniref50.fasta.gz", ovewrite=True)
-    execute("gunzip /data/uniprot/uniref/uniref50/uniref50.fasta.gz")
+    execute("gunzip /data/uniprot/uniref/uniref50/uniref50.fasta.gz",retcodes=[0,2])
 
 if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta.pal"):
     execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref50/uniref50.fasta")

@@ -33,15 +33,32 @@ class AnnotationPipelineResult(EmbeddedDocument):
 
 
 class Strain(EmbeddedDocument):
-    name = StringField(max_length=50, required=True)
+    name = StringField( required=True)
     description = StringField(default="")
     latitude = FloatField()
     longitude = FloatField()
     date = DateTimeField(default=datetime.datetime.now)
     country = StringField(default="")
     region = StringField(default="")
-    properties = DictField(required=False)
-    projects = ListField(ObjectIdField(), default=[])
+    properties = ListField(DictField(required=False),default=[])
+    user = StringField(default="demo")
+
+
+class StrainProject(EmbeddedDocument):
+    id = ObjectIdField()
+    name = StringField( required=True)
+    description = StringField(default="")
+    date = DateTimeField(default=datetime.datetime.now)
+    strains = ListField(StringField())
+    trees = ListField(DictField())
+    user = StringField(default="demo")
+
+class StrainProp(EmbeddedDocument):
+    name = StringField( required=True)
+    description = StringField(default="")
+    category = StringField(default="")
+    options = ListField(StringField(),default=[])
+    user = StringField(default="demo")
 
 
 class TaxEDoc(EmbeddedDocument):
@@ -77,7 +94,9 @@ class SeqCollection(Document):
     pipelines = ListField(EmbeddedDocumentField(AnnotationPipelineResult), default=[])
     druggabilityParams = ListField(EmbeddedDocumentField(SeqColDruggabilityParam), default=[])
 
-    strainsProps = ListField(EmbeddedDocumentField(Strain), default=[])
+    strains = ListField(EmbeddedDocumentField(Strain), default=[])
+    strainProjects = ListField(EmbeddedDocumentField(StrainProject), default=[])
+    strainsProps = ListField(EmbeddedDocumentField(StrainProp), default=[])
 
     tax = EmbeddedDocumentField(TaxEDoc)
     statistics = ListField(EmbeddedDocumentField(Metric))
