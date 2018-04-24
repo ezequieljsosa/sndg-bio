@@ -7,6 +7,7 @@ Created on Nov 2, 2017
 import logging
 import math
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import traceback
 
 from Bio.PDB.PDBParser import PDBParser
 from tqdm import tqdm
@@ -23,7 +24,9 @@ _log = logging.getLogger(__name__)
 
 pocket_prop_map = {v:k for k,v in fpocket_properties_map.items()}
 
-def process_chain(pdb_path, code, chain_id, pdb_model):
+
+
+def process_chain(pdb_path, code, chain_id, pdb_model,props):
     chain_pdb_path = cs.make_pdb(pdb_path, code, chain_id, overwrite=True)
     qm = QMean.assesment(chain_pdb_path)
     residues_qm = qm["residues"]
@@ -33,9 +36,9 @@ def process_chain(pdb_path, code, chain_id, pdb_model):
         r = Residue.select().where(
             Residue.pdb == pdb_model & Residue.chain == chain & Residue.resid == int(resid)).first()
         for prop, val in v.items():
-            prop_model = Property.select().where(Property.name == ("qr_" +  prop)).first()
+            prop_model = props["qr_" +  prop]
             if not math.isnan(val):
-                ResidueProperty(residue=r, property=prop_model, value=val)#.save()
+                ResidueProperty(residue=r, property=prop_model, value=val).save()
 
     del qm["residues"]
     for k, v in qm.items():
@@ -68,7 +71,7 @@ if __name__ == '__main__':
     sqldb.initialize(mysql_db)
 
     pdb_utils = PDBs(pdb_dir=args.pdb_dir)
-
+    props = {x.name:x for x in Property.select()}
     pdbs = list(pdb_utils)
     with tqdm(pdbs) as pbar:
         for (code, pdb_path) in pbar:
@@ -81,8 +84,9 @@ if __name__ == '__main__':
                     chains_dir = args.pdb_dir + "/chains/" + code[1:3] + "/"
                     mkdir(chains_dir)
                     cs = ChainSplitter(chains_dir)
-                    process_chain(pdb_path, code, chain.id, pdb_model)
+                    process_chain(pdb_path, code, chain.id, pdb_model,props)
 
 
             except Exception as ex:
+                traceback.print_stack()
                 _log.error(code + ": " + str(ex))
