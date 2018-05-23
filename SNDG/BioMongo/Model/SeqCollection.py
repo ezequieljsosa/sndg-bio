@@ -87,6 +87,8 @@ class SeqCollection(Document):
     description = StringField(required=False, default="")
     organism = StringField(max_length=100)
     pathways = ListField(EmbeddedDocumentField(PathwaySumary), default=[])
+    kegg = ListField(EmbeddedDocumentField(PathwaySumary), default=[])
+
     ec_index = BooleanField()
     go_index = BooleanField()
     auth = ObjectIdField()

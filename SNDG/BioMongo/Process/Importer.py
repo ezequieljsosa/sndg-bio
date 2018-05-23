@@ -26,7 +26,7 @@ from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
 from SNDG.BioMongo.Process.SearchLoader import SearchLoader
 from SNDG.BioMongo.Process.SearchLoader import load_hmm, load_blast_pdb
 from SNDG.BioMongo.Process.Taxon import Tax
-from SNDG.Sequence import identity, read_blast_table,coverage
+from SNDG.Sequence import identity, read_blast_table, coverage
 from SNDG.Sequence import smart_parse as sp
 from SNDG.Sequence.Hmmer import Hmmer
 from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
@@ -395,7 +395,7 @@ def correct_chokes(self, name):
 def import_prop_blast(db, genome_name, offtarget_name, blast_output,
                       blast_output_type="table", description=None,
                       value_fn=lambda x: x, default_value=0, no_hit_value=0,
-                      choices=[], type="number",defaultOperation=">"):
+                      choices=[], type="number", defaultOperation=">"):
     genome = db.sequence_collection.find_one({"name": genome_name})
     drug_prop = [x for x in genome["druggabilityParams"] if x["name"] == offtarget_name]
 
@@ -430,36 +430,76 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
 
     else:
         db.proteins.update({"organism": genome_name},
-                           {"$set": {"search." + offtarget_name: no_hit_value}},multi=True)
+                           {"$set": {"search." + offtarget_name: no_hit_value}}, multi=True)
         for _, r in read_blast_table(blast_output).iterrows():
             db.proteins.update({"organism": genome_name, "gene": r["query"]},
                                {"$set": {"search." + offtarget_name: value_fn(r)}})
 
 
+def import_kegg_annotation(db, genome_name, kegg_annotation):
+    current_pathways = {}
+    pw_kos = defaultdict(lambda : [])
+    for ko_code, genes in tqdm(kegg_annotation.ko_gene.items()):
+        ko = kegg_annotation.ko_dict["ko:" + ko_code]
+        onts =  ["kegg:" + ko_code]
+        if ko["ecs"] :
+            onts = onts + ko["ecs"]
+        if ko["pathways"] :
+            onts = onts + ko["pathways"]
+            for x in ko["pathways"]:
+                current_pathways[x] = 1
+                pw_kos[x].append(ko_code)
+
+        update = {
+            "$set": {"description": ko["desc"]},
+            "$addToSet": {"gene": {"$each": ko["genes"]},
+                          "ontologies": {"$each": onts}}
+        }
+        for g in genes:
+            db.proteins.update({"organism": genome_name, "gene": g}, update,multi=True)
+
+    keggs = []
+    for pw in kegg_annotation.pw_dict.values():
+        if pw["name"] in current_pathways:
+            kos = list(set(pw_kos[pw["name"]]))
+            kegg = {"term": pw["name"], "name": pw["title"],  "properties": {"kos":kos}}
+            if "reactions" in pw:
+                kegg["count"] = len(pw["reactions"])
+            keggs.append(kegg)
+
+    db.sequence_collection.update({"name": genome_name}, {"$set": {"kegg": keggs}})
+
+
 if __name__ == '__main__':
     init_log()
     import pymongo
+    from SNDG.Network.KEGG import Kegg
 
+    kegg_annotation = Kegg()
+    kegg_annotation.init()
+    ilex_data = "/data/organismos/ILEX_PARA/annotation/query.ko"
+    kegg_annotation.read_annotation(ilex_data)
+    import_kegg_annotation(pymongo.MongoClient().saureus, "ILEX_PARA", kegg_annotation)
 
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "hit_in_deg",
-                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_degaa-p.tbl",
-                      "table", "Hit in DEG database",
-                      value_fn=lambda x: x.identity  > 70,
-                      default_value=True,
-                      no_hit_value=False, choices=[True, False], type="value",defaultOperation="equal")
-
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "human_offtarget",
-                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gencode.tbl",
-                      "table", "Human offtarget score (1 - best hit identity)",
-                      value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
-                      default_value=0.4,
-                      no_hit_value=1)
-    import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "gut_microbiota_offtarget",
-                      "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gut_microbiota.tbl",
-                      "table", "Gut microbiota offtarget score (1 - best hit identity)",
-                      value_fn=lambda x: 1 - (x.identity  * 1.0 / 100),
-                      default_value=0.4,
-                      no_hit_value=1)
+    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "hit_in_deg",
+    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_degaa-p.tbl",
+    #                   "table", "Hit in DEG database",
+    #                   value_fn=lambda x: x.identity > 70,
+    #                   default_value=True,
+    #                   no_hit_value=False, choices=[True, False], type="value", defaultOperation="equal")
+    #
+    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "human_offtarget",
+    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gencode.tbl",
+    #                   "table", "Human offtarget score (1 - best hit identity)",
+    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+    #                   default_value=0.4,
+    #                   no_hit_value=1)
+    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "gut_microbiota_offtarget",
+    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gut_microbiota.tbl",
+    #                   "table", "Gut microbiota offtarget score (1 - best hit identity)",
+    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+    #                   default_value=0.4,
+    #                   no_hit_value=1)
 
     # import logging
     #

@@ -1139,7 +1139,7 @@ now, params["i"], params["o"], params["l"])
 print >> log_step, "Pipeline finalizado."
 
 getoutput("rm toy_genome.fasta")
-prefix =  ".".join(params["i"].split["."][:-1])
+prefix =  ".".join(params["i"].split(".")[:-1])
 getoutput("cat  */*tbl  > ncbi_%s.tbl"  % prefix)
 getoutput("cat  */*gbf  > ncbi_%s.gbf" %  prefix)
 getoutput("cat  */*gff3  > ncbi_%s.gff3" %  prefix)

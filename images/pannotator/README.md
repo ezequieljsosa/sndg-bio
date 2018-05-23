@@ -56,7 +56,7 @@ docker  run   --mount type=bind,source="/home/myuser/data",target="/data" \
 # whole pipeline
 docker  run   --mount type=bind,source="/home/myuser/data",target="/data",readonly \
     --mount type=bind,source="/home/myuser/mygenome/",target="/out" \
-    ezequieljsosa/pannotator annotate.sh /out/mygenome.fasta
+    ezequieljsosa/pannotator annotate.sh /out/mygenome.fasta GenomeName LocusTag [B|A] [gram+|gram-] [optional_ref_genome]
 
 # interactive mode
 docker run -it --mount type=bind,source="/home/myuser/data",target="/data",readonly \
