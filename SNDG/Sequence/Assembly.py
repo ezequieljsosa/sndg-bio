@@ -24,9 +24,9 @@ class Assembly:
         template = """spades.py {libs} {tcont} {utcont} --cov-cutoff {cov_cutoff} -o {out}"""
         libs = ""
         for i, lib in enumerate(libraries, 1):
-            libs += " --pe{i}-1 {r1} --pe{i}-2 {r2} ".format(i=i, r1=lib[0], r2=lib[1])
+            libs += ' --pe{i}-1 "{r1}" --pe{i}-2 "{r2}" '.format(i=i, r1=lib[0], r2=lib[1])
             if len(lib) > 2:
-                libs += " ".join([" --pe{i}-s {ss} ".format(i=i, ss=x) for x in lib[2:]])
+                libs += " ".join([' --pe{i}-s "{ss}" '.format(i=i, ss=x) for x in lib[2:]])
         tcont = " --trusted-contigs " + trusted_contigs if trusted_contigs else ""
         utcont = " --untrusted-contigs " + untrusted_contigs if untrusted_contigs else ""
         execute(template, libs=libs, tcont=tcont, utcont=utcont, cov_cutoff=cov_cutoff, out=out)

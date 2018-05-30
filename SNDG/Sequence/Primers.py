@@ -583,14 +583,14 @@ from Bio.SeqRecord import SeqRecord
 from Bio import AlignIO
 from Bio.Align import AlignInfo
 
-align = AlignIO.read("/data/projects/23staphylo/processed/primers/msrA_genes.msa", "fasta")
+align = AlignIO.read("/home/eze/workspace/23staphilo/data/processed/blasts_sea_pvl/sea_contigs.msa", "fasta")
 summary_align = AlignInfo.SummaryInfo(align)
 summary_align.dumb_consensus(threshold=1)
 bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.8), id="msrA"),
-           "/data/projects/23staphylo/processed/primers/msrA_consensus.fasta", "fasta")
+           "/data/projects/23staphylo/processed/primers/sea_consensus.fasta", "fasta")
 
-align = AlignIO.read("/data/projects/23staphylo/processed/primers/erma_genes.msa", "fasta")
+align = AlignIO.read("/home/eze/workspace/23staphilo/data/processed/blasts_sea_pvl/pvls_contigs.msa", "fasta")
 summary_align = AlignInfo.SummaryInfo(align)
 summary_align.dumb_consensus(threshold=1)
 bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.9), id="erma"),
-           "/data/projects/23staphylo/processed/primers/erma_consensus.fasta", "fasta")
+           "/data/projects/23staphylo/processed/primers/pvls_consensus.fasta", "fasta")

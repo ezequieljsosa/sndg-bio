@@ -39,7 +39,7 @@ class Mapping:
 
     @staticmethod
     def clean_reads(work_dir, read1, read2,  trim_left=20,
-                    trim_qual_right=25, trim_qual_window=5, min_len=35, window_size=5, cpu=1,
+                    trim_qual_right=25, trim_qual_window=25, min_len=35, window_size=5, cpu=1,
                     clip_string=""):
         """
 
@@ -65,12 +65,12 @@ class Mapping:
         # " -trim_left {trim_left}  -trim_qual_right {trim_qual_right} -trim_qual_window {trim_qual_window}" +
         # " -min_len {min_len} -out_good trimmed",
         e(
-            "java -jar $TRIMMOMATIC PE -threads {cpu} {read1_full} {read2_full} " +
-            " {pout1} {upout1} {pout2} {upout} " +
-            " HEADCROP:{trim_left}  TRAILING:{trim_qual_right} SLIDINGWINDOW:{window_size}:{trim_qual_window} " +
-            " {clip_string}  MINLEN:{min_len} ",
+            'java -jar $TRIMMOMATIC PE -threads {cpu} "{read1_full}" "{read2_full}" ' +
+            ' {pout1} {upout1} {pout2} {upout2} ' +
+            ' HEADCROP:{trim_left}  TRAILING:{trim_qual_right} SLIDINGWINDOW:{window_size}:{trim_qual_window} ' +
+            ' {clip_string}  MINLEN:{min_len} ',
             work_dir, read1_full=read1, read2_full=read2, trim_left=trim_left, trim_qual_right=trim_qual_right,
-            min_qual_mean=min_qual_mean, trim_qual_window=trim_qual_window, min_len=min_len, cpu=cpu,
+            trim_qual_window=trim_qual_window, min_len=min_len, cpu=cpu,
             pout1="trimmed_1.fastq", pout2="trimmed_2.fastq", upout1="trimmed_1_singletons.fastq",
             upout2="trimmed_2_singletons.fastq",window_size=window_size,clip_string=clip_string
         )

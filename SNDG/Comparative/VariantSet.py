@@ -30,7 +30,7 @@ java -jar /opt/GATK/GenomeAnalysisTK.jar $@
         :return:
         """
         cmd_template = """
-        gatk -T CombineVariants    -R {ref} {vcfs}   -o {out}    -genotypeMergeOptions UNIQUIFY
+        java -jar $GATK -T CombineVariants    -R {ref} {vcfs}   -o {out}    -genotypeMergeOptions UNIQUIFY
         """
         vcfs = " ".join(["--variant " + x for x in vcfs_path_list])
         cmd = cmd_template.format(vcfs=vcfs, out=gvcf_path, ref=ref_path)

@@ -9,7 +9,8 @@ class ResistanceAnalysis:
         self.resist = pd.read_csv(path_db)
         self.resist["AApos"] = [int(x) if x != "-" else "" for x in self.resist.AApos]
         self.resist["LocusTag"] = [x.split("_")[0] for x in self.resist.GeneID]
-        self.resist["NucleotidePosH37"] = [int(x.split("/")[0]) if x != "-" else "" for x in self.resist.NucleotidePosH37]
+        self.resist["NucleotidePosH37"] = [int(x.split("/")[0]) if x != "-" else "" for x in
+                                           self.resist.NucleotidePosH37]
 
         self.result = []
 
@@ -48,8 +49,8 @@ class ResistanceAnalysis:
             reported_gene_variants["NucleotidePosH37"] == variant.POS]
         if not reported_positions.empty:
 
-            reported = reported_positions[(reported_positions.REF == main_eff.ref) &
-                                          (reported_positions.ALT == main_eff.alt)]
+            reported = reported_positions[(reported_positions.REF == variant.REF) &
+                                          (reported_positions.ALT.isin([str(x) for x in variant.ALT]))]
             if reported.empty:
                 drug = set(reported_positions["Drug"])
             else:
@@ -57,7 +58,7 @@ class ResistanceAnalysis:
 
             for sample in variant.samples:
                 if sample.called:
-                    ad = sample.data["AD"] if "AD" in sample.data else "?"
+                    ad = sample.data.AD if hasattr(sample.data, "AD") else []
                     resist_record = {
                         "sample": sample.sample,
                         "gene": main_eff.geneid,
@@ -72,8 +73,7 @@ class ResistanceAnalysis:
                     self.result.append(resist_record)
 
     def __process_protein_variant(self, main_eff, reported_gene_variants, variant):
-        #print (main_eff.aa_pos,list(reported_gene_variants["AApos"]))
-
+        # print (main_eff.aa_pos,list(reported_gene_variants["AApos"]))
 
         reported_positions = reported_gene_variants[reported_gene_variants["AApos"] == main_eff.aa_pos]
         if not reported_positions.empty:
@@ -86,7 +86,7 @@ class ResistanceAnalysis:
 
             for sample in variant.samples:
                 if sample.called:
-                    ad = sample.data["AD"] if "AD" in sample.data else "?"
+                    ad = sample.data.AD if hasattr(sample.data, "AD") else []
                     resist_record = {
                         "sample": sample.sample,
                         "gene": main_eff.geneid,
@@ -109,9 +109,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Annotates the reported variants')
     required = parser.add_argument_group('required arguments')
-    required.add_argument('-vcf',   required=True)
-    required.add_argument('-db',  default="/data/databases/tbprofiler.tbl")
-
+    required.add_argument('-vcf', required=True)
+    required.add_argument('-db', default="/data/databases/tbprofiler.tbl")
 
     args = parser.parse_args()
 
