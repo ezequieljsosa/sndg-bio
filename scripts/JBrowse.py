@@ -9,7 +9,7 @@ import logging
 import os
 import shutil
 import subprocess as sp
-
+import zlib
 import Bio.SeqIO as bpio
 from BCBio import GFF
 from Bio.Seq import Seq
@@ -60,6 +60,7 @@ class JBrowse(object):
                 p = {"name": 1}
                 if not self.sequences:
                     p["seq"] = 1
+                    p["bigseq"] = 1
                 for i, c in enumerate(self.db.contig_collection.find({"organism": organism}, p)):
                     _log.debug("contig %i %s" % (i, c["name"]))
                     if self.sequences:
@@ -70,7 +71,10 @@ class JBrowse(object):
                         bpio.write(SeqRecord(id=c["name"], seq=self.sequences[seq_id]), h, "fasta")
                     else:
                         if not c["seq"]:
-                            raise Exception("Empty sequence")
+                            if c["bigseq"]:
+                                c["seq"] = str(c["bigseq"]) # zlib.decompressobj(c["bigseq"])
+                            else:
+                                raise Exception("Empty sequence")
                         bpio.write(SeqRecord(id=c["name"], seq=Seq(c["seq"])), h, "fasta")
 
         execute('PERL5LIB={perl5lib}  {base}bin/prepare-refseqs.pl --fasta "{fasta}" --out "{out_dir}" --key "{name}" ',
@@ -106,8 +110,11 @@ class JBrowse(object):
                             name = f.identifier
 
                             ftype = "tRNA" if "tRNA" in f.identifier else "rRNA"
+                        elif [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)] :
+                            name = [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)][0]
+                            ftype = "tRNA" if "tRNA" in name else "rRNA"
                         else:
-                            _log.warn("gene %s was not found in the genome %s" % (f.identifier, organism))
+                            _log.warn("gene %s was not found in the genome %s" % (f.alias, organism))
                             continue
                     else:
                         name = " | ".join(list(set(prot["gene"][0:3])))
@@ -130,7 +137,7 @@ class JBrowse(object):
 
         os.chdir(self.jbrowse_dir)
         execute(
-            'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" ',
+            'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" --trackType CanvasFeatures --className  feature',
             gff=gff4jbrowse_file, out_dir=self.organism_dir(organism), name="Genes")
 
         track_list_path = self.organism_dir(organism) + "/trackList.json"
@@ -214,9 +221,9 @@ if __name__ == "__main__":
     #                     extra_features[r.id].append(f)
     #                 elif f.type == "TSS":
     #                     extra_features[r.id].append(f)
-    mdb = BioMongoDB("saureus")
-    #jw = JBrowse(db=mdb.db)
-    jw = JBrowse()
+    mdb = BioMongoDB("tdr")
+    jw = JBrowse(db=mdb.db)
+
     #http://localhost:8080/sndg/genome/Eco109B
     # jw.create_genome("Eco109B")
     # for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
@@ -226,7 +233,10 @@ if __name__ == "__main__":
     #         except Exception as ex:
     #             _log.warn(ex)
     # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
-    jw.create_genome("SAureusN315") #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False, extra_features=dict(extra_features)
+    for x in ["SaureusN315","Lepto-Bov1","Lepto-CLM-U50","Lepto-CLM-R50","Eco86A","Eco22A","Eco1CT136A","Eco188B"]:
+        sp.call('scp -r "' + jw.organism_dir(x) + '" 157.92.24.249:' + jw.organism_dir(x), shell=True)
+        #jw.create_genome(x) #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False,extra_features=dict(extra_features)
+
 
 
     # jw.load_sequences("/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",seq_format="fasta")

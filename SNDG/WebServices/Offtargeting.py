@@ -72,7 +72,7 @@ class Offtargeting(object):
         results = []
         for db in offtarget_dbs:
             dbname = db.split("/")[-1].split(".")[0]
-            out = dst_resutls + pname  + "_" + dbname + ".tbl"
+            out = dst_resutls +  dbname + ".tbl"
             execute("blastp -evalue 1e-5 -max_hsps 1 -outfmt 6 -max_target_seqs 1 -db {db} -query {query} -out {out} -num_threads {cpus}",
                     db=db,query=proteome,out=out,cpus=cpus)
             results.append(out)

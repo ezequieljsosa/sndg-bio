@@ -44,6 +44,7 @@ class SearchLoader():
     @staticmethod
     def update_protein_with_dbxref(protein_gene, annotations,organism):
         p = Protein.objects(gene=protein_gene,organism=organism).no_cache().get()
+
         for ann in annotations:
             word = ann.split("||")[1]
             if ann.lower().startswith("ec") or ann.lower().startswith("go"):

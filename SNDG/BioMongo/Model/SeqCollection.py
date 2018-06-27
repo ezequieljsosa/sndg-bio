@@ -91,7 +91,7 @@ class SeqCollection(Document):
 
     ec_index = BooleanField()
     go_index = BooleanField()
-    auth = ObjectIdField()
+    auth = StringField()
     version = IntField(default=0)
     pipelines = ListField(EmbeddedDocumentField(AnnotationPipelineResult), default=[])
     druggabilityParams = ListField(EmbeddedDocumentField(SeqColDruggabilityParam), default=[])

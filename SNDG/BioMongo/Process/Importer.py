@@ -9,12 +9,14 @@ import pickle
 import re
 import subprocess
 from collections import defaultdict
-
+import subprocess
+import shutil
 import Bio.SearchIO as bpsio
 import Bio.SeqIO as bpio
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
+from BCBio import GFF
 
 from SNDG import init_log, mkdir, execute
 from SNDG.BioMongo.Model.Protein import Protein
@@ -33,19 +35,40 @@ from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
+from SNDG.BioMongo.Process.Index import index_seq_collection, build_statistics
+from Bio.SeqFeature import FeatureLocation
+from SNDG.BioMongo.Model.Feature import  Feature,Location
 
 _log = logging.getLogger("Importer")
 
 
-def _protein_iter(contigIterator):
+def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS)" and ("translation" in f.qualifiers))),
+                  extract_annotation_feature=lambda f: f.type == "CDS"):
     for c in contigIterator:
-        for f in c.features:
-            if f.type == "CDS":
-                if "translation" in f.qualifiers:
-                    yield (SeqRecord(id=f.qualifiers["locus_tag"][0],
-                                     description="",
-                                     annotations=f.qualifiers,
-                                     seq=Seq(f.qualifiers["translation"][0])), f,)
+        for feature in c.features:
+            if accept_feature(feature):
+                f = extract_annotation_feature(feature)
+
+                seq = f.extract(c).seq.translate()
+                if "locus_tag" in f.qualifiers:
+                    record = (SeqRecord(id=f.qualifiers["locus_tag"][0], description="",
+                                        annotations=f.qualifiers, seq=seq), f)
+                    if hasattr(feature, "sub_features"):
+                        for sub_feature in feature.sub_features:
+                            if sub_feature.type in ["transmembrane", "lipoprotein_signal_peptide", "signal_peptide"]:
+                                start = (sub_feature.location.start - feature.location.start) / 3
+                                stop = (sub_feature.location.end - feature.location.start) / 3
+                                if feature.location.strand == -1:
+                                    fstop = len(seq) - start
+                                    fstart = len(seq) - stop
+                                    sub_feature.location = FeatureLocation(fstart, fstop)
+                                else:
+                                    sub_feature.location = FeatureLocation(start, stop)
+                                record[0].features.append(sub_feature)
+
+                    yield record
+                else:
+                    _log.warning(str(f) + " has no locus_tag")
 
 
 def tritryp_protein_iter(contigIterator):
@@ -62,8 +85,15 @@ def tritryp_protein_iter(contigIterator):
                                          seq=seq), fs,)
 
 
-def from_ref_seq(name, gbpath, tax=None, tmp_dir=None):
-    for contig in sp(gbpath):
+def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
+                 extract_annotation_feature=lambda feature: feature.sub_features[
+                     0] if feature.type == "gene" and len(feature.sub_features) else feature,
+                 accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)), cpus=1):
+    if seqs:
+        seqs = {r.id: r.seq for r in bpio.parse(seqs, "fasta")}
+
+    iter_seqs = sp(ann_path, seqs=seqs) if seqs else sp(ann_path)
+    for contig in iter_seqs:
         seqCol = BioDocFactory.create_genome(name, contig, tax, Tax)
         seqCol.save()
         break
@@ -71,20 +101,26 @@ def from_ref_seq(name, gbpath, tax=None, tmp_dir=None):
         tmp_dir = "/tmp/" + name + "/"
     mkdir(tmp_dir)
     gene_ids = {}
-    with tqdm(sp(gbpath)) as pbar:
+    with tqdm(sp(ann_path)) as pbar:
         for contig in pbar:
             pbar.set_description(contig.id)
             if len(contig.seq) > 15000000:
                 contig.seq = ""
-            contigDoc, gene_ids2 = BioDocFactory.create_contig(contig, seqCol, type_map=
-            {"rRNA": "rRNA", "ncRNA": "ncRNA", NCBI.f_mRNA: NCBI.f_mRNA, "gene": "gene",
-             NCBI.f_CDS: NCBI.f_CDS, "rRNA": "rRNA", "tRNA": "tRNA", "tmRNA": "tmRNA"})
+            contigDoc, gene_ids2 = BioDocFactory.create_contig(
+                contig, seqCol, type_map=
+                {"rRNA": "rRNA", "ncRNA": "ncRNA", NCBI.f_mRNA: NCBI.f_mRNA, "gene": "gene",
+                 NCBI.f_CDS: NCBI.f_CDS, "rRNA": "rRNA", "tRNA": "tRNA", "tmRNA": "tmRNA"},
+                extract_annotation_feature=extract_annotation_feature,
+            )
             gene_ids.update(gene_ids2)
             contigDoc.save()
 
     prots = []
+    iter_seqs = sp(ann_path, seqs=seqs) if seqs else sp(ann_path)
+    with tqdm(_protein_iter(iter_seqs, accept_feature=accept_protein_feature,
+                            extract_annotation_feature=extract_annotation_feature,
 
-    with tqdm(_protein_iter(sp(gbpath))) as pbar:
+                            )) as pbar:
         for (protein, cds_f) in pbar:
             if "locus_tag" in cds_f.qualifiers:
                 protDoc = BioDocFactory.create_protein(protein, cds_f)
@@ -92,8 +128,13 @@ def from_ref_seq(name, gbpath, tax=None, tmp_dir=None):
                     raise Exception("No existen proteinas tan largas...")
                 protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
                 protDoc.organism = name
-                protDoc.auth = BioMongoDB.demo_id
+                protDoc.auth = str(BioMongoDB.demo_id)
                 protDoc.seq_collection_id = seqCol
+                for f in protein.features:
+
+                    protDoc.features.append(Feature(identifier=f.qualifiers["Ontology_term"][0],type=f.type,
+                                       location=Location(start=int(f.location.start),end=int(f.location.end))))
+
                 prots.append(protDoc)
                 if pbar.n and ((pbar.n % 1000) == 0):
                     Protein.objects.insert(prots)
@@ -101,7 +142,8 @@ def from_ref_seq(name, gbpath, tax=None, tmp_dir=None):
     if prots:
         Protein.objects.insert(prots)
 
-    _common_annotations(name, tmp_dir)
+    _common_annotations(name, tmp_dir, cpu=cpus)
+    return seqCol
 
 
 def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
@@ -165,7 +207,7 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
                 raise Exception("No existen proteinas tan largas...")
             protDoc.gene_id = gene_ids[protein.id]
             protDoc.organism = name
-            protDoc.auth = BioMongoDB.demo_id
+            protDoc.auth = str(BioMongoDB.demo_id)
             protDoc.seq_collection_id = seqCol
             prots.append(protDoc)
             if pbar.n and ((pbar.n % 1000) == 0):
@@ -192,7 +234,7 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
         pdbs_path = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
-        if not os.path.exists(blast_result):
+        if not os.path.exists(blast_result) or os.path.getsize(blast_result) < 10:
             cmd = "blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query %s -db %s -num_threads %i -outfmt 5 -out %s"
             subprocess.call(cmd % (protein_fasta, pdbs_path, cpu, blast_result), shell=True)
 
@@ -233,20 +275,26 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, proce
                 os.remove(hmm_result)
 
 
-def update_proteins(annotation_dir, proteome, seq_col_name, tax_id, cpus=multiprocessing.cpu_count()):
+def update_proteins(annotation_dir, proteome, seq_col_name, tax_id,
+                    identity=0.9, cpus=multiprocessing.cpu_count(), db_init=None):
+    print seq_col_name
+    if db_init:
+        from SNDG.Sequence.ProteinAnnotator import PABase
+        PABase.sqldb.initialize(db_init)
     mkdir(annotation_dir)
     out = annotation_dir + "/species_blast.tbl"
 
-    if not os.path.exists(out):
-        tax = Tax.select().where(Tax.ncbi_taxon_id == tax_id).get()
-        species_tax = None
-        for tax in Tax.parents(tax):
-            if tax.node_rank == "genus":
-                species_tax = tax
-                break
+    tax = Tax.select().where(Tax.ncbi_taxon_id == tax_id).get()
+    species_tax = None
+    for tax in Tax.parents(tax):
+        if tax.node_rank == "genus":
+            species_tax = tax
+            break
+    tax_data = "/data/xomeq/tax/"
+    species_fasta = tax_data + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
 
-        tax_data = "/data/xomeq/tax/"
-        species_fasta = tax_data + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
+    if not os.path.exists(out):
+
         if not os.path.exists(species_fasta):
             Uniprot.download_proteome_from_tax(str(species_tax.ncbi_taxon_id), tax_data)
 
@@ -254,18 +302,26 @@ def update_proteins(annotation_dir, proteome, seq_col_name, tax_id, cpus=multipr
         execute(cmd % (
             proteome, species_fasta, cpus, out
         ))
+    species_desc = {x.id.split("|")[1]: " ".join(x.description.split()[1:]) for x in bpio.parse(species_fasta, "fasta")}
 
-    with tqdm(list(bpsio.parse(out, "blast-tab"))) as pbar:
+    total = Protein.objects(organism=seq_col_name).count()
+    with tqdm(bpsio.parse(out, "blast-tab"), total=total) as pbar:
         for query in pbar:
             pbar.set_description(query.id)
-            try:
-                if query[0][0].ident_pct > 0.9:
-                    unip = query[0].id.split("|")[1] if "|" in query[0].id else query[0].id
-                    dbxrefs = [x.db + "||" + x.value for x in Mapping.select().where(Mapping.uniprot == unip)]
-                    p = SearchLoader.update_protein_with_dbxref(query.id, dbxrefs, seq_col_name)
+            if query[0][0].ident_pct > identity:
+
+                unip = query[0].id.split("|")[1] if "|" in query[0].id else query[0].id
+                dbxrefs = [x.db + "||" + x.value for x in Mapping.select().where(Mapping.uniprot == unip)]
+                p = Protein.objects(gene=query.id, organism=seq_col_name).no_cache().get()
+
+                if not p.description and unip in species_desc:
+                    p.description = species_desc[unip].split("OS=")[0] + " | homology with: " + unip
                     p.save()
-            except Exception as e:
-                _log.warn(e)
+
+                if dbxrefs:
+                    p = SearchLoader.update_protein_with_dbxref(
+                        query.id, dbxrefs, seq_col_name)
+                    p.save()
 
 
 def load_pathways(genome_name, sbml_path, db, pathways_dir, prefered_biocyc=None,
@@ -438,13 +494,13 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
 
 def import_kegg_annotation(db, genome_name, kegg_annotation):
     current_pathways = {}
-    pw_kos = defaultdict(lambda : [])
+    pw_kos = defaultdict(lambda: [])
     for ko_code, genes in tqdm(kegg_annotation.ko_gene.items()):
         ko = kegg_annotation.ko_dict["ko:" + ko_code]
-        onts =  ["kegg:" + ko_code]
-        if ko["ecs"] :
+        onts = ["kegg:" + ko_code]
+        if ko["ecs"]:
             onts = onts + ko["ecs"]
-        if ko["pathways"] :
+        if ko["pathways"]:
             onts = onts + ko["pathways"]
             for x in ko["pathways"]:
                 current_pathways[x] = 1
@@ -456,13 +512,13 @@ def import_kegg_annotation(db, genome_name, kegg_annotation):
                           "ontologies": {"$each": onts}}
         }
         for g in genes:
-            db.proteins.update({"organism": genome_name, "gene": g}, update,multi=True)
+            db.proteins.update({"organism": genome_name, "gene": g}, update, multi=True)
 
     keggs = []
     for pw in kegg_annotation.pw_dict.values():
         if pw["name"] in current_pathways:
             kos = list(set(pw_kos[pw["name"]]))
-            kegg = {"term": pw["name"], "name": pw["title"],  "properties": {"kos":kos}}
+            kegg = {"term": pw["name"], "name": pw["title"], "properties": {"kos": kos}}
             if "reactions" in pw:
                 kegg["count"] = len(pw["reactions"])
             keggs.append(kegg)
@@ -470,47 +526,137 @@ def import_kegg_annotation(db, genome_name, kegg_annotation):
     db.sequence_collection.update({"name": genome_name}, {"$set": {"kegg": keggs}})
 
 
+def fix_annotator_files(gff, fna, tag_replacement, tag="BIA_"):
+    if not os.path.exists(fna + ".bk"):
+        shutil.copy(fna, fna + ".bk")
+
+    with open(fna, "w") as h:
+        for x in bpio.parse(fna + ".bk", "fasta"):
+            x.id = x.id.replace(tag, tag_replacement)
+            x.name = x.id.replace(tag, tag_replacement)
+            x.description = ""
+            bpio.write(x, h, "fasta")
+
+    contigs = []
+
+    if not os.path.exists(gff + ".bk"):
+        shutil.copy(gff, gff + ".bk")
+
+    with open(gff + ".bk") as r:
+        with open(gff, "w") as w:
+            data = r.read().split("##FASTA")
+            for i, gffstrs in enumerate(data[:-1] if len(data) > 1 else data):
+                if i == 0:
+                    w.write(gffstrs)
+                else:
+                    w.write(gffstrs.split("##feature-ontology so.obo")[1])
+    data = list(GFF.parse(gff ))
+    with open(gff, "w") as h:
+        for x in data:
+            if not len([y for y in x.features if y.type == "contig"]):
+                continue
+            x.id = x.id.replace(tag, tag_replacement)
+            x.description = ""
+            for f in x.features:
+                if "locus_tag" in f.qualifiers:
+                    f.qualifiers["locus_tag"] = [x.id + "_" + f.qualifiers["locus_tag"][0].replace(tag, "")]
+                for sf in f.sub_features:
+                    if "locus_tag" in sf.qualifiers:
+                        sf.qualifiers["locus_tag"] = [x.id + "_" + sf.qualifiers["locus_tag"][0].replace(tag, "")]
+            contigs.append(x)
+        GFF.write(contigs, h, False)
+
+
 if __name__ == '__main__':
     init_log()
+    import glob
     import pymongo
     from SNDG.Network.KEGG import Kegg
 
-    kegg_annotation = Kegg()
-    kegg_annotation.init()
-    ilex_data = "/data/organismos/ILEX_PARA/annotation/query.ko"
-    kegg_annotation.read_annotation(ilex_data)
-    import_kegg_annotation(pymongo.MongoClient().saureus, "ILEX_PARA", kegg_annotation)
+    # kegg_annotation = Kegg()
+    # kegg_annotation.init()
+    # ilex_data = "/data/organismos/Eco160A/annotation/query.ko"
+    # kegg_annotation.read_annotation(ilex_data)
+    # import_kegg_annotation(pymongo.MongoClient().tdr, "Eco160A", kegg_annotation)
 
-    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "hit_in_deg",
-    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_degaa-p.tbl",
-    #                   "table", "Hit in DEG database",
-    #                   value_fn=lambda x: x.identity > 70,
-    #                   default_value=True,
-    #                   no_hit_value=False, choices=[True, False], type="value", defaultOperation="equal")
-    #
-    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "human_offtarget",
-    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gencode.tbl",
-    #                   "table", "Human offtarget score (1 - best hit identity)",
-    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
-    #                   default_value=0.4,
-    #                   no_hit_value=1)
-    # import_prop_blast(pymongo.MongoClient(port=27018).tdr, "GCF_001624625.1", "gut_microbiota_offtarget",
-    #                   "/data/organismos/GCF_001624625.1/annotation/offtarget/proteins_gut_microbiota.tbl",
-    #                   "table", "Gut microbiota offtarget score (1 - best hit identity)",
-    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
-    #                   default_value=0.4,
-    #                   no_hit_value=1)
+    logging.getLogger("peewee").setLevel(logging.WARN)
+    from peewee import MySQLDatabase
+    from SNDG.BioMongo.Process.Taxon import tax_db
+
+    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    mdb = BioMongoDB("tdr",port=27018)
+    mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+
+    base = "/data/projects/ecoli_ecuador/ecoli_ecuador/"
+
+    for x in tqdm([ "160A"]):  # ,"160A" "188B","1CT136A", "22A", "86A"
+
+        kegg_annotation = Kegg()
+        kegg_annotation.init()
+        ilex_data = "/data/organismos/Eco" + x + "/annotation/query.ko"
+        kegg_annotation.read_annotation(ilex_data)
+        import_kegg_annotation(mdb.db, "Eco" + x, kegg_annotation)
+
+
+        # mdb.delete_seq_collection("Eco" + x)
+        # gff = glob.glob(base + x + "/ncbi_*.gff3")[0]
+        # fna = glob.glob(base + x + "/ncbi_*.fna")[0]
+        #
+        # fix_annotator_files(gff,fna,"Eco" + x)
+        #
+        #
+        # def extract_annotation_feature(feature):
+        #     mrnas = [f for f in feature.sub_features if f.type == "mRNA"]
+        #     return mrnas[
+        #         0] if feature.type == "gene" and len(mrnas) else feature
+        #
+        #
+        # seqCol = from_ref_seq("Eco" + x, gff, extract_annotation_feature=extract_annotation_feature,
+        #                       seqs=fna, tax=562, tmp_dir="/tmp/Eco" + x + "",
+        #
+        #                       accept_protein_feature=lambda f: f.type == "gene" and len([y for y in f.sub_features]),
+        #                       cpus=multiprocessing.cpu_count())
+        #
+        # seqCol.description = "Escherichia coli " + x + ""
+        # seqCol.organism = "Escherichia coli " + x + ""
+        # seqCol.save()
+        # mdb.protein_fasta("/tmp/Eco" + x + "/genome.fasta", "Eco" + x)
+        # update_proteins("/tmp/Eco" + x + "/", "/tmp/Eco" + x + "/genome.fasta", "Eco" + x, 562, db_init=mysqldb)
+        # from SNDG.WebServices.Offtargeting import Offtargeting
+        #
+        # Offtargeting.offtargets("/tmp/Eco" + x + "/genome.fasta",
+        #                         "/data/organismos/Eco" + x + "/annotation/offtarget/"
+        #                         )
+        #
+        # import_prop_blast(mdb.db, "Eco" + x, "hit_in_deg",
+        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/degaa-p.tbl",
+        #                   "table", "Hit in DEG database",
+        #                   value_fn=lambda x: x.identity > 70,
+        #                   default_value=True,
+        #                   no_hit_value=False, choices=["True", "False"], type="value", defaultOperation="equal")
+        #
+        # import_prop_blast(mdb.db, "Eco" + x, "human_offtarget",
+        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gencode.tbl",
+        #                   "table", "Human offtarget score (1 - best hit identity)",
+        #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+        #                   default_value=0.4,
+        #                   no_hit_value=1)
+        # import_prop_blast(mdb.db, "Eco" + x, "gut_microbiota_offtarget",
+        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gut_microbiota.tbl",
+        #                   "table", "Gut microbiota offtarget score (1 - best hit identity)",
+        #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+        #                   default_value=0.4,
+        #                   no_hit_value=1)
+
+        index_seq_collection(mdb.db,"Eco" + x,pathways=False,go=True,keywords=True,ec=True,organism_idx=True,structure=True)
+        build_statistics(mdb.db,"Eco" + x)
 
     # import logging
     #
-    # logging.getLogger("peewee").setLevel(logging.WARN)
-    # from peewee import MySQLDatabase
-    # from SNDG.BioMongo.Process.Taxon import tax_db
+
     # from SNDG.BioMongo.Process.Index import index_seq_collection
     #
-    # tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-    # mdb = BioMongoDB("saureus")
-    # ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+
     #
     # tofix = [u'19', u'23', u'36', u'43', u'54', u'64', u'GCF_000508085.1', u'GCF_000373365.1', u'GCF_000966285.1',
     #          u'GCF_000805695.1', u'GCF_001580035.1', u'GCF_000333795.1', u'GCF_000788295.1', u'GCF_000510935.1',
@@ -527,4 +673,4 @@ if __name__ == '__main__':
     #     update_proteins(tmp_dir, protein_fasta, seq_col_name, tid)
     #
     #     index_seq_collection(mdb.db, seq_col_name, keywords=False, pathways=False, structure=False)
-    #     # build_statistics(mdb.db,seq_col_name)
+    #     build_statistics(mdb.db,seq_col_name)

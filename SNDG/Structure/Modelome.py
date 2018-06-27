@@ -6,8 +6,10 @@ import json
 import logging
 import os
 import shutil
+from collections import defaultdict
 
 import pandas as pd
+
 from tqdm import tqdm
 
 import Bio.SearchIO as bpsio
@@ -126,7 +128,8 @@ class Modelome(object):
     @staticmethod
     def model_hsps(seq_id, work_dir, hsps, refinement=REFINEMENT, models_to_generate=MODELS_TO_GENERATE,
                    assessments=ASSESMENTS, entries={}, pdb_divided="/data/databases/pdb/divided/",
-                   tmp_dir=None):
+                   tmp_dir=None,max_models=3):
+        result  = {"models":defaultdict(lambda: {})}
         from SNDG.Structure.QMean import QMean
         alns = []
         for hsp in hsps:
@@ -147,7 +150,8 @@ class Modelome(object):
             return x.aln_hit.name.split("_")[0]
 
         alns = sorted(alns, key=lambda x: entries[pdb_fn(x)] if pdb_fn(x) in entries else 20)
-        for aligment in alns[0:3]:
+        result["alns"] = alns
+        for aligment in alns[0:max_models]:
             # pdb,aligment = pdb_alignment
             pdb, chain, _, _ = aligment.aln_hit.name.split("_")
             if not os.path.exists(modeler.pdb_path(seq_id + "_" + aligment.aln_hit.name, seq_id)):
@@ -157,12 +161,9 @@ class Modelome(object):
             else:
                 models = [modeler.pdb_path(seq_id + "_" + aligment.aln_hit.name, seq_id, idx) for idx in
                           range(1, models_to_generate + 1)]
+            result["models"][aligment.aln_hit.name] = models
+        return result
 
-            for model_path in models:
-                if not os.path.exists(model_path + ".json"):
-                    assessment = QMean.assesment(model_path)
-                    with open(model_path + ".json", "w") as h:
-                        json.dump(assessment, h)
 
 
 if __name__ == '__main__':

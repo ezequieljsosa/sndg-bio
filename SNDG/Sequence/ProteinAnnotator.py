@@ -89,6 +89,7 @@ class ProteinAnnotator:
         # mysqldb = MyRetryDB(database, user=user, password=password)
         mysqldb = MySQLDatabase(database, user=user, password=password)
         PABase.sqldb.initialize(mysqldb)
+        return mysqldb
 
     def prepare_uniprot_mapping(self):
         with open("idmapping_filtered.dat", "w") as h1:
@@ -200,8 +201,25 @@ class ProteinAnnotator:
 
 
 if __name__ == '__main__':
+    from SNDG import init_log
+    import logging
+
+    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+    mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+
     pa = ProteinAnnotator()
-    pa.connect_to_db(password="mito")
+    # pa.connect_to_db(password="mito")
     # pa.create_db()
     # pa.populate_sql("/data/uniprot/idmapping_filtered.dat",
     #                "/data/uniprot/goa/goa_uniprot_all.gpa")
+    tmpdir="/tmp/lepto/Lepto-CLM-U50"
+    logging.getLogger("peewee").setLevel(logging.WARN)
+    init_log(log_file_path=tmpdir + "/ann.log")
+    mdb = BioMongoDB("tdr")
+    tax = 1958811
+
+    list(Mapping.select().where(Mapping.uniprot == "12"))
+    n = "Lepto-CLM-U50"
+
+    from SNDG.BioMongo.Process.Importer import update_proteins
+    update_proteins(tmpdir, tmpdir + "/genome.fasta", n, tax,db_init=mysqldb)

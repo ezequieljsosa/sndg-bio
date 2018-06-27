@@ -57,6 +57,32 @@ class Kegg(object):
 
     """
 
+    @staticmethod
+    def update_files(base_dir="/data/databases/kegg/"):
+        for db in ["pathway","ko","cpd","brite"]:
+            with open(base_dir + db + ".txt","w") as h:
+                print db
+                data = REST.kegg_list(db).read()
+                print len(data)
+                h.write(data)
+        # wget http://www.kegg.jp/kegg-bin/download_htext?htext=br08901.keg&format=json&filedir=
+        # wget http://www.kegg.jp/kegg-bin/download_htext?htext=br08001.keg&format=json&filedir=
+
+        L = list(open(base_dir + "pathway.txt"))
+
+        for pathway in tqdm(L):
+            pw = "ko" + pathway.split()[0].split(":map")[1]
+            kgmlpath = base_dir + "ko/" + pw + ".kgml"
+            if not os.path.exists(kgmlpath):
+                with open(kgmlpath, "w") as h:
+                    print pw
+                    try:
+                        data = REST.kegg_get(pw, option="kgml").read()
+                        h.write(data)
+                        sleep(1)
+                    except:
+                        pass
+
     def __init__(self, ko_list_path="/data/databases/kegg/ko.txt",
                  brittle_pw_path="/data/databases/kegg/ko/",
                  kgmls_dir="/data/databases/kegg/ko/"):
@@ -67,6 +93,7 @@ class Kegg(object):
         self.ko_dict = defaultdict(lambda :{})
         self.pw_dict = {}
         self.ko_react = {}
+
 
     def init(self):
 

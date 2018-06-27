@@ -10,7 +10,7 @@ class SeqCollectionLoader:
             name=genome_name,
             description=description,
             organism=organism,
-            auth=BioMongoDB.demo_id)
+            auth=str(BioMongoDB.demo_id))
         g.save()
 
         #         gene_ids = {}
@@ -42,7 +42,7 @@ class SeqCollectionLoader:
                                     raise Exception("No existen proteinas tan largas...")
                                 # protDoc.gene_id = gene_ids[f.qualifiers["locus_tag"][0]]
                                 protDoc.organism = genome_name
-                                protDoc.auth = BioMongoDB.demo_id
+                                protDoc.auth = str(BioMongoDB.demo_id)
                                 protDoc.seq_collection_id = g
                                 prots.append(protDoc)
                                 if i and ((i % 1000) == 0):
@@ -104,7 +104,7 @@ class SeqCollectionLoader:
 
         os.chdir(dataDir)
         self.delete_seq_collection(name)
-        genome = Genome(name=name, organism=organism, type="genome", auth=auth)
+        genome = Genome(name=name, organism=organism, type="genome", auth=str(auth))
         genome.save()
         for seq in bpio.parse(fasta, "fasta"):
             Protein(seq=str(seq.seq), gene=list([seq.id]), name=seq.id,

@@ -227,47 +227,7 @@ class BioMongoDB(object):
                             and (models[i].templates[0].aln_query.end == models[j].templates[0].aln_query.end)):
                         models[i].delete()
 
-    """
-    def load_from_db(self, name, sql_name,fprot=NCBI.f_CDS):
-        from BIADeploy.BioDocFactory import BioDocFactory
-        from BIADeploy.BiaSql import BiaSql
-        
-        
-        fact = BioDocFactory()
-        fact.tax_provider = Tax
-        sqldb = BiaSql("biosql", user="root", passwd="mito")
-        seqCol = fact.create_genome(name, sqldb.first_contig(sql_name), fact.tax_provider)
-        seqCol.save()
-        gene_ids = {}
-        for contig in sqldb.sequences(sql_name):
-            if len(contig.seq) > 15000000:
-                contig.seq = ""
-            contigDoc, gene_ids2 = fact.create_contig(contig, seqCol, type_map=
-                {"rRNA":"rRNA","ncRNA":"ncRNA",NCBI.f_mRNA:"gene","exon":"exon","gene":"gene",
-                 NCBI.f_CDS:NCBI.f_CDS,"rRNA":"rRNA","tRNA":"tRNA","tmRNA":"tmRNA"})
-            gene_ids.update(gene_ids2)
-            contigDoc.save()
-             
-        prots = []
-            
-        for i, (protein, cds_f) in enumerate(sqldb.proteins(sql_name,fprot)):
-            
-            if "locus_tag" in cds_f.qualifiers:              
-                protDoc = fact.create_protein(protein, cds_f)
-                if len(protDoc.seq) > 30000:
-                    raise Exception("No existen proteinas tan largas...")
-                protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
-                protDoc.organism = name
-                protDoc.auth = BioMongoDB.demo_id  
-                protDoc.seq_collection_id = seqCol
-                prots.append(protDoc)
-                if i and ((i % 1000) == 0):    
-                    print "se procesaron %i proteinas" % i        
-                    Protein.objects.insert(prots)
-                    prots = []
-        if prots:
-            Protein.objects.insert(prots)
-    """
+
 
     def props_from_dbxref(self, name):
 

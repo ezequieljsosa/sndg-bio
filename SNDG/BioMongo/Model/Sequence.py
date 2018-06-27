@@ -70,7 +70,7 @@ class Sequence(Document):
     status = StringField(default="predicted")
     keywords = ListField(StringField())
     dbxrefs = ListField(StringField())
-    auth = ObjectIdField()
+    auth = StringField()
 
     search = EmbeddedDocumentField(ProteinDruggabilitySearch)
     sndg_index = EmbeddedDocumentField(EmbeddedSNDGIndex,required=False)
