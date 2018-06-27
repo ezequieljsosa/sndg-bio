@@ -130,7 +130,7 @@ class Modelome(object):
                    assessments=ASSESMENTS, entries={}, pdb_divided="/data/databases/pdb/divided/",
                    tmp_dir=None,max_models=3):
         result  = {"models":defaultdict(lambda: {})}
-        from SNDG.Structure.QMean import QMean
+
         alns = []
         for hsp in hsps:
             aln = Struct(
