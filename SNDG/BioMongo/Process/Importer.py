@@ -37,7 +37,7 @@ from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
 from SNDG.BioMongo.Process.Index import index_seq_collection, build_statistics
 from Bio.SeqFeature import FeatureLocation
-from SNDG.BioMongo.Model.Feature import  Feature,Location
+from SNDG.BioMongo.Model.Feature import Feature, Location
 
 _log = logging.getLogger("Importer")
 
@@ -131,9 +131,9 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 protDoc.auth = str(BioMongoDB.demo_id)
                 protDoc.seq_collection_id = seqCol
                 for f in protein.features:
-
-                    protDoc.features.append(Feature(identifier=f.qualifiers["Ontology_term"][0],type=f.type,
-                                       location=Location(start=int(f.location.start),end=int(f.location.end))))
+                    protDoc.features.append(Feature(identifier=f.qualifiers["Ontology_term"][0], type=f.type,
+                                                    location=Location(start=int(f.location.start),
+                                                                      end=int(f.location.end))))
 
                 prots.append(protDoc)
                 if pbar.n and ((pbar.n % 1000) == 0):
@@ -550,7 +550,7 @@ def fix_annotator_files(gff, fna, tag_replacement, tag="BIA_"):
                     w.write(gffstrs)
                 else:
                     w.write(gffstrs.split("##feature-ontology so.obo")[1])
-    data = list(GFF.parse(gff ))
+    data = list(GFF.parse(gff))
     with open(gff, "w") as h:
         for x in data:
             if not len([y for y in x.features if y.type == "contig"]):
@@ -573,30 +573,33 @@ if __name__ == '__main__':
     import pymongo
     from SNDG.Network.KEGG import Kegg
 
+
+
+    # logging.getLogger("peewee").setLevel(logging.WARN)
+    # from peewee import MySQLDatabase
+    # from SNDG.BioMongo.Process.Taxon import tax_db
+    #
+    # tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    mdb = BioMongoDB("tdr", port=27018)
+    # mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+
     # kegg_annotation = Kegg()
     # kegg_annotation.init()
-    # ilex_data = "/data/organismos/Eco160A/annotation/query.ko"
+    # ilex_data = "/data/organismos/ILEX_PARA_TRANSCRIPT/annotation/query.ko"
     # kegg_annotation.read_annotation(ilex_data)
-    # import_kegg_annotation(pymongo.MongoClient().tdr, "Eco160A", kegg_annotation)
+    # import_kegg_annotation(mdb.db, "ILEX_PARA_TRANSCRIPT", kegg_annotation)
 
-    logging.getLogger("peewee").setLevel(logging.WARN)
-    from peewee import MySQLDatabase
-    from SNDG.BioMongo.Process.Taxon import tax_db
 
-    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-    mdb = BioMongoDB("tdr",port=27018)
-    mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
+    base = "/data/projects/ecoli_mex/"
 
-    base = "/data/projects/ecoli_ecuador/ecoli_ecuador/"
-
-    for x in tqdm([ "160A"]):  # ,"160A" "188B","1CT136A", "22A", "86A"
-
+    for x in tqdm(["AIEC_C4435", "AIEC_C7225", "AIEC_C7230", "AIEC_C7223",
+                   "AIEC_C7226"]):  # ,"160A" "188B","1CT136A", "22A", "86A"
+    #     mdb.protein_fasta("/home/eze/Downloads/" + x + ".fasta", "Eco" + x)
         kegg_annotation = Kegg()
         kegg_annotation.init()
         ilex_data = "/data/organismos/Eco" + x + "/annotation/query.ko"
         kegg_annotation.read_annotation(ilex_data)
         import_kegg_annotation(mdb.db, "Eco" + x, kegg_annotation)
-
 
         # mdb.delete_seq_collection("Eco" + x)
         # gff = glob.glob(base + x + "/ncbi_*.gff3")[0]
@@ -611,14 +614,11 @@ if __name__ == '__main__':
         #         0] if feature.type == "gene" and len(mrnas) else feature
         #
         #
-        # seqCol = from_ref_seq("Eco" + x, gff, extract_annotation_feature=extract_annotation_feature,
-        #                       seqs=fna, tax=562, tmp_dir="/tmp/Eco" + x + "",
-        #
-        #                       accept_protein_feature=lambda f: f.type == "gene" and len([y for y in f.sub_features]),
-        #                       cpus=multiprocessing.cpu_count())
+        # seqCol = from_ref_seq("Eco" + x, base + x + ".gbk", tax=562, tmp_dir="/tmp/Eco" + x + "", cpus=3)
         #
         # seqCol.description = "Escherichia coli " + x + ""
         # seqCol.organism = "Escherichia coli " + x + ""
+        # seqCol.auth = "40"
         # seqCol.save()
         # mdb.protein_fasta("/tmp/Eco" + x + "/genome.fasta", "Eco" + x)
         # update_proteins("/tmp/Eco" + x + "/", "/tmp/Eco" + x + "/genome.fasta", "Eco" + x, 562, db_init=mysqldb)

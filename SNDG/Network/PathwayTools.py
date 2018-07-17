@@ -345,7 +345,7 @@ if __name__ == "__main__":
     pw = PathwayTools(args.work_dir,args.go_db)
     contigmap = None
     if args.sequences:
-        contigmap = {x.id: x.seq for x in
+        contigmap = {x.id: x for x in
                      smart_parse(args.sequences)}
 
     if args.annotation_type == "mongo":
