@@ -11,6 +11,10 @@ from tqdm import tqdm
 import Bio.SearchIO as bpsio
 from SNDG.Structure.Modelome import Modelome
 
+import argparse
+import multiprocessing
+
+
 _log = logging.getLogger(__name__)
 
 
@@ -57,15 +61,19 @@ class QuickModelome(object):
         def identity(hsp):
             return 1.0 * hsp.ident_num / hsp.aln_span
 
-        for query in bpsio.parse(xml_blast_result, "blast-xml"):
+        _log.info("searching good templates")
+        for query in tqdm(bpsio.parse(xml_blast_result, "blast-xml")):
             for hit in query:
                 if list(hit):
                     hsp = list(hit)[0]
-                    if 0.6 <= identity < 0.95:
+                    if 0.6 <= identity(hsp) < 0.95:
                         good_model[hsp.query.id].append(hsp)
+
+
 
         tuplas = good_model.items()
 
+        _log.info("creating models")
         with tqdm(tuplas) as pbar:
             for seq, hsps in pbar:
                 try:
@@ -77,6 +85,9 @@ class QuickModelome(object):
 
 
 if __name__ == '__main__':
+    from SNDG import init_log,mkdir
+    init_log()
+    import os
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-cpus", "--cpus", default=multiprocessing.cpu_count())
@@ -84,11 +95,13 @@ if __name__ == '__main__':
     parser.add_argument("--data_dir")
     parser.add_argument("--entries", default='/data/pdb/entries.idx')
     parser.add_argument("--pdb_divided", default="/data/pdb/divided/")
-    parser.add_argument("--max_models", default=3)
+    parser.add_argument("--max_models",  type=int,  default=3)
 
     args = parser.parse_args()
-
+    mkdir("/tmp/chain_PDBs")
+    assert os.path.exists(args.pdb_divided),args.pdb_divided
+    assert os.path.exists(args.entries),args.entries
     qm = QuickModelome()
-    qm.quick_structurome(xml_blast_result=args.xml_blast_result, data_dir=args.data_dir,
+    qm.quick_structurome(xml_blast_result=args.xml_blast_result, data_dir=os.path.abspath(args.data_dir),
                          entries=args.entries, tmp_dir="/tmp/chain_PDBs",
-                         pdb_divided=pdb_divided, max_models=max_models)
+                         pdb_divided=args.pdb_divided, max_models=args.max_models)
