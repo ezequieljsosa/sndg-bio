@@ -61,3 +61,46 @@ if __name__ == '__main__':
             except:
                 with open("errors.log", "a") as h:
                     h.write(str(genome["Organism_Name"]) + "\n")
+
+
+
+# for x in tqdm(glob("*.faa")):
+#     ...:     if x in ["all.faa"]:
+#         ...:         continue
+#     ...:     if "_90" in x:
+#         ...:         continue
+#     ...:     if "_50" in x:
+#         ...:         continue
+#     ...:     arch = x.replace(".faa","")
+#     ...:     cmd =  "/home/bia/cdhit/cd-hit  -c %s -i %s.faa -o %s_%s.faa -g 1 -p 1 -aL 0.8 -aS 0.8 -T 20 -n %s -M 800
+#     ...: 00 "
+#     ...:     if not os.path.exists(arch + "_90.faa"):
+#         ...:      try:
+#         ...:          sp.check_output(cmd% ("0.9",arch,arch,"90", "5"),shell=True)
+#     ...:      except:
+#     ...:          if os.path.exists( arch + "_90.faa"):
+#         ...:             os.remove( arch + "_90.faa" )
+#     ...:     if not os.path.exists(arch + "_50.faa"):
+#         ...:      try:
+#         ...:          sp.check_output(cmd% ("0.5",arch,arch,"50","3"),shell=True)
+#     ...:      except:
+#     ...:         if os.path.exists( arch + "_50.faa"):
+#         ...:                 os.remove( arch + "_50.faa" )
+
+
+# from tqdm import tqdm
+# ...: import subprocess as sp
+# ...: for x in tqdm(glob("/out/*/GCF*")):
+#     ...:     try:
+#     ...:         def pepe():
+#     ...:             sp.call('python /app/load_genome.py -g "' + x + '"',shell=True)
+# ...:         p = multiprocessing.Process(target=pepe)
+# ...:         p.start()
+# ...:         p.join(600)
+# ...:         if p.is_alive():
+#     ...:             p.terminate()
+# ...:             p.join()
+# ...:     except KeyboardInterrupt:
+# ...:         break
+# ...:     except Exception as ex:
+# ...:         print(ex)

@@ -19,7 +19,7 @@ from SNDG import init_log, execute
 from SNDG.BioMongo.Model.Sequence import Contig
 from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from bson.objectid import ObjectId
-
+from tqdm import tqdm
 # from BIADeploy.BiaSql import BiaSql
 # from SNDGInt.Submitter import ExternalAssembly
 
@@ -84,15 +84,19 @@ class JBrowse(object):
         gff4jbrowse_file = "/tmp/jbrowse_g.gff"
         contigs = []
         proceced = {}
-        for contig in Contig.objects(organism=organism).no_cache():
+        contig_iter = tqdm(Contig.objects(organism=organism).no_cache())
+        for contig in contig_iter:
 
             seq_id = contig.name
+            contig_iter.set_description(seq_id)
 
             c = SeqRecord(id=seq_id, seq=Seq(""))
             if seq_id in extra_features:
                 c.features = extra_features[seq_id]
             contigs.append(c)
-            for f in contig.features:
+            feature_iter = tqdm(contig.features)
+            for f in feature_iter:
+
                 name = None
                 if f._id:
                     ident = str(f._id)
@@ -106,6 +110,10 @@ class JBrowse(object):
                     prot = self.db.proteins.find_one({"organism": organism, "alias": f.identifier},
                                                      {"gene": 1, "description": 1})
                     if not prot:
+                        prot = self.db.proteins.find_one({"organism": organism, "gene": f.identifier},
+                                                         {"gene": 1, "description": 1})
+
+                    if not prot:
                         if ("tRNA" in f.identifier) or ("rRNA" in f.identifier) or ("ribosomal" in f.identifier):
                             name = f.identifier
 
@@ -114,7 +122,7 @@ class JBrowse(object):
                             name = [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)][0]
                             ftype = "tRNA" if "tRNA" in name else "rRNA"
                         else:
-                            _log.warn("gene %s was not found in the genome %s" % (f.alias, organism))
+                            _log.warn("gene %s was not found in the genome %s" % (f.identifier, organism))
                             continue
                     else:
                         name = " | ".join(list(set(prot["gene"][0:3])))
@@ -221,7 +229,7 @@ if __name__ == "__main__":
     #                     extra_features[r.id].append(f)
     #                 elif f.type == "TSS":
     #                     extra_features[r.id].append(f)
-    mdb = BioMongoDB("tdr")
+    mdb = BioMongoDB("saureus")
     jw = JBrowse(db=mdb.db)
 
     #http://localhost:8080/sndg/genome/Eco109B
@@ -233,14 +241,14 @@ if __name__ == "__main__":
     #         except Exception as ex:
     #             _log.warn(ex)
     # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
-    for x in ["SaureusN315","Lepto-Bov1","Lepto-CLM-U50","Lepto-CLM-R50","Eco86A","Eco22A","Eco1CT136A","Eco188B"]:
-        sp.call('scp -r "' + jw.organism_dir(x) + '" 157.92.24.249:' + jw.organism_dir(x), shell=True)
+    # for x in ["SaureusN315","Lepto-Bov1","Lepto-CLM-U50","Lepto-CLM-R50","Eco86A","Eco22A","Eco1CT136A","Eco188B"]:
+    #     sp.call('scp -r "' + jw.organism_dir(x) + '" 157.92.24.249:' + jw.organism_dir(x), shell=True)
         #jw.create_genome(x) #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False,extra_features=dict(extra_features)
 
 
 
-    # jw.load_sequences("/data/organismos/cruzi/TriTrypDB-34_TcruziCLBrenerEsmeraldo-like_Genome.fasta",seq_format="fasta")
-    # jw.create_genome("cruzi")
+    jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
+    jw.create_genome("ILEX_PARA2")
     #
     # jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
     # jw.create_genome("Pext14-3B")

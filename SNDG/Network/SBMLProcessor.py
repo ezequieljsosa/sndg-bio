@@ -7,11 +7,12 @@ Created on Jan 9, 2015
 import os
 import re
 import logging
-
+from tqdm import tqdm
 import networkx as nx
 from libsbml import readSBML
 
 _log = logging.getLogger("SBMLProcessor")
+
 
 class SBMLProcessor(object):
     '''
@@ -26,7 +27,11 @@ class SBMLProcessor(object):
         self.ignore_reversibility = False;
         self.sbml_file_path = None
         self.filter_filename = "allfilters_con_c.dat";
-        self.fn_extract_genes = lambda x: [y.strip() for y in x.split()]
+        import re
+        reg = r'\((.*?)\)'
+        # self.fn_extract_genes = lambda x: [y.strip().replace("(", "").replace(")", "").replace("</p>", "") for y in
+        #                                    x.split() if y.strip() and y.strip() != 'GENE_ASSOCIATION:' and y != "or"]
+        self.fn_extract_genes = lambda x: re.findall(reg,x)
         self.graph = nx.DiGraph()
         self.pathways = {}
         self.genes = {}
@@ -71,12 +76,12 @@ class SBMLProcessor(object):
         self.document = readSBML(self.sbml_file_path);
         if os.path.exists(self.filter_filename):
             with open(self.filter_filename, "r") as filter_file:
-                self.filter_list = [x.strip() for x in filter_file.read().lower().splitlines()]
+                self.filter_list = [x.split("\t")[0].strip() for x in filter_file.read().lower().splitlines()]
         else:
             self.filter_list = []
 
-        #errors = self.document.getNumErrors();
-        #if (errors > 0):
+        # errors = self.document.getNumErrors();
+        # if (errors > 0):
         #    _log.error(str(errors))
         #    raise ("Encountered the following SBML errors:" + str(errors))
 
@@ -91,12 +96,12 @@ class SBMLProcessor(object):
                     metabolites_count[metabolite] += 1
                 else:
                     metabolites_count[metabolite] = 1
-        for met, count in metabolites_count.items():
-            if count > 20:
-                self.filter_list.append(self.decode_sbml(met.lower()))
+        limit = 20
         with open(filter_path + self.filter_filename, "w") as h:
-            for x in self.filter_list:
-                h.write(x + "\n")
+            for met, count in reversed(sorted(metabolites_count.items(), key=lambda x: x[1])):
+                if count >= limit:
+                    self.filter_list.append(self.decode_sbml(met.lower()))
+                    h.write(self.decode_sbml(met.lower()) + "\t" + str(count) + "\n")
 
     def add_reaction_to_graph(self, reaction):
         if not self.graph.has_node(self.decode_sbml(reaction.getName())):
@@ -110,7 +115,7 @@ class SBMLProcessor(object):
 
         listOfReactions = self.model.getListOfReactions();
 
-        for reaction in listOfReactions:
+        for reaction in tqdm(listOfReactions):
             self.complete_reaction_data(reaction)
             # get list of Products (and Reactants if the reaction is reversible)
             listOfReactantsAndProducts = reaction.getListOfProducts().clone();

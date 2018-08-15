@@ -10,6 +10,7 @@ import pickle
 from _collections import defaultdict
 import networkx as nx
 from tqdm import tqdm
+import json
 
 from mongoengine.errors import DoesNotExist, MultipleObjectsReturned
 from networkx.algorithms.centrality.betweenness import betweenness_centrality
@@ -102,8 +103,8 @@ class PathwaysAnnotator(object):
 
         connected_reactions = list(nx.all_neighbors(self.sbmlprocessor.graph, reaction_raw))
         if connected_reactions:
-            connected_reactions_with_genes = [neighbor_reaction for neighbor_reaction in connected_reactions if
-                                              neighbor_reaction in self.sbmlprocessor.genes]
+            connected_reactions_with_genes = set([neighbor_reaction for neighbor_reaction in connected_reactions if
+                                                  neighbor_reaction in self.sbmlprocessor.genes])
             if connected_reactions_with_genes:
                 for neighbor_reaction_raw in connected_reactions_with_genes:
                     neighbor_reaction = neighbor_reaction_raw.replace(".", "_")
@@ -171,9 +172,14 @@ class PathwaysAnnotator(object):
                 protein.properties.append(prop)
 
     def build_network(self):
-        self.sbmlprocessor.init()
+
         if not os.path.exists(self.work_dir + "/" + self.sbmlprocessor.filter_filename):
+            self.sbmlprocessor.init()
             self.sbmlprocessor.create_filter(self.work_dir + "/")
+        else:
+            self.sbmlprocessor.filter_filename =  self.work_dir + "/" + self.sbmlprocessor.filter_filename
+            self.sbmlprocessor.init()
+
         self.sbmlprocessor.process_sbml()
         with open(self.work_dir + 'pathways.dat', 'w') as f:
             pickle.dump(self.sbmlprocessor.pathways, f)
@@ -217,7 +223,7 @@ class PathwaysAnnotator(object):
             _log.warn(gene_name)
 
     def annotate_genes(self):
-        genes = list( self.sbmlprocessor.graph.nodes(data=False))
+        genes = list(self.sbmlprocessor.graph.nodes(data=False))
         for reaction in tqdm(genes):
 
             if reaction in self.sbmlprocessor.genes:
@@ -225,14 +231,21 @@ class PathwaysAnnotator(object):
                 if not genes:
                     continue
                 for gene_name in genes:
-                    self.annotate_gene(reaction, gene_name)
+                    if gene_name != "GENE_ASSOCIATION:":
+                        self.annotate_gene(reaction, gene_name.replace("(", "").replace(")", "").replace("</p>", ""))
 
     def init(self):
         self.chokepoints()
         ccs = list(connected_components(self.sbmlprocessor.graph.to_undirected()))
         cp = ccs[0]
-        self.centrality = {x: (y if x in cp else 0) for x, y in
-                           betweenness_centrality(self.sbmlprocessor.graph).items()}
+        centrality_json = self.work_dir + "/centrality.json"
+        if os.path.exists(centrality_json):
+            self.centrality = json.load(open(centrality_json))
+        else:
+            self.centrality = {x: 0 for x in self.sbmlprocessor.graph.nodes()}
+            # self.centrality = {x: (y if x in cp else 0) for x, y in
+            #                betweenness_centrality(self.sbmlprocessor.graph).items()}
+            # json.dump(self.centrality,open(centrality_json,"w"))
 
     def annotate(self):
         if not os.path.exists(self.work_dir + "/pathways.dat"):

@@ -166,7 +166,7 @@ def load_pdb_domains(organism, blast_file, feature_type="SO:0001079",
 
 def load_blast_features( organism, blast_file, feature_type,
                         min_identity=0, min_query_coverage=0, min_hit_coverage=0):
-    queries = list(bpsio.parse(blast_file, 'blast-xml'))
+    queries = list(bpsio.parse(blast_file, 'blast-text'))
 
     def check_overlap(features, new_feature, max_aa_overlap):
         for f in features:

@@ -21,9 +21,15 @@ from SNDG.BioMongo.Model.SeqColOntologyIndex import SeqColOntologyIndex
 from SNDG.BioMongo.Model.Sequence import ProteinDruggabilitySearch
 from SNDG.BioMongo.Process.KeywordIndexer import KeywordIndexer
 
+from tqdm import tqdm
+
 _log = logging.getLogger(__name__)
 
 from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParamTypes
+
+"""
+Para ver las jerarquias entre las clases hay que usar el archivo classes.dat
+"""
 
 
 class BioCyc(object):
@@ -168,9 +174,10 @@ class BioCyc(object):
                 genome.druggabilityParams.append(dp)
 
     def _process_proteins(self, genome):
-
-        for protein in Protein.objects(organism=genome.name, reactions__0__exists=True).no_cache().timeout(
-                False):  # @UndefinedVariable
+        total = Protein.objects(organism=genome.name, reactions__0__exists=True).count()
+        iterprot = tqdm(Protein.objects(organism=genome.name, reactions__0__exists=True).no_cache().timeout(
+            False),total=total)
+        for protein in iterprot:  # @UndefinedVariable
             keywords1 = self._protein_keywords(protein)
             keywords2 = self._add_drugability_props_to_protein(protein)
             protein.keywords = list(
@@ -227,8 +234,16 @@ class BioCyc(object):
                     ont_doc.save()
 
     def complete_pathways(self, genome, pathways_file, reactions_file, filter_tax=None):
+        """
+
+        :param genome:
+        :param pathways_file:
+        :param reactions_file:
+        :param filter_tax: list of ncbi_taxon_id (only number)
+        :return:
+        """
         if filter_tax:
-            filter_tax = set(filter_tax)
+            filter_tax = set([str(x) for x in filter_tax])
         pathways = []
         for p in self.db.proteins.find({"organism": genome, "reactions.pathways.0": {"$exists": 1}}, {"reactions": 1}):
             for rs in p["reactions"]:
@@ -246,7 +261,7 @@ class BioCyc(object):
         with open(reactions_file) as h:
             lines = [x for x in h.readlines() if not x.startswith("#")]
             records = re.split("//\n", "\n".join(lines))
-            for record in records:
+            for record in tqdm(records):
                 if not record.strip():
                     continue
                 ec = None
@@ -272,7 +287,7 @@ class BioCyc(object):
         with open(pathways_file) as h:
             lines = [x for x in h.readlines() if not x.startswith("#")]
             records = re.split("//\n", "\n".join(lines))
-            for record in records:
+            for record in tqdm(records):
                 if not record.strip():
                     continue
                 reactions = []
@@ -453,6 +468,7 @@ if __name__ == '__main__':
             '200918', '267890', '81', '204441', '28216', '201174', '2037', '67814', '1117', '1118', '817', '1297',
             '186801', '142182', '200930', '429', '35798', '1046', '204455', '356', '508458', '1762', '1763', '1760',
             '838']
+    arc = ["2157"]
     mongoengine.connect("saureus")
     bcyc = BioCyc("saureus")
 

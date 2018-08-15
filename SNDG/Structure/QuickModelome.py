@@ -96,12 +96,13 @@ if __name__ == '__main__':
     parser.add_argument("--entries", default='/data/pdb/entries.idx')
     parser.add_argument("--pdb_divided", default="/data/pdb/divided/")
     parser.add_argument("--max_models",  type=int,  default=3)
+    parser.add_argument("--tmp_dir",   default="/tmp/chain_PDBs")
 
     args = parser.parse_args()
-    mkdir("/tmp/chain_PDBs")
+    assert os.path.exists(args.tmp_dir),args.tmp_dir
     assert os.path.exists(args.pdb_divided),args.pdb_divided
     assert os.path.exists(args.entries),args.entries
     qm = QuickModelome()
     qm.quick_structurome(xml_blast_result=args.xml_blast_result, data_dir=os.path.abspath(args.data_dir),
-                         entries=args.entries, tmp_dir="/tmp/chain_PDBs",
+                         entries=args.entries, tmp_dir=args.tmp_dir,
                          pdb_divided=args.pdb_divided, max_models=args.max_models)

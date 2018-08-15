@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from tqdm import tqdm
 from numpy.lib.scimath import sqrt
-
+from glob import glob
 from SNDG import mkdir
 
 _log = logging.getLogger(__name__)
@@ -193,7 +193,7 @@ class FPocket(object):
     def hunt_pockets(self):
         cmd = "{fpocket} -f {pdb_file}".format(fpocket=self.fpocket_binary, pdb_file=self.pdb_file_path)
         self._execute(cmd)
-        if self._pdb_file_directory != self.work_directory:
+        if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
             if os.path.exists(self.dest_path()):
                 shutil.rmtree(self.dest_path(), True)
             work_dir = self._pdb_file_directory + "/" + self._out_directory()
@@ -211,7 +211,7 @@ class FPocket(object):
         _log.debug("Running: " + command)
         try:
             subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             _log.fatal("nCmd error:" + e.output)
             raise
         _log.debug("Command: " + command + "---- Executed correctly")
@@ -238,20 +238,27 @@ class OutputPocket(object):
     def load_atoms(self):
         with open(self._atoms_file_path()) as h:
             for line in h:
-                if line[0:6].strip() == 'ATOM' or line[0:6].strip() == 'HETATM':
+                if line[0:6].strip() == 'ATOM':
                     atom_num = line[6:11].strip()
                     self.atoms.append(atom_num)
 
     def load_alpha(self):
         with open(self._vert_file_path()) as h:
             for line in h:
-                if line[0:6].strip() == 'ATOM':
-                    edited_line = line.replace("ATOM  ", "HETATM")
-                    self.alpha_spheres.append(edited_line)
+                if line[0:6].strip() == 'HETATM' :
+                    #HETATM    1 APOL STP C   1       7.330  72.769  16.106  0.00  0.00          Ve
+                    self.alpha_spheres.append(line)
+                elif line[0:6].strip() == 'ATOM':
+                    #ATOM      1    O STP     1       3.174  33.184  26.211    0.00     4.00
+                    line = line.replace("ATOM  ","HETATM").replace("  O","POL").replace("   C","APOL").replace("  0.00   ","0.00")
+                    self.alpha_spheres.append(line)
 
     def _atoms_file_path(self):
         return self.directory + "/pockets/pocket{nthpocket}_atm.pdb" \
             .format(nthpocket=self.pocketFileNumber())
+
+    def _out_path(self):
+        return glob(self.directory + "/*_out.pdb")[0]
 
     def _vert_file_path(self):
         return self.directory + "/pockets/pocket{nthpocket}_vert.pqr" \
@@ -281,6 +288,7 @@ def fpocket_header_line_handler(header, line):
 
 if __name__ == '__main__':
     from SNDG.PDBs import PDBs
+
     for pdb in tqdm(PDBs()):
         try:
             pocket_data = "/data/databases/pdb/pockets/" + pdb[1:3] + "/" + pdb + ".json"
@@ -289,4 +297,4 @@ if __name__ == '__main__':
                 res = fpo.hunt_pockets()
                 res.save(pocket_data)
         except Exception as e:
-            print e
+            print (e)

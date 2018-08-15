@@ -45,7 +45,7 @@ class Strain(EmbeddedDocument):
 
 
 class StrainProject(EmbeddedDocument):
-    id = ObjectIdField()
+    _id = ObjectIdField()
     name = StringField( required=True)
     description = StringField(default="")
     date = DateTimeField(default=datetime.datetime.now)

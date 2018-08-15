@@ -586,11 +586,11 @@ from Bio.Align import AlignInfo
 align = AlignIO.read("/home/eze/workspace/23staphilo/data/processed/blasts_sea_pvl/sea_contigs.msa", "fasta")
 summary_align = AlignInfo.SummaryInfo(align)
 summary_align.dumb_consensus(threshold=1)
-bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.8), id="msrA"),
+bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.8), id="sea"),
            "/data/projects/23staphylo/processed/primers/sea_consensus.fasta", "fasta")
 
 align = AlignIO.read("/home/eze/workspace/23staphilo/data/processed/blasts_sea_pvl/pvls_contigs.msa", "fasta")
 summary_align = AlignInfo.SummaryInfo(align)
 summary_align.dumb_consensus(threshold=1)
-bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.9), id="erma"),
+bpio.write(SeqRecord(seq=summary_align.gap_consensus(threshold=0.9), id="pvls"),
            "/data/projects/23staphylo/processed/primers/pvls_consensus.fasta", "fasta")

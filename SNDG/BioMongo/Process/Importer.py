@@ -7,18 +7,21 @@ import multiprocessing
 import os
 import pickle
 import re
+import shutil
 import subprocess
 from collections import defaultdict
-import subprocess
-import shutil
+
 import Bio.SearchIO as bpsio
 import Bio.SeqIO as bpio
+from BCBio import GFF
 from Bio.Seq import Seq
+from Bio.SeqFeature import FeatureLocation
+from Bio.SeqFeature import SeqFeature, CompoundLocation
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
-from BCBio import GFF
 
 from SNDG import init_log, mkdir, execute
+from SNDG.BioMongo.Model.Feature import Feature, Location
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Model.SeqCollection import SeqCollection, AnnotationPipelineResult
 from SNDG.BioMongo.Model.Sequence import BioProperty
@@ -28,28 +31,29 @@ from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
 from SNDG.BioMongo.Process.SearchLoader import SearchLoader
 from SNDG.BioMongo.Process.SearchLoader import load_hmm, load_blast_pdb
 from SNDG.BioMongo.Process.Taxon import Tax
-from SNDG.Sequence import identity, read_blast_table, coverage
+from SNDG.Sequence import read_blast_table
 from SNDG.Sequence import smart_parse as sp
 from SNDG.Sequence.Hmmer import Hmmer
-from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
+from SNDG.Sequence.ProteinAnnotator import Mapping
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
-from SNDG.BioMongo.Process.Index import index_seq_collection, build_statistics
-from Bio.SeqFeature import FeatureLocation
-from SNDG.BioMongo.Model.Feature import Feature, Location
+from SNDG.Network.KEGG import Kegg
+
+from SNDG.BioMongo.Process.Index import build_statistics,index_seq_collection
 
 _log = logging.getLogger("Importer")
 
 
 def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS)" and ("translation" in f.qualifiers))),
-                  extract_annotation_feature=lambda f: f.type == "CDS"):
+                  extract_annotation_feature=lambda f: f.type == "CDS",
+                  extract_sequence=lambda c, f: f.extract(c).seq.translate()):
     for c in contigIterator:
         for feature in c.features:
             if accept_feature(feature):
                 f = extract_annotation_feature(feature)
 
-                seq = f.extract(c).seq.translate()
+                seq = extract_sequence(c, f)
                 if "locus_tag" in f.qualifiers:
                     record = (SeqRecord(id=f.qualifiers["locus_tag"][0], description="",
                                         annotations=f.qualifiers, seq=seq), f)
@@ -88,11 +92,13 @@ def tritryp_protein_iter(contigIterator):
 def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                  extract_annotation_feature=lambda feature: feature.sub_features[
                      0] if feature.type == "gene" and len(feature.sub_features) else feature,
-                 accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)), cpus=1):
+                 accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)),
+                 extract_sequence=lambda c, f: f.extract(c).seq.translate(),
+                 cpus=1):
     if seqs:
         seqs = {r.id: r.seq for r in bpio.parse(seqs, "fasta")}
 
-    iter_seqs = sp(ann_path, seqs=seqs) if seqs else sp(ann_path)
+    iter_seqs = list(sp(ann_path, seqs=seqs) if seqs else sp(ann_path))
     for contig in iter_seqs:
         seqCol = BioDocFactory.create_genome(name, contig, tax, Tax)
         seqCol.save()
@@ -101,7 +107,7 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
         tmp_dir = "/tmp/" + name + "/"
     mkdir(tmp_dir)
     gene_ids = {}
-    with tqdm(sp(ann_path)) as pbar:
+    with tqdm(iter_seqs) as pbar:
         for contig in pbar:
             pbar.set_description(contig.id)
             if len(contig.seq) > 15000000:
@@ -116,10 +122,10 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
             contigDoc.save()
 
     prots = []
-    iter_seqs = sp(ann_path, seqs=seqs) if seqs else sp(ann_path)
+
     with tqdm(_protein_iter(iter_seqs, accept_feature=accept_protein_feature,
                             extract_annotation_feature=extract_annotation_feature,
-
+                            extract_sequence=extract_sequence
                             )) as pbar:
         for (protein, cds_f) in pbar:
             if "locus_tag" in cds_f.qualifiers:
@@ -496,7 +502,12 @@ def import_kegg_annotation(db, genome_name, kegg_annotation):
     current_pathways = {}
     pw_kos = defaultdict(lambda: [])
     for ko_code, genes in tqdm(kegg_annotation.ko_gene.items()):
+        if "ko:" + ko_code not in kegg_annotation.ko_dict:
+            print ko_code
+            continue
         ko = kegg_annotation.ko_dict["ko:" + ko_code]
+        if not ko:
+            continue
         onts = ["kegg:" + ko_code]
         if ko["ecs"]:
             onts = onts + ko["ecs"]
@@ -507,10 +518,10 @@ def import_kegg_annotation(db, genome_name, kegg_annotation):
                 pw_kos[x].append(ko_code)
 
         update = {
-            "$set": {"description": ko["desc"]},
             "$addToSet": {"gene": {"$each": ko["genes"]},
                           "ontologies": {"$each": onts}}
         }
+        #"$set": {"description": ko["desc"]} --> no  es precisa la desc, habria que ponerla solo en el caso que sea unknown function
         for g in genes:
             db.proteins.update({"organism": genome_name, "gene": g}, update, multi=True)
 
@@ -569,87 +580,257 @@ def fix_annotator_files(gff, fna, tag_replacement, tag="BIA_"):
 
 if __name__ == '__main__':
     init_log()
-    import glob
-    import pymongo
-    from SNDG.Network.KEGG import Kegg
+
+    logging.getLogger("peewee").setLevel(logging.WARN)
+    from peewee import MySQLDatabase
+    from SNDG.BioMongo.Process.Taxon import tax_db
+
+    tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
+    mdb = BioMongoDB("saureus", port=27017)
+
+    # mdb.delete_seq_collection("ILEX_PARA2")
 
 
+    def extract_annotation_feature(feature):
+        mrnas = [f for f in feature.sub_features if f.type == "mRNA"]
+        return mrnas[
+            0] if feature.type == "gene" and len(mrnas) else feature
 
-    # logging.getLogger("peewee").setLevel(logging.WARN)
-    # from peewee import MySQLDatabase
-    # from SNDG.BioMongo.Process.Taxon import tax_db
-    #
-    # tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-    mdb = BioMongoDB("tdr", port=27018)
+
+    def accept_protein_feature(feature):
+        return feature.type == "gene" and feature.sub_features and feature.sub_features[0].type == "mRNA"
+
+    # prot_dict = bpio.to_dict(bpio.parse("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.faa","fasta"))
+    def extract_sequence(c, f):
+        return prot_dict[f.id].seq
+        # def getphase(pfeature):
+        #     phase = 0
+        #     if "phase" in pfeature.qualifiers:
+        #         phase = int(pfeature.qualifiers["phase"][0])
+        #     return phase
+        # locs = sorted([(x.location,getphase(x))  for x in f.sub_features if x.type == "CDS"],key=lambda x:x[0].start)
+        #
+        # if len(locs) > 1:
+        #     if f.strand == -1:
+        #         locs =  list(reversed(locs))
+        #     if locs[0][1] != 0:
+        #
+        #         locs[0][0] = FeatureLocation(start= locs[0][0].start + locs[0][1] if f.strand == 1 else  locs[0][0].start
+        #                                      ,end= locs[0][0].end - locs[0][1] if f.strand == -1 else  locs[0][0].end
+        #                                      ,strand=locs[0].strand)
+        #     l = CompoundLocation([x[0] for x in locs])
+        # else:
+        #     l = locs[0][0]
+        # cds = SeqFeature(strand=f.strand, location=l)
+        # seq = cds.extract(c).seq.translate()
+        # if len(seq) == 0:
+        #     log.warning("empty sequence!")
+        #
+        # if seq[-1] == "*":
+        #     seq  = seq[:-1]
+        # if "*" in str(seq):
+        #     _log.warning("stop codons in the middle of the sequence")
+        # return seq
+
+
+    # from_ref_seq("ILEX_PARA2", "/data/organismos/ILEX_PARA/contigs/ncbi_IP4.gff3",
+    #              extract_annotation_feature=extract_annotation_feature,
+    #              accept_protein_feature=accept_protein_feature,
+    #              extract_sequence=extract_sequence,
+    #              seqs="/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna", tax=185542,
+    #              tmp_dir="/data/organismos/ILEX_PARA/tmp", cpus=4)
+    #_common_annotations("ILEX_PARA2", "/data/organismos/ILEX_PARA2/", cpu=1)
+    # from SNDG.BioMongo.Process.Index import index_seq_collection,build_statistics
+    # index_seq_collection(mdb.db, "ILEX_PARA2", keywords=True, pathways=False, structure=True)
+    # build_statistics(mdb.db,"ILEX_PARA2")
+
     # mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
+    seq_col_name =  "ILEX_PARA2"
     # kegg_annotation = Kegg()
+    # # kegg_annotation.update_files()
     # kegg_annotation.init()
-    # ilex_data = "/data/organismos/ILEX_PARA_TRANSCRIPT/annotation/query.ko"
+    # ilex_data = "/data/organismos/ILEX_PARA2/query.ko"
     # kegg_annotation.read_annotation(ilex_data)
-    # import_kegg_annotation(mdb.db, "ILEX_PARA_TRANSCRIPT", kegg_annotation)
+    # import_kegg_annotation(mdb.db,seq_col_name, kegg_annotation)
+
+    # from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
+    # import pymongo
+    # pa = PathwaysAnnotator(mdb.db, "ILEX_PARA_TRANSCRIPT", "/data/organismos/ILEX_PARA_TRANSCRIPT/sbml/")
+    # pa.sbml("/data/organismos/ILEX_PARA_TRANSCRIPT/sbml/ilex_para.sbml")
+    # pa.annotate()
+
+    filter_tax = {2,
+                  22,
+                  29,
+                  81,
+                  192,
+                  193,
+                  194,
+                  286,
+                  356,
+                  396,
+                  429,
+                  434,
+                  482,
+                  506,
+                  543,
+                  629,
+                  641,
+                  666,
+                  724,
+                  810,
+                  816,
+                  817,
+                  838,
+                  914,
+                  919,
+                  976,
+                  1046,
+                  1090,
+                  1117,
+                  1118,
+                  1224,
+                  1227,
+                  1236,
+                  1239,
+                  1279,
+                  1297,
+                  1760,
+                  1762,
+                  1763,
+                  1883,
+                  2037,
+                  2062,
+                  2063,
+                  2093,
+                  28211,
+                  28216,
+                  28221,
+                  32011,
+                  32066,
+                  33877,
+                  33882,
+                  35798,
+                  39773,
+                  40117,
+                  40222,
+                  44249,
+                  55158,
+                  67814,
+                  68297,
+                  68336,
+                  72276,
+                  74152,
+                  82115,
+                  85006,
+                  85007,
+                  85008,
+                  85011,
+                  85023,
+                  85025,
+                  91061,
+                  91347,
+                  93681,
+                  135613,
+                  135617,
+                  135623,
+                  142182,
+                  171552,
+                  186801,
+                  186826,
+                  188708,
+                  191411,
+                  191412,
+                  200783,
+                  200795,
+                  200918,
+                  200930,
+                  200938,
+                  200940,
+                  201174,
+                  203682,
+                  203691,
+                  204441,
+                  204455,
+                  204457,
+                  267890,
+                  508458,
+                  544448,
+                  578822,
+                  1293497,
+                  2157}
 
 
-    base = "/data/projects/ecoli_mex/"
+    # from SNDG.BioMongo.Process.BioCyc2Mongo import BioCyc
+    # biocyc = BioCyc("saureus")
+    # biocyc.complete_pathways("ILEX_PARA_TRANSCRIPT", "/data/databases/biocyc/metacyc/pathways.dat",
+    #                           "/data/databases/biocyc/metacyc/reactions.dat", filter_tax)
 
-    for x in tqdm(["AIEC_C4435", "AIEC_C7225", "AIEC_C7230", "AIEC_C7223",
-                   "AIEC_C7226"]):  # ,"160A" "188B","1CT136A", "22A", "86A"
+    index_seq_collection(mdb.db, "ILEX_PARA_TRANSCRIPT",ec=False, go=True, keywords=True, organism_idx=True, pathways=True,
+                         structure=True)
+    build_statistics(mdb.db,"ILEX_PARA_TRANSCRIPT")
+
+    # base = "/data/projects/ecoli_mex/"
+
+    # for x in tqdm(["AIEC_C4435", "AIEC_C7225", "AIEC_C7230", "AIEC_C7223",
+    #                "AIEC_C7226"]):  # ,"160A" "188B","1CT136A", "22A", "86A"
     #     mdb.protein_fasta("/home/eze/Downloads/" + x + ".fasta", "Eco" + x)
-        kegg_annotation = Kegg()
-        kegg_annotation.init()
-        ilex_data = "/data/organismos/Eco" + x + "/annotation/query.ko"
-        kegg_annotation.read_annotation(ilex_data)
-        import_kegg_annotation(mdb.db, "Eco" + x, kegg_annotation)
+    #     kegg_annotation = Kegg()
+    #     kegg_annotation.init()
+    #     ilex_data = "/data/organismos/Eco" + x + "/annotation/query.ko"
+    #     kegg_annotation.read_annotation(ilex_data)
+    #     import_kegg_annotation(mdb.db, "Eco" + x, kegg_annotation)
 
-        # mdb.delete_seq_collection("Eco" + x)
-        # gff = glob.glob(base + x + "/ncbi_*.gff3")[0]
-        # fna = glob.glob(base + x + "/ncbi_*.fna")[0]
-        #
-        # fix_annotator_files(gff,fna,"Eco" + x)
-        #
-        #
-        # def extract_annotation_feature(feature):
-        #     mrnas = [f for f in feature.sub_features if f.type == "mRNA"]
-        #     return mrnas[
-        #         0] if feature.type == "gene" and len(mrnas) else feature
-        #
-        #
-        # seqCol = from_ref_seq("Eco" + x, base + x + ".gbk", tax=562, tmp_dir="/tmp/Eco" + x + "", cpus=3)
-        #
-        # seqCol.description = "Escherichia coli " + x + ""
-        # seqCol.organism = "Escherichia coli " + x + ""
-        # seqCol.auth = "40"
-        # seqCol.save()
-        # mdb.protein_fasta("/tmp/Eco" + x + "/genome.fasta", "Eco" + x)
-        # update_proteins("/tmp/Eco" + x + "/", "/tmp/Eco" + x + "/genome.fasta", "Eco" + x, 562, db_init=mysqldb)
-        # from SNDG.WebServices.Offtargeting import Offtargeting
-        #
-        # Offtargeting.offtargets("/tmp/Eco" + x + "/genome.fasta",
-        #                         "/data/organismos/Eco" + x + "/annotation/offtarget/"
-        #                         )
-        #
-        # import_prop_blast(mdb.db, "Eco" + x, "hit_in_deg",
-        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/degaa-p.tbl",
-        #                   "table", "Hit in DEG database",
-        #                   value_fn=lambda x: x.identity > 70,
-        #                   default_value=True,
-        #                   no_hit_value=False, choices=["True", "False"], type="value", defaultOperation="equal")
-        #
-        # import_prop_blast(mdb.db, "Eco" + x, "human_offtarget",
-        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gencode.tbl",
-        #                   "table", "Human offtarget score (1 - best hit identity)",
-        #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
-        #                   default_value=0.4,
-        #                   no_hit_value=1)
-        # import_prop_blast(mdb.db, "Eco" + x, "gut_microbiota_offtarget",
-        #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gut_microbiota.tbl",
-        #                   "table", "Gut microbiota offtarget score (1 - best hit identity)",
-        #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
-        #                   default_value=0.4,
-        #                   no_hit_value=1)
+    # mdb.delete_seq_collection("Eco" + x)
+    # gff = glob.glob(base + x + "/ncbi_*.gff3")[0]
+    # fna = glob.glob(base + x + "/ncbi_*.fna")[0]
+    #
+    # fix_annotator_files(gff,fna,"Eco" + x)
+    #
+    #
+    # def extract_annotation_feature(feature):
+    #     mrnas = [f for f in feature.sub_features if f.type == "mRNA"]
+    #     return mrnas[
+    #         0] if feature.type == "gene" and len(mrnas) else feature
+    #
+    #
+    # seqCol = from_ref_seq("Eco" + x, base + x + ".gbk", tax=562, tmp_dir="/tmp/Eco" + x + "", cpus=3)
+    #
+    # seqCol.description = "Escherichia coli " + x + ""
+    # seqCol.organism = "Escherichia coli " + x + ""
+    # seqCol.auth = "40"
+    # seqCol.save()
+    # mdb.protein_fasta("/tmp/Eco" + x + "/genome.fasta", "Eco" + x)
+    # update_proteins("/tmp/Eco" + x + "/", "/tmp/Eco" + x + "/genome.fasta", "Eco" + x, 562, db_init=mysqldb)
+    # from SNDG.WebServices.Offtargeting import Offtargeting
+    #
+    # Offtargeting.offtargets("/tmp/Eco" + x + "/genome.fasta",
+    #                         "/data/organismos/Eco" + x + "/annotation/offtarget/"
+    #                         )
+    #
+    # import_prop_blast(mdb.db, "Eco" + x, "hit_in_deg",
+    #                   "/data/organismos/Eco" + x + "/annotation/offtarget/degaa-p.tbl",
+    #                   "table", "Hit in DEG database",
+    #                   value_fn=lambda x: x.identity > 70,
+    #                   default_value=True,
+    #                   no_hit_value=False, choices=["True", "False"], type="value", defaultOperation="equal")
+    #
+    # import_prop_blast(mdb.db, "Eco" + x, "human_offtarget",
+    #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gencode.tbl",
+    #                   "table", "Human offtarget score (1 - best hit identity)",
+    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+    #                   default_value=0.4,
+    #                   no_hit_value=1)
+    # import_prop_blast(mdb.db, "Eco" + x, "gut_microbiota_offtarget",
+    #                   "/data/organismos/Eco" + x + "/annotation/offtarget/gut_microbiota.tbl",
+    #                   "table", "Gut microbiota offtarget score (1 - best hit identity)",
+    #                   value_fn=lambda x: 1 - (x.identity * 1.0 / 100),
+    #                   default_value=0.4,
+    #                   no_hit_value=1)
 
-        index_seq_collection(mdb.db,"Eco" + x,pathways=False,go=True,keywords=True,ec=True,organism_idx=True,structure=True)
-        build_statistics(mdb.db,"Eco" + x)
+    # index_seq_collection(mdb.db,"Eco" + x,pathways=False,go=True,keywords=True,ec=True,organism_idx=True,structure=True)
+    # build_statistics(mdb.db,"Eco" + x)
 
     # import logging
     #
@@ -672,5 +853,4 @@ if __name__ == '__main__':
     #     protein_fasta = create_proteome(proteome_dir, seq_col_name)
     #     update_proteins(tmp_dir, protein_fasta, seq_col_name, tid)
     #
-    #     index_seq_collection(mdb.db, seq_col_name, keywords=False, pathways=False, structure=False)
-    #     build_statistics(mdb.db,seq_col_name)
+
