@@ -14,9 +14,9 @@ from SNDG.BioMongo.Model.Feature import Feature, Location
 from SNDG.BioMongo.Model.Protein import Protein
 from SNDG.BioMongo.Model.SeqCollection import Genome
 
-
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
 from SNDG.WebServices.NCBI import NCBI
+from SNDG import Struct
 
 
 class BioDocFactory(object):
@@ -42,7 +42,7 @@ class BioDocFactory(object):
             description=seqrecord.description,
             organism=seqrecord.annotations["organism"] if "organism" in seqrecord.annotations else
             seqrecord.annotations["taxonomy"][-1] if "taxonomy" in seqrecord.annotations else "",
-            auth=BioMongoDB.demo_id,
+            auth=str(BioMongoDB.demo_id),
             tax=tax
         )
 
@@ -69,25 +69,26 @@ class BioDocFactory(object):
                     fid = f.qualifiers["protein_id"][0]
                 if "tRNA_anti-codon" in f.qualifiers:
                     fid = fid + " -> " + f.qualifiers["tRNA_anti-codon"][0]
-                if "locus_tag" in f.qualifiers:
-                    fid = f.qualifiers["locus_tag"][0]
 
                 fdoc = Feature(_id=ObjectId(), identifier=fid,
                                location=Location(start=f.location.start,
                                                  end=f.location.end,
                                                  strand=f.location.strand),
                                type=type_map[feature.type])
-                gene_ids[fid] = fdoc._id
+
+                if "locus_tag" in f.qualifiers:
+                    locus_tag = f.qualifiers["locus_tag"][0]
+                    fdoc.identifier = locus_tag
+                    fdoc.locus_tag = locus_tag
+                    fdoc.alias.append(fdoc.locus_tag)
+                else:
+                    fdoc.locus_tag = fid
+
+                gene_ids[fdoc.locus_tag] = fdoc._id
                 if "gene" in f.qualifiers:
                     fdoc.alias.append(f.qualifiers["gene"][0])
                 if "protein_id" in f.qualifiers:
                     fdoc.alias.append(f.qualifiers["protein_id"][0])
-
-                if "locus_tag" in f.qualifiers:
-                    fdoc.locus_tag = f.qualifiers["locus_tag"][0]
-                    fdoc.alias.append(fdoc.locus_tag)
-                else:
-                    fdoc.locus_tag = fid
 
                 if "old_locus_tag" in f.qualifiers:
                     fdoc.alias = fdoc.alias + f.qualifiers["old_locus_tag"]
@@ -97,20 +98,25 @@ class BioDocFactory(object):
         return (features, gene_ids)
 
     @staticmethod
-    def create_contig(seqrecord, seq_col, source=None, type_map={x: x for x in NCBI.ftypes}):
+    def create_contig(seqrecord, seq_col, source=None, type_map={x: x for x in NCBI.ftypes},
+                      extract_annotation_feature=lambda feature: feature
+                      ):
 
-        features, gene_ids = BioDocFactory.create_features_from_contig(seqrecord, source, type_map)
+        features, gene_ids = BioDocFactory.create_features_from_contig(
+            seqrecord, source, type_map, extract_annotation_feature=extract_annotation_feature,
+        )
 
         seq = str(seqrecord.seq)
+        bigseq = None
         if len(seq) > ((1024 ** 2) * 12):
-            seq = zlib.compress(str(seqrecord.seq).encode('utf-8'))
-        return (Contig(
+            bigseq = zlib.compress(str(seqrecord.seq).encode('utf-8'))
+
+        contig = Contig(
             organism=seq_col.name,
             seq_collection_id=seq_col.id,
-            name=seqrecord.name,
+            name=seqrecord.id,
             description=seqrecord.description,
             seq="",
-            bigseq=seq,
             features=features,
             properties=[BioProperty(_type="annotation",
                                     property=xx, value=seqrecord.annotations[xx][0])
@@ -118,9 +124,13 @@ class BioDocFactory(object):
                         if xx in seqrecord.annotations],
 
             size=(Size(unit="bp", len=len(str(seqrecord.seq)))),
-            auth=BioMongoDB.demo_id
+            auth=str(BioMongoDB.demo_id))
+        if bigseq:
+            contig.bigseq = bigseq
+        else:
+            contig.seq = seq
 
-        ), gene_ids)
+        return contig, gene_ids
 
     @staticmethod
     def feature_from_hsp(hsp, feature_type):
@@ -158,14 +168,14 @@ class BioDocFactory(object):
 
         locus_tag = feature.qualifiers["locus_tag"][0]
         protein_name = locus_tag
-
-        if "translation" in feature.qualifiers:
-            seq = feature.qualifiers["translation"][0]
-        else:
-            if exons:
-                seq = str(reduce(Seq.__add__, [exon.extract(seqrecord.seq) for exon in exons]).translate())
-            else:
-                seq = str(feature.extract(Seq(str(seqrecord.seq))).translate())
+        seq = str(seqrecord.seq)
+        # if "translation" in feature.qualifiers:
+        #     seq = feature.qualifiers["translation"][0]
+        # else:
+        #     if exons:
+        #         seq = str(reduce(Seq.__add__, [exon.extract(seqrecord.seq) for exon in exons]).translate())
+        #     else:
+        #         seq = str(feature.extract(Seq(str(seqrecord.seq))).translate())
 
         if "gene_symbol_source" in feature.qualifiers:
             try:

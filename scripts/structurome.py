@@ -8,8 +8,7 @@ Created on Aug 24, 2015
 
 import warnings
 
-from Bio import BiopythonWarning,BiopythonParserWarning
-from SNDG.Structure import read_pdb_entries
+from Bio import BiopythonWarning, BiopythonParserWarning
 
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', BiopythonParserWarning)
@@ -38,10 +37,14 @@ if __name__ == '__main__':
     parser.add_argument("-l", "--log_path", default=None)
     parser.add_argument("-e", "--entries", default='/data/pdb/entries.idx')
     parser.add_argument("-d", "--pdb_divided", default="/data/pdb/divided/")
+    parser.add_argument("--skipProfile", action='store_true', default=False)
+    parser.add_argument("--skipQuality", action='store_true', default=False)
+
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.profile_db + ".00.phr"), "%s does not exists or it is not indexed" % args.profile_db
+    assert ((not args.skipProfile) or os.path.exists(args.profile_db + ".00.phr"),
+            "%s does not exists or it is not indexed" % args.profile_db)
     assert os.path.exists(args.pdb_seqres), "%s does not exists" % args.pdb_seqres
     assert os.path.exists(args.entries), "%s does not exists" % args.entries
     assert os.path.exists(args.pdb_divided), "%s does not exists" % args.pdb_divided
@@ -55,15 +58,16 @@ if __name__ == '__main__':
     init_log(args.log_path, logging.INFO)
     _log = logging.getLogger("model_fasta")
 
+
     def res_fn(y):
         try:
             res = float(y)
         except:
             res = 30
         return res
+
+
     entries = {x.split("\t")[0].lower(): res_fn(x.split("\t")[6]) for x in list(open(args.entries))[3:]}
-
-
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -79,7 +83,9 @@ if __name__ == '__main__':
                 fasta = workdir + "seq.fasta"
                 bpio.write([seq], fasta, "fasta")
 
-                PsiProfile.create_psi_model(seq.id, fasta, args.profile_db, args.pssm_build_iterations, args.pdb_seqres, workdir,
-                                 args.cpus, entries=entries, pdb_divided=args.pdb_divided)
+                PsiProfile.create_psi_model(seq.id, fasta, args.profile_db,
+                                            args.pssm_build_iterations, args.pdb_seqres, workdir,
+                                            args.cpus, entries=entries, pdb_divided=args.pdb_divided,
+                                            skip_profile=args.skipProfile,skip_quality=args.skipQuality)
             except Exception as ex:
-                _log.warn(str(ex))
+                _log.warning(str(ex))

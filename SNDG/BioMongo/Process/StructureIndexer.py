@@ -455,7 +455,7 @@ class StructuromeIndexer(object):
             query["organism"] = self.collection.name
             proteins = Protein.objects(__raw__=query).no_cache().timeout(False)
             prot_count = Protein.objects(__raw__=query).count()
-        with tqdm(proteins,total = prot_count) as pbar:
+        with tqdm(proteins, total=prot_count) as pbar:
             for protein in pbar:
 
                 pbar.set_description(protein.name)

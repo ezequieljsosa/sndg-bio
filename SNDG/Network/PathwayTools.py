@@ -20,6 +20,7 @@ pathway-tools -no-cel-overview -no-web-cel-overview  -patho /data/organismos/LHe
 """
 import logging
 from tqdm import tqdm
+from glob import glob
 from goatools.obo_parser import GODag
 
 import Bio.SeqIO as bpio
@@ -34,7 +35,7 @@ _log = logging.getLogger(__name__)
 
 class PathwayTools:
 
-    def __init__(self, workdir, go_db="/data/databases/go/go.obo",assembly_level="CHRSM"):
+    def __init__(self, workdir, go_db="/data/databases/go/go.obo", assembly_level="CHRSM"):
         """
         :param workdir:
         :param assembly_level:  "CHRSM", "PLASMID", "MT" (mitochondrial chromosome),"PT" (chloroplast chromosome), or "CONTIG"
@@ -52,7 +53,7 @@ class PathwayTools:
                     "description": "product",
                     "Note": "note",
 
-                    "EC": ("EC_number", lambda x: x.split(":")[1] if len(x.split(":")) > 1 else x ),
+                    "EC": ("EC_number", lambda x: x.split(":")[1] if len(x.split(":")) > 1 else x),
                     "x": "product_comment",
                     "x": "gene_comment",
                     "x": "pseudo",
@@ -186,6 +187,36 @@ SEQ-FILE	chrom3-contig2.fsa
                 genetic_elements.write("ANNOT-FILE\t" + seq_record.id + ".gbk" + "\n")
                 genetic_elements.write("//" + "\n")
 
+    def create_pseudo_scaffold(self, gbks_dir, outdir):
+        from Bio.Alphabet import generic_dna
+        pos = 0
+        features = []
+
+        seq = ""
+        for gb in tqdm(glob(gbks_dir + "/*.gb") + glob(gbks_dir + "/*.gbk")):
+            for c in bpio.parse(gb, "gb"):
+                for f in c.features:
+                    start = f.location.start + pos
+                    end = f.location.end + pos
+                    feature = SeqFeature(type=f.type, qualifiers=f.qualifiers,
+                                         location=FeatureLocation(start=start, end=end, strand=f.strand))
+                    features.append(feature)
+            pos += len(c.seq)
+            seq += "NNNNN" + str(c.seq)
+
+        seqrecord = SeqRecord(id="pseudo", name="", description="", features=features,
+                              seq=Seq(seq, alphabet=generic_dna))
+
+        with open(outdir + "/genome.gbk", "w") as h:
+            bpio.write(seqrecord, h, "gb")
+
+        with open(outdir + "/genetic-elements.dat", "w") as genetic_elements:
+                genetic_elements.write("ID\t" + seqrecord.id + "\n")
+                genetic_elements.write("TYPE\t:CONTIG\n")
+                genetic_elements.write("CIRCULAR?\tN" + "\n")
+                genetic_elements.write("ANNOT-FILE\t" + outdir + "/genome.gbk\n")
+                genetic_elements.write("//" + "\n")
+
     def create_organism_params(self, name, organism, tax, domain):
         """
         :param name: Name of the collection in pwtools
@@ -227,7 +258,7 @@ DOMAIN\t{domain}"""
                     seqfeature = SeqFeature(f.location,
                                             f.type.replace("ncrna", "misc_RNA"),
                                             id=f.id, qualifiers={"locus_tag": f.id,
-                            "note": note
+                                                                 "note": note
                             , "description": desc
                             , "gene": note
                             , "alt name": desc
@@ -342,10 +373,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pw = PathwayTools(args.work_dir,args.go_db)
+    pw = PathwayTools(args.work_dir, args.go_db)
     contigmap = None
     if args.sequences:
-        contigmap = {x.id: x.seq for x in
+        contigmap = {x.id: x for x in
                      smart_parse(args.sequences)}
 
     if args.annotation_type == "mongo":

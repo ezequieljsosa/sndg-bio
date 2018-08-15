@@ -38,20 +38,43 @@ class Mapping:
         e("cd {workdir};makeblastdb -dbtype nucl -in {record_name} ", record_name=filename, workdir=workdir)
 
     @staticmethod
-    def clean_reads(work_dir, read1, read2, min_qual_mean=25, trim_left=20,
-                    trim_qual_right=25, trim_qual_window=5, min_len=35):
+    def clean_reads(work_dir, read1, read2,  trim_left=20,
+                    trim_qual_right=25, trim_qual_window=25, min_len=35, window_size=5, cpu=1,
+                    clip_string=""):
+        """
+
+        :param work_dir:
+        :param read1:
+        :param read2:
+        :param min_qual_mean:
+        :param trim_left:
+        :param trim_qual_right:
+        :param trim_qual_window:
+        :param min_len:
+        :param window_size:
+        :param cpu:
+        :param clip_string: example -> ILLUMINACLIP:TruSeq3-SE:2:30:10
+        :return:
+        """
         work_dir = os.path.abspath(work_dir) + "/"
         read1 = os.path.abspath(read1)
         read2 = os.path.abspath(read2)
 
         # Quality control
+        # "prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean {min_qual_mean}" +
+        # " -trim_left {trim_left}  -trim_qual_right {trim_qual_right} -trim_qual_window {trim_qual_window}" +
+        # " -min_len {min_len} -out_good trimmed",
         e(
-            "prinseq-lite.pl -fastq {read1_full} -fastq2 {read2_full} -min_qual_mean {min_qual_mean}" +
-            " -trim_left {trim_left}  -trim_qual_right {trim_qual_right} -trim_qual_window {trim_qual_window}" +
-            " -min_len {min_len} -out_good trimmed",
+            'java -jar $TRIMMOMATIC PE -threads {cpu} "{read1_full}" "{read2_full}" ' +
+            ' {pout1} {upout1} {pout2} {upout2} ' +
+            ' HEADCROP:{trim_left}  TRAILING:{trim_qual_right} SLIDINGWINDOW:{window_size}:{trim_qual_window} ' +
+            ' {clip_string}  MINLEN:{min_len} ',
             work_dir, read1_full=read1, read2_full=read2, trim_left=trim_left, trim_qual_right=trim_qual_right,
-            min_qual_mean=min_qual_mean, trim_qual_window=trim_qual_window, min_len=min_len
+            trim_qual_window=trim_qual_window, min_len=min_len, cpu=cpu,
+            pout1="trimmed_1.fastq", pout2="trimmed_2.fastq", upout1="trimmed_1_singletons.fastq",
+            upout2="trimmed_2_singletons.fastq",window_size=window_size,clip_string=clip_string
         )
+
         e("fastqc trimmed_1.fastq", work_dir)
         e("fastqc trimmed_2.fastq", work_dir)
 

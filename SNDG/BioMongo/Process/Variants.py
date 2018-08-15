@@ -1,4 +1,11 @@
-def annotate_variants( organism_name, strain_name, database, parse_change):
+from SNDG.BioMongo.Model.Variant import Variant, Allele, SampleAllele
+from SNDG.BioMongo.Model.SeqColOntologyIndex import VarSeqColOntologyIndex
+
+from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParam, SeqColDruggabilityParamTypes
+
+
+def annotate_variants(organism_name, strain_name, database, parse_change):
     """
     parse_change: function that transforms  dbvar.qualifiers["change"] into aa_ref, aa_alt
     """
@@ -64,14 +71,14 @@ def annotate_variants( organism_name, strain_name, database, parse_change):
                 p.save()
 
 
-def annotate_variants_with_prots( organism_name, dbs, drugs, force=False):
+def annotate_variants_with_prots(organism_name, dbs, drugs, force=False):
     """
     drugs: list of strings, example TBDream.drugs or Saureus.drugs
     """
     for idx, p in enumerate(Protein.objects(
             __raw__={"organism": organism_name, "features.qualifiers.strain": {"$exists": 1}}).no_cache()):
         print idx
-        pvariants = list(VarDoc.objects(organism=organism_name, gene__in=p.gene))
+        pvariants = list(Variant.objects(organism=organism_name, gene__in=p.gene))
 
         for vd in pvariants:
 
@@ -122,7 +129,80 @@ def indexVariants(db, organism):
     print db.var_col_ont_idx.remove({"seq_collection_name": organism})
     for ont in SeqColOntologyIndex.objects(seq_collection_name=organism):
         ont.id = ObjectId()
-        ont.count = VarDoc.objects(organism=organism, ontologies=ont.term).count()
+        ont.count = Variant.objects(organism=organism, ontologies=ont.term).count()
         vidx = VarSeqColOntologyIndex(**ont._data)
         if ont.count:
             vidx.save()
+
+
+if __name__ == '__main__':
+    import pymongo
+    import os
+    from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
+    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+    from tqdm import tqdm
+    import subprocess
+    from bson import ObjectId
+
+    mdb = BioMongoDB("tdr")
+
+    base = "/data/projects/23staphylo/processed/core-mapping-n315/"
+    ref = "SaureusN315"
+
+    # ref = "H37Rv"
+    # base = "/data/projects/mtbxdr/processed/h37rv_processing/"
+
+    for strain in tqdm(os.listdir(base)):
+        #vcf_file0 = base + strain + "/raw_snps.vcf"
+        vcf_file0 = base + strain + "/variants.vcf"
+        vcf_file = base + strain + "/variants.ann.vcf"
+        if os.path.exists(vcf_file0):
+            # if not os.path.exists(vcf_file):
+            #     subprocess.check_output("java -jar /opt/snpEff/snpEff.jar h37rv " + vcf_file0 + " > " + vcf_file   ,shell=True)
+
+            total = int(subprocess.check_output("grep -v ^#  " + vcf_file + " | wc -l", shell=True).split()[0])
+            for v, effects in tqdm(VcfSnpeffIO.parse(vcf_file), total=total):
+                effect = effects[0]
+                variant = Variant.objects(organism=ref, pos=v.POS, contig=v.CHROM,
+                                          ref=v.REF).first()
+                sample_allele = SampleAllele(sample=strain)
+                allele = Allele(_id=ObjectId(), samples=[sample_allele], alt=str(v.ALT[0]),
+                                variant_type=list(effect.annotation))
+
+                for k, var_value in v.samples[0].data._asdict().items():
+                    val = "|".join(map(str, var_value)) if isinstance(var_value, (list, tuple)) else str(var_value)
+                    sample_allele.annotations[k] = val
+                sample_allele.annotations["qual"] = v.QUAL
+
+                if not variant:
+                    variant = Variant(organism=ref, pos=v.POS, contig=v.CHROM,
+                                      ref=v.REF, sample_alleles=[allele])
+                    variant.search.core = True
+
+                elif not [x for x in variant.sample_alleles if strain in [y.sample for y in x.samples]]:
+                    alleledb = [x for x in variant.sample_alleles if x.alt == allele.alt]
+                    if alleledb:
+                        alleledb[0].samples.append(sample_allele)
+                    else:
+                        variant.sample_alleles.append(allele)
+
+                else:
+                    # sample allele is present
+                    continue
+                variant.gene = effect.geneid
+
+
+                p = mdb.db.proteins.find_one({"organism":ref, "gene":effect.geneid},{"gene":1})
+                if p:
+                    variant.prot_ref = p["_id"]
+                    variant.gene = p["gene"][0]
+                else:
+
+                    print "%s does not exists in the db" % effect.geneid
+
+                allele.aa_ref = effect.aa_ref
+                allele.aa_alt = effect.aa_alt
+                allele.aa_pos = effect.aa_pos
+
+
+                variant.save()

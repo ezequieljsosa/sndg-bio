@@ -12,7 +12,7 @@ warnings.simplefilter('ignore', BiopythonParserWarning)
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.15'
+__version__ = '0.1.16'
 
 _log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def execute(cmd_unformated,wd="./",retcodes=[0], **kargs):
             print(cmd)
         _log.debug(cmd + " -> OK")
     except CalledProcessError as ex:
-        _log.warn(ex.output)
+        _log.warninig(ex.output)
         if ex.returncode not in retcodes:
             raise
 
@@ -68,10 +68,11 @@ class Struct:
         self.__dict__.update(entries)
 
 
-from itertools import izip_longest
+
 
 
 def grouper(iterable, n, fillvalue=None):
+    from itertools import izip_longest
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n

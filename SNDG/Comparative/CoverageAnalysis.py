@@ -29,7 +29,7 @@ class CoverageAnalysis(object):
     samtools depth
     '''
 
-    def __init__(self, depth_path=None, min_depth=1):
+    def __init__(self, depth_path="/tmp/depth.txt", min_depth=1):
         self.min_depth = min_depth
         self.depth_df = pd.DataFrame()
         self.depth_path = depth_path

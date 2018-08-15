@@ -64,7 +64,7 @@ if __name__ == '__main__':
                                 save_sequences(strain)
                             p = multiprocessing.Process(target=save_strain)
                             p.start()
-                            p.join(80)
+                            p.join(180)
                             if p.is_alive():
                                 p.terminate()
                                 p.join()

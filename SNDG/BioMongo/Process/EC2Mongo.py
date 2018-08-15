@@ -131,14 +131,7 @@ class EC2Mongo(object):
                                                   count=0, keywords=ont_doc.keywords)
             seq_col_ont_idx.save()
 
-        #         individual_counts = self.db[annotated_collection].aggregate(
-        #                 [{ "$project":{annotated_collection_field:1, "seq_collection_id":1}},
-        #                  {"$unwind": "$" + annotated_collection_field},
-        #                  {"$match": {"seq_collection_id":genome.id, annotated_collection_field:{"$regex":'^' + self.ontology_name + ":", "$options": "-i"}}},
-        #                  {"$group":{"_id":"$" + annotated_collection_field, "annotations_count":{"$sum":1 }}}
-        #                 ]     , allowDiskUse=True
 
-        #         counts = {term_count["_id"].lower() : term_count["annotations_count"] for term_count in individual_counts}
 
         _log.debug("initializign idx ecs")
         terms_count = SeqColOntologyIndex.objects(ontology="ec", seq_collection_id=genome.id).count()

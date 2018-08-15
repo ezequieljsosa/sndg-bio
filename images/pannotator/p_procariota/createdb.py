@@ -107,4 +107,4 @@ if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta"):
     execute("gunzip /data/uniprot/uniref/uniref50/uniref50.fasta.gz",retcodes=[0,2])
 
 if old_or_inexistent("/data/uniprot/uniref/uniref50/uniref50.fasta.pal"):
-    execute("makeblastdb -dbtype prot -in /data/uniprot/uniref/uniref50/uniref50.fasta")
+    execute("formatdb -i /data/uniprot/uniref/uniref50/uniref50.fasta -o T")

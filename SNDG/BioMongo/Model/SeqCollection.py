@@ -45,7 +45,7 @@ class Strain(EmbeddedDocument):
 
 
 class StrainProject(EmbeddedDocument):
-    id = ObjectIdField()
+    _id = ObjectIdField()
     name = StringField( required=True)
     description = StringField(default="")
     date = DateTimeField(default=datetime.datetime.now)
@@ -87,9 +87,11 @@ class SeqCollection(Document):
     description = StringField(required=False, default="")
     organism = StringField(max_length=100)
     pathways = ListField(EmbeddedDocumentField(PathwaySumary), default=[])
+    kegg = ListField(EmbeddedDocumentField(PathwaySumary), default=[])
+
     ec_index = BooleanField()
     go_index = BooleanField()
-    auth = ObjectIdField()
+    auth = StringField()
     version = IntField(default=0)
     pipelines = ListField(EmbeddedDocumentField(AnnotationPipelineResult), default=[])
     druggabilityParams = ListField(EmbeddedDocumentField(SeqColDruggabilityParam), default=[])
