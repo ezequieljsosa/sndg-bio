@@ -84,7 +84,7 @@ class TreeUtils(object):
 
     def load_gvcf_allele_dict(self, sample_name_fn=lambda x: x):
         with open(self.gvcf) as h:
-            variantes = list(vcf.VCFReader(h))
+            variantes = list(tqdm(vcf.VCFReader(h)))
         for v in tqdm(variantes):
             for sample in v.samples:
                 if sample.data.GT != ".":
@@ -122,17 +122,31 @@ class TreeUtils(object):
 
 if __name__ == '__main__':
     treeUtils = TreeUtils()
-    treeUtils.gvcf = "/data/projects/23staphylo/processed/core-mapping-n315/strains.gvcf"
-    treeUtils.tree_path = "/data/projects/23staphylo/processed/core-tree-n315/vk-upgma.newick"
+    # treeUtils.gvcf = "/data/projects/23staphylo/processed/core-mapping-n315/strains.gvcf"
+    # treeUtils.tree_path = "/data/projects/23staphylo/processed/core-tree-n315/vk-upgma.newick"
+    # treeUtils.load_tree()
+    #
+    # treeUtils.load_gvcf_allele_dict()
+    # treeUtils.init_shared_and_exclusive_SNPs(allow_missing=True)
+    # treeUtils.fix_gvcf_tree(["1493", "1764", "0484"])
+    #
+    # treeUtils.tree.write(format=1,
+    #                            outfile="/data/organismos/SaureusN315/projects/5ad8958af0c51a8f8d44cc95/vcfkit.newick")
+    # print "OK"
+
+    treeUtils = TreeUtils()
+    treeUtils.tree_path = "./data/processed/diff_alelos/RAxML_bestTree.TEST"
     treeUtils.load_tree()
-
+    treeUtils.fix_gvcf_tree()
+    treeUtils.tree.set_outgroup("LP6005441-DNA_A08")
+    treeUtils.fix_gvcf_tree()
+    treeUtils.gvcf = "./data/processed/diff_alelos/var.vcf"
     treeUtils.load_gvcf_allele_dict()
+    for k,v in treeUtils.sample_variants.items():
+        treeUtils.sample_variants[k.split(".variant")[0]] = v
     treeUtils.init_shared_and_exclusive_SNPs(allow_missing=True)
-    treeUtils.fix_gvcf_tree(["1493", "1764", "0484"])
+    print treeUtils.shared_snps
 
-    treeUtils.tree.write(format=1,
-                               outfile="/data/organismos/SaureusN315/projects/5ad8958af0c51a8f8d44cc95/vcfkit.newick")
-    print "OK"
     #     for x in treeUtils.tree:
     #         x.name = x.name.strip().split(".")[0]
     #     treeUtils.tree.write(format=1, outfile="/data/projects/Staphylococcus/annotation/tree/tree_vcf2.newick")

@@ -5,6 +5,7 @@ import logging
 from tqdm import tqdm
 from collections import defaultdict
 import Bio.SearchIO as bpsio
+from SNDG.Sequence import read_blast_table
 
 _log = logging.getLogger(__name__)
 
@@ -19,19 +20,16 @@ class BBH:
         :return: list of bbh tuples
         """
         query_dict = defaultdict(lambda: {})
-        for query in bpsio.parse(path_file1, "blast-tab"):
-            for hit in query:
-                hsp = hit[0]
-                if hsp.ident_pct > ident_threshold:
-                    query_dict[query.id][hit.id] = 1
+        for _, r in read_blast_table(path_file1).iterrows():
+
+            if r.identity > ident_threshold:
+                query_dict[r["query"]][r["hit"]] = 1
 
         bbhs = []
-        for query in bpsio.parse(path_file2, "blast-tab"):
-            for hit in query:
-                hsp = hit[0]
-                if hsp.ident_pct > ident_threshold:
-                    if query.id in query_dict[hit.id]:
-                        bbhs.append((hit.id, query.id))
+        for _, r in read_blast_table(path_file2).iterrows():
+            if r.identity > ident_threshold:
+                if r["query"] in query_dict[r["hit"]]:
+                    bbhs.append((r["hit"], r["query"]))
         return bbhs
 
     @staticmethod
@@ -64,10 +62,10 @@ if __name__ == '__main__':
     import itertools
     import os
 
-    os.chdir("/mnt/Data/data/organismos/ILEX_PARA/blast")
-    for x, y in itertools.product(["Genome", "Arabidopsis", "Transcriptome"], ["DEG", "KOG", "BUSCO"]):
-        file_path1 = x + "_" + y + ".blastout"
-        file_path2 = y + "_" + x + ".blastout"
+    # os.chdir("/mnt/Data/data/organismos/ILEX_PARA/blast")
+    for x, y in itertools.product(["Genome", "Arabidopsis"], ["DEG", "KOG", "BUSCO"]):
+        file_path1 = x + "_" + y + "2.blastout"
+        file_path2 = y + "_" + x + "2.blastout"
         print (x, y)
         data = BBH.bbhs_from_blast(file_path1, file_path2, ident_threshold=0.8)
         data = set([x for x, y in data])

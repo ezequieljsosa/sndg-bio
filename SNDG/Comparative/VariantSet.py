@@ -176,10 +176,21 @@ if __name__ == '__main__':
                                        ["MUT-11","MUT-12","MUT-7","WT1"] + ["aa_pos", "aa_ref", "aa_alt"])
     print pepe
     """
+
+
+    strains = set(['0058', '1300', '0271', '0037', '1875', '3296', '1710', '1584',
+                   '1445', '0142', '1527', '0564', '3867NE', '1096', '0484', '1796',
+                   '3867NI', '1493', '0298', '1707', '3867INF', '1764', '0450'])
+
+
     bams = {
-        pysam.AlignmentFile(bam, "rb") if bam else None
+        bam.split("/")[-2]:pysam.AlignmentFile(bam, "rb")
+        for bam in glob("/mnt/data2/data/projects/23staphylo/data/steps/03-mappingn315/*/aln.bam")
     }
-    pepe = VariantSet("/home/eze/workspace/msmegmatis_mut/data/processed/mapping-ref/strains.gvcf",
-                      "/home/eze/workspace/git/msmegmatis_mut/data/external/GCF_000283295.1_ASM28329v1_genomic.fna",
+
+
+
+    pepe = VariantSet("/mnt/data2/data/projects/23staphylo/data/steps/s07_joined_variant_call/output.ann.vcf",
+                      "/mnt/data2/data/projects/23staphylo/external/n315/refN315.fasta",
                       bams_dict=bams)
     df = pepe.build_table()

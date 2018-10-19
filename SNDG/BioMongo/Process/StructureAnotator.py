@@ -11,6 +11,7 @@ from Bio.PDB.PDBParser import PDBParser
 from SNDG.BioMongo.Model.Structure import ResidueSet, ExperimentalStructure, ModeledStructure
 from SNDG.Sequence.pfam import PFamProfile, ProfileNotFoundError
 from SNDG.Structure.CompoundTypes import main_compound_types
+from SNDG.BioMongo.Model import Structure
 
 _log = logging.getLogger(__name__)
 
@@ -206,7 +207,13 @@ class StructureAnotator(object):
         for template_aln in model.templates:
             pdb, chain, segment_start, segment_end = template_aln.aln_hit.name.split("_")
 
-            template = ExperimentalStructure.objects(name=pdb).get()
+            try:
+                template = ExperimentalStructure.objects(name=pdb).get()
+            except Structure.DoesNotExist as ex:
+                print([ex,pdb])
+                continue
+
+
             is_aligned = not ((int(segment_start) == -1) & (int(segment_end) == -1))
 
             if is_aligned:

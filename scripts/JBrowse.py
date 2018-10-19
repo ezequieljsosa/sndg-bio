@@ -144,8 +144,9 @@ class JBrowse(object):
             GFF.write(contigs, h)
 
         os.chdir(self.jbrowse_dir)
+        #CanvasFeatures / FeatureTrack
         execute(
-            'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" --trackType CanvasFeatures --className  feature',
+            'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" --trackType FeatureTrack --className  feature',
             gff=gff4jbrowse_file, out_dir=self.organism_dir(organism), name="Genes")
 
         track_list_path = self.organism_dir(organism) + "/trackList.json"
@@ -229,7 +230,7 @@ if __name__ == "__main__":
     #                     extra_features[r.id].append(f)
     #                 elif f.type == "TSS":
     #                     extra_features[r.id].append(f)
-    mdb = BioMongoDB("saureus")
+    mdb = BioMongoDB("tdr")
     jw = JBrowse(db=mdb.db)
 
     #http://localhost:8080/sndg/genome/Eco109B
@@ -247,8 +248,8 @@ if __name__ == "__main__":
 
 
 
-    jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
-    jw.create_genome("ILEX_PARA2")
+    # jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
+    jw.create_genome("Linf")
     #
     # jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
     # jw.create_genome("Pext14-3B")

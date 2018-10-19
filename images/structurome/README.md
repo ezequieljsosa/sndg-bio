@@ -42,7 +42,7 @@ docker pull ezequieljsosa/structurome
 docker  run   --mount type=bind,source="/home/myuser/data",target="/data" ezequieljsosa/structurome createdb.py
 docker  run   --mount type=bind,source="/home/myuser/data",target="/data",readonly --mount type=bind,source="/tmp/struct",target="/out" ezequieljsosa/structurome {valid_modeller_key} structurome.py /out/proteome.fasta  
 
-docker  run -it  --mount type=bind,source="/home/myuser/data",target="/data"--mount type=bind,source="/tmp/struct",target="/out" ezequieljsosa/structurome {valid_modeller_key} bash  
+docker  run -it  --mount type=bind,source="/home/myuser/data",target="/data" --mount type=bind,source="/tmp/struct",target="/out" ezequieljsosa/structurome {valid_modeller_key} bash  
 
 ```
 

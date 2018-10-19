@@ -40,7 +40,7 @@ from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
 from SNDG.Network.KEGG import Kegg
 
-from SNDG.BioMongo.Process.Index import build_statistics,index_seq_collection
+from SNDG.BioMongo.Process.Index import build_statistics, index_seq_collection
 
 _log = logging.getLogger("Importer")
 
@@ -91,7 +91,8 @@ def tritryp_protein_iter(contigIterator):
 
 def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                  extract_annotation_feature=lambda feature: feature.sub_features[
-                     0] if feature.type == "gene" and len(feature.sub_features) else feature,
+                     0] if feature.type == "gene" and hasattr(feature, "sub_features") and len(
+                     feature.sub_features) else feature,
                  accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)),
                  extract_sequence=lambda c, f: f.extract(c).seq.translate(),
                  cpus=1):
@@ -346,8 +347,6 @@ def load_pathways(genome_name, sbml_path, db, pathways_dir, prefered_biocyc=None
 
     collection = SeqCollection.objects(name=genome_name).get()
 
-    _log.info(db.proteins.update({"organism": genome_name, "properties._type": "pathways"},
-                                 {"$pull": {"properties": {"_type": "pathways"}}}, multi=True))
     _log.info(
         db.proteins.update({"organism": genome_name, "reactions": {"$exists": True}}, {"$set": {"reactions": []}},
                            multi=True))
@@ -521,7 +520,7 @@ def import_kegg_annotation(db, genome_name, kegg_annotation):
             "$addToSet": {"gene": {"$each": ko["genes"]},
                           "ontologies": {"$each": onts}}
         }
-        #"$set": {"description": ko["desc"]} --> no  es precisa la desc, habria que ponerla solo en el caso que sea unknown function
+        # "$set": {"description": ko["desc"]} --> no  es precisa la desc, habria que ponerla solo en el caso que sea unknown function
         for g in genes:
             db.proteins.update({"organism": genome_name, "gene": g}, update, multi=True)
 
@@ -588,8 +587,8 @@ if __name__ == '__main__':
     tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
     mdb = BioMongoDB("saureus", port=27017)
 
-    # mdb.delete_seq_collection("ILEX_PARA2")
 
+    # mdb.delete_seq_collection("ILEX_PARA2")
 
     def extract_annotation_feature(feature):
         mrnas = [f for f in feature.sub_features if f.type == "mRNA"]
@@ -599,6 +598,7 @@ if __name__ == '__main__':
 
     def accept_protein_feature(feature):
         return feature.type == "gene" and feature.sub_features and feature.sub_features[0].type == "mRNA"
+
 
     # prot_dict = bpio.to_dict(bpio.parse("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.faa","fasta"))
     def extract_sequence(c, f):
@@ -639,14 +639,14 @@ if __name__ == '__main__':
     #              extract_sequence=extract_sequence,
     #              seqs="/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna", tax=185542,
     #              tmp_dir="/data/organismos/ILEX_PARA/tmp", cpus=4)
-    #_common_annotations("ILEX_PARA2", "/data/organismos/ILEX_PARA2/", cpu=1)
+    # _common_annotations("ILEX_PARA2", "/data/organismos/ILEX_PARA2/", cpu=1)
     # from SNDG.BioMongo.Process.Index import index_seq_collection,build_statistics
     # index_seq_collection(mdb.db, "ILEX_PARA2", keywords=True, pathways=False, structure=True)
     # build_statistics(mdb.db,"ILEX_PARA2")
 
     # mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
-    seq_col_name =  "ILEX_PARA2"
+    seq_col_name = "ILEX_PARA2"
     # kegg_annotation = Kegg()
     # # kegg_annotation.update_files()
     # kegg_annotation.init()
@@ -761,15 +761,14 @@ if __name__ == '__main__':
                   1293497,
                   2157}
 
-
     # from SNDG.BioMongo.Process.BioCyc2Mongo import BioCyc
     # biocyc = BioCyc("saureus")
     # biocyc.complete_pathways("ILEX_PARA_TRANSCRIPT", "/data/databases/biocyc/metacyc/pathways.dat",
     #                           "/data/databases/biocyc/metacyc/reactions.dat", filter_tax)
 
-    index_seq_collection(mdb.db, "ILEX_PARA_TRANSCRIPT",ec=False, go=True, keywords=True, organism_idx=True, pathways=True,
-                         structure=True)
-    build_statistics(mdb.db,"ILEX_PARA_TRANSCRIPT")
+    # index_seq_collection(mdb.db, "ILEX_PARA_TRANSCRIPT",ec=False, go=True, keywords=True, organism_idx=True, pathways=True,
+    #                      structure=True)
+    # build_statistics(mdb.db,"ILEX_PARA_TRANSCRIPT")
 
     # base = "/data/projects/ecoli_mex/"
 
@@ -853,4 +852,3 @@ if __name__ == '__main__':
     #     protein_fasta = create_proteome(proteome_dir, seq_col_name)
     #     update_proteins(tmp_dir, protein_fasta, seq_col_name, tid)
     #
-

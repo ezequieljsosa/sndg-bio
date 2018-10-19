@@ -16,9 +16,10 @@ from tqdm import tqdm
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import CaPPBuilder
 from SNDG import Struct
-from SNDG import init_log,mkdir
+from SNDG import init_log, mkdir, execute
 from SNDG.Structure.CompoundTypes import compound_type
 from SNDG.Structure.PDBs import PDBs as PDBsIterator
+import shutil
 
 init_log()
 
@@ -27,8 +28,36 @@ _log = logging.getLogger("dn_ext")
 mkdir("/data/databases/pdb/processed/")
 
 PDB_PATH = "/data/databases/pdb/divided/"
+DNsPDBs = "/data/databases/pdb/processed/dns_pdbs.tlb"
 
-"hmmscan --cut_tc --domtblout /data/databases/pdb/processed/dns_pdbs.tlb --acc --noali /data/databases/xfam/Pfam-A.hmm ./seqs_from_pdb.fasta"
+pdbs_procesados_path = "/data/databases/pdb/processed/pdbs_ex_dn_procesados.txt"
+seqs_from_pdb = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
+pdbs_iterator = PDBsIterator("/data/databases/pdb/")
+
+pdbs_procesados = []
+if os.path.exists(pdbs_procesados_path):
+    with open(pdbs_procesados_path) as handle:
+        pdbs_procesados = [x.strip() for x in handle.readlines()]
+    pdbs_procesados = {x: 1 for x in pdbs_procesados}
+
+
+def not_processed_iter():
+    for pdb, pdb_path in pdbs_iterator:
+        if pdb not in pdbs_procesados:
+            yield [pdb, pdb_path]
+
+
+if os.path.exists(DNsPDBs):
+    if not os.path.exists(DNsPDBs + ".bk"):
+        shutil.move(DNsPDBs, DNsPDBs + ".bk")
+
+    if not os.path.exists(seqs_from_pdb + ".bk"):
+        shutil.move(seqs_from_pdb, seqs_from_pdb + ".bk")
+        pdbs_iterator.pdbs_seq_for_modelling(pdbsIter=not_processed_iter)
+
+execute(
+    "hmmscan --cut_tc --domtblout {DNsPDBs} --acc --noali /data/databases/xfam/Pfam-A.hmm {pdbs_seq}",
+    DNsPDBs=DNsPDBs, pdbs_seq=seqs_from_pdb)
 
 CONTACT_DIST = 5
 
@@ -39,13 +68,6 @@ aminoacidcompounds = [x for x, y in compound_type.items() if y in ["MODIFIED", "
 drugcompounds = othercompounds + drugcompounds
 
 pdbs_with_drug_path = "/data/databases/pdb/processed/pdbs_with_drug.txt"
-
-
-
-pdbs_procesados = []
-if os.path.exists("/tmp/pdbs_ex_dn_procesados.txt"):
-    with open("/tmp/pdbs_ex_dn_procesados.txt") as handle:
-        pdbs_procesados = [x.strip() for x in handle.readlines()]
 
 _log.info("proceced pdbs: %i" % len(pdbs_procesados))
 
@@ -61,7 +83,7 @@ if os.path.exists(pdbs_with_drug_path):
 else:
     with open(pdbs_with_drug_path, "a") as handle:
         _log.info("pdbs with drugs will be loaded")
-        pdbs = list(PDBsIterator())
+        pdbs = list(pdbs_iterator)
         for pdb, file_path in tqdm(pdbs):
             try:
                 if pdb not in pdbs_with_drug:
@@ -89,9 +111,9 @@ if not os.path.exists("/data/databases/pdb/processed/dns_pdbs2.tlb"):
         if not x.startswith("#"):
             line = regexp.split(x)
             items.append(line[0:len(cols)])
-            #record = {c: line[i] for i, c in enumerate(cols)}
+            # record = {c: line[i] for i, c in enumerate(cols)}
 
-    df_hmm = pd.DataFrame.from_records(items,columns=cols)
+    df_hmm = pd.DataFrame.from_records(items, columns=cols)
     # df_hmm =  df = pd.read_table('/data/databases/pdb/processed/dns_pdbs.tlb', index_col=None, header=None, delimiter=r"\s+",comment="#",names=cols)
     # df_hmm = df_hmm.dropna()
     df_hmm = df_hmm[["accession", "query_name", "from3", "to3"]]
@@ -140,9 +162,8 @@ def juan(pdb_raw):
     finally:
         with lock:
             pdbs_procesados.append(pdb_raw)
-            with open("/tmp/pdbs_ex_dn_procesados.txt", "a") as handle:
+            with open(pdbs_procesados_path, "a") as handle:
                 handle.write(pdb_raw + "\n")
-
 
 
 def pepe(pdb):
@@ -169,11 +190,11 @@ def pepe(pdb):
                     hmm_start = int(hmm["from3"]) - 1
                     hmm_end = int(hmm["to3"]) - 1
                     hmm_chain_name = "_".join(map(str, [hmm["accession"].split(".")[0], hmm["chain"],
-                                                    pdb_seq[hmm_start].id[1], pdb_seq[hmm_end].id[1]]))
+                                                        pdb_seq[hmm_start].id[1], pdb_seq[hmm_end].id[1]]))
                     hmm_contacts[hmm_chain_name] = []
                     hmm_residues.update({res.id[1]: hmm_chain_name for res in pdb_seq[hmm_start:hmm_end]})
                 except IndexError:
-                    print (pdb,hmm["accession"],hmm["chain"],hmm_start,hmm_end,pdb_seq)
+                    print (pdb, hmm["accession"], hmm["chain"], hmm_start, hmm_end, pdb_seq)
 
         aa_residues = []
         drug_molecules = []
@@ -200,6 +221,7 @@ def pepe(pdb):
                                           residue_atom.serial_number,
                                           res_drug_obj.id[1], res_drug_obj.resname, drug_atom.serial_number, distance]
                                 handle.write("\t".join(map(str, fields)) + "\n")
+
 
 _log.info("processing distances file")
 for x in tqdm(set(pdbs_with_drug)):

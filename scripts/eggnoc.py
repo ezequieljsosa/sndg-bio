@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 
 from SNDG import init_log,execute
+import  os
 
 init_log()
 
@@ -19,6 +20,9 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
+
+    args.out_dir = os.path.abspath(args.out_dir)
+
     tax_map = {l.strip().split("\t")[0]:l.strip().split("\t")[1] for l in open(args.tax_map)}
     if "bact" in tax_map.values():
         def server():
@@ -32,4 +36,4 @@ if __name__ == "__main__":
                     (accession ,accession) )
         else:
             execute("python emapper.py -i %s.faa --output %s -d euk" %
-                    (accession ,accession) )
+                    (args.out_dir + accession , args.out_dir + accession) )

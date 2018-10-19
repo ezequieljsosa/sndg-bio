@@ -25,11 +25,12 @@ def default_index_extract2(filename):
     return filename.split("_")[1].split(".")[0]
 
 
+
 class FastQ:
 
     @staticmethod
     def rawstats(workdir, strains="", ref_size=None,
-                 files_fn=lambda workdir, strain: glob(workdir + "/" + strain +  "*.gz"),
+                 files_fn=lambda workdir, strain: glob(workdir + "/" + strain + "*.gz"),
                  extract_idx_fn=default_index_extract):
         workdir = os.path.abspath(workdir)
         columns = ["entry", "index", "size_mb", "read_size_bp", "readcount"]
@@ -143,9 +144,41 @@ class FastQ:
     @staticmethod
     def fastqc(source_dir, dst_dir):
         mkdir(dst_dir)
-        for filename in tqdm(sorted(glob(source_dir + "/*"))):
+        for filename in tqdm(sorted(glob(source_dir + "/*.fastq") + glob(source_dir + "/*.fastq.gz") +
+                                    glob(source_dir + "/*.fq") + glob(source_dir + "/*.fq.gz") )):
             execute("fastqc  {src} -q --extract -o {dst}",
                     src=filename, dst=dst_dir)
+
+    @staticmethod
+    def trim_pairs(file1,file2, src_dir, dst_dir, clip="", headcrop=13, quality=20, windowsize=4, minlen=36,crop=None):
+        assert "TRIMOMMATIC" in  os.environ, "environment variable not defined: TRIMOMMATIC"
+
+        cmdcrop = ("CROP:" + str(crop) ) if crop else ""
+
+        cmd = """java -jar $TRIMOMMATIC PE \
+    {src}/{r1} {src}/{r2}\
+    {dst}/{r1} {dst}/{r1u} \
+    {dst}/{r2} {dst}/{r2u} \
+     {clip} {crop} HEADCROP:{headcrop} \
+     LEADING:{quality} TRAILING:{quality} SLIDINGWINDOW:{windowsize}:20 MINLEN:{minlen}"""
+        cmd = cmd.format(clip=clip, quality=quality, windowsize=windowsize, minlen=minlen,
+                         headcrop=headcrop, dst=dst_dir,src=src_dir, r1=file1, r2=  file2,
+                         r1u=file1.replace(".fastq.gz", "_unpaired.fastq.gz"),
+                         r2u=file2.replace(".fastq.gz", "_unpaired.fastq.gz"),
+                         crop=cmdcrop)
+
+        execute(cmd)
+
+        # execute(" gunzip " + dst_dir + "/" + file1.replace(".fastq.gz", "_unpaired.fastq.gz"))
+        # execute(" gunzip " + dst_dir + "/" + file2.replace(".fastq.gz", "_unpaired.fastq.gz"))
+        # ur1 = dst_dir + "/" + file1.replace(".fastq.gz", "_unpaired.fastq")
+        # ur2 = dst_dir + "/" + file2.replace(".fastq.gz", "_unpaired.fastq")
+        # execute("cat " + ur1 +
+        #         " " + ur2 +
+        #         " > " + dst_dir + "/" + strain + "_unpaired.fastq")
+        # os.remove(ur1)
+        # os.remove(ur2)
+        # execute("gzip " + dst_dir + "/" + strain + "_unpaired.fastq")
 
     @staticmethod
     def trim(strains, source_dir, dst_dir, clip="", headcrop=13, quality=20, windowsize=4, minlen=36):
@@ -165,26 +198,4 @@ class FastQ:
         with tqdm(strains) as pbar:
             for strain in pbar:
                 filenames = [os.path.basename(x) for x in glob(source_dir + "/" + strain + "*.gz")]
-                cmd = """trimmomatic PE \
-    ../data/raw/{r1} ../data/raw/{r2}\
-    {dst}/{r1} {dst}/{r1u} \
-    {dst}/{r2} {dst}/{r2u} \
-     {clip} HEADCROP:{headcrop} \
-     LEADING:{quality} TRAILING:{quality} SLIDINGWINDOW:{windowsize}:20 MINLEN:{minlen}"""
-                cmd = cmd.format(clip=clip, quality=quality, windowsize=windowsize, minlen=minlen,
-                                 headcrop=headcrop, dst=dst_dir, r1=filenames[0], r2=filenames[1],
-                                 r1u=filenames[0].replace(".fastq.gz", "_unpaired.fastq.gz"),
-                                 r2u=filenames[1].replace(".fastq.gz", "_unpaired.fastq.gz"))
-                pbar.set_description(cmd)
-                execute(cmd)
-
-                execute(" gunzip " + dst_dir + "/" + filenames[0].replace(".fastq.gz", "_unpaired.fastq.gz"))
-                execute(" gunzip " + dst_dir + "/" + filenames[1].replace(".fastq.gz", "_unpaired.fastq.gz"))
-                ur1 = dst_dir + "/" + filenames[0].replace(".fastq.gz", "_unpaired.fastq")
-                ur2 = dst_dir + "/" + filenames[1].replace(".fastq.gz", "_unpaired.fastq")
-                execute("cat " + ur1 +
-                        " " + ur2 +
-                        " > " + dst_dir + "/" + strain + "_unpaired.fastq")
-                os.remove(ur1)
-                os.remove(ur2)
-                execute("gzip " + dst_dir + "/" + strain + "_unpaired.fastq")
+                FastQ.trim_pairs(filenames[0],filenames[1],source_dir, dst_dir, clip, headcrop, quality, windowsize, minlen)

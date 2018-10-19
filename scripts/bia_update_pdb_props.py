@@ -272,7 +272,7 @@ def main(argv=None):  # IGNORE:C0111
         #update_quaternary()
         update_csa()
 
-        #update_binding_residues()
+        update_binding_residues()
 
         #free_cys_tyr()
 

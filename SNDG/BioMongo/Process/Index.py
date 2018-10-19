@@ -42,16 +42,18 @@ def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_i
         collection.save()
         _log.debug("GO index finished")
 
+
+
+    if structure:
+        si = StructuromeIndexer(collection)
+        si.build_index()
+
     if pathways:
         biocyc = BioCyc(db)
         biocyc.user = BioMongoDB.demo
         _log.debug("Building Biocyc index...")
         biocyc.pre_build_index(collection)
         _log.debug("Biocyc index finished")
-
-    if structure:
-        si = StructuromeIndexer(collection)
-        si.build_index()
 
     if keywords:
 

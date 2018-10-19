@@ -273,11 +273,16 @@ DOMAIN\t{domain}"""
             return record
 
         with open(self.gb_file, "w") as h:
-            for contig in tqdm(contig_iterator):
-                if contig.features:
-                    new_contig = process_contig(contig)
-                    if new_contig.features:
-                        bpio.write(new_contig, h, "gb")
+            with tqdm(contig_iterator) as pbar:
+                for contig in pbar:
+                    pbar.set_description(contig.id)
+                    if contig.features:
+                        new_contig = process_contig(contig)
+                        if new_contig.features:
+                            try:
+                                bpio.write(new_contig, h, "gb")
+                            except:
+                                raise
 
     def execute(self, pwtools_path="pathway-tools", proxy="PROXY=proxy.fcen.uba.ar:8080"):
         """
@@ -373,7 +378,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pw = PathwayTools(args.work_dir, args.go_db)
+    pw = PathwayTools(args.work_dir + "/", args.go_db)
     contigmap = None
     if args.sequences:
         contigmap = {x.id: x for x in
@@ -389,4 +394,4 @@ if __name__ == "__main__":
     pw.create_organism_params(name=args.name, organism=args.description, domain=args.domain,
                               tax=args.tax)
     pw.create_genetic_elements()
-    print(pw.cmd_pwtools("pathway-tools", ""))
+    print(pw.cmd_pwtools("/opt/pathway-tools/pathway-tools", ""))

@@ -578,6 +578,71 @@ def specific_family():
 # print('%0.2f' % mt.Tm_Wallace(myseq))
 # print('%0.2f' % mt.Tm_GC(myseq))
 # print('%0.2f' % mt.Tm_NN(myseq))
+
+
+def primer_search2(seq, start, end, fasta, primer_len=20):
+    ok = False
+    newstart = start
+
+    blast_cmd = ('blastn -query "{q}" -db "{db}" -dust no -soft_masking false ' +
+                 ' -qcov_hsp_perc 60 -task "blastn-short" -max_hsps 1 -outfmt 6 -out "{out}"')
+    # sin evalue para que no descarte parecidos
+
+    while not ok:
+
+        fw = seq[newstart: newstart + primer_len]
+        if len(fw) < primer_len:
+            return (None, None, None)
+
+        with tempfile.NamedTemporaryFile(delete=False) as h:
+            tmp_path = h.name
+
+        r = SeqRecord(id="fw", seq=fw)
+        bpio.write(r, tmp_path, "fasta")
+
+        with tempfile.NamedTemporaryFile(delete=False) as h:
+            result_path = h.name
+        execute(blast_cmd,
+                q=tmp_path, db=fasta, out=result_path)
+
+        df = read_blast_table(result_path)
+        df2 = df[df.aln_len == primer_len]
+
+        if (len(df) == 1) and len(df2) and ("X" not in fw) and ("N" not in fw):
+            ok = True
+            tm = mt.Tm_GC(fw)
+        else:
+            newstart = newstart + 1
+
+    # TODO agregar algo para que si no encuentra con la primera opcion de fw empiece de nuevo
+    ok = False
+    newend = end
+    iternum = 0
+    while not ok:
+        rw = seq[newend - primer_len: newend]
+        if len(rw) < primer_len:
+            return (None, None, None)
+
+        with tempfile.NamedTemporaryFile(delete=False) as h:
+            tmp_path = h.name
+        bpio.write(SeqRecord(id="fw", seq=rw), tmp_path, "fasta")
+        with tempfile.NamedTemporaryFile(delete=False) as h:
+            output = h.name
+        execute(blast_cmd,
+                q=tmp_path, db=fasta, out=output)
+        df = read_blast_table(output)
+        df2 = df[df.aln_len == primer_len]
+
+        if ((len(df) == 1) and len(df2) and (abs(tm - mt.Tm_GC(rw)) < 4)
+                and ("X" not in rw) and ("N" not in rw)):
+            ok = True
+        else:
+            newend = newend - 1
+
+    return (str(fw), newstart,
+            str(rw), newend)
+
+
 import Bio.SeqIO as bpio
 from Bio.SeqRecord import SeqRecord
 from Bio import AlignIO

@@ -243,9 +243,9 @@ class PathwaysAnnotator(object):
             self.centrality = json.load(open(centrality_json))
         else:
             self.centrality = {x: 0 for x in self.sbmlprocessor.graph.nodes()}
-            # self.centrality = {x: (y if x in cp else 0) for x, y in
-            #                betweenness_centrality(self.sbmlprocessor.graph).items()}
-            # json.dump(self.centrality,open(centrality_json,"w"))
+            self.centrality = {x: (y if x in cp else 0) for x, y in
+                           betweenness_centrality(self.sbmlprocessor.graph).items()}
+            json.dump(self.centrality,open(centrality_json,"w"))
 
     def annotate(self):
         if not os.path.exists(self.work_dir + "/pathways.dat"):
@@ -331,7 +331,7 @@ class PathwaysAnnotator(object):
 
         max_reaction_pw_size = max([len(set(pws_dict[pw]["reactions"])) for pw in pws_dict])
 
-        for pw in pws_dict:
+        for pw in tqdm(pws_dict):
             reactions_with_gene = set(pws_dict[pw]["reactions_with_gene"])
             pws_dict[pw]["reactions"] = set(pws_dict[pw]["reactions"])
             pws_dict[pw]["reactions_with_gene"] = len(reactions_with_gene)

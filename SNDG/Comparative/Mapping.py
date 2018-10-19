@@ -27,6 +27,7 @@ class Mapping:
 
     @staticmethod
     def init_ref(path):
+        assert "PICARD" in os.environ, "PICARD environment variable not configured"
         filename = os.path.basename(path)
         workdir = os.path.dirname(path)
         e("cd {workdir};bwa index -a is  {record_name}", record_name=filename, workdir=workdir)

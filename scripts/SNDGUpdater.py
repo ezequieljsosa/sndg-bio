@@ -24,6 +24,31 @@ class SNDGUpdater(object):
 
     def download(self, config, datadir):
         pass
+    
+    
+    """
+import zlib
+db = pymongo.MongoClient().saureus
+with open("/data/databases/sndg/nucleotides.fasta","w") as h:
+    for x in db.contig_collection.find({},{"seq":1,"description":1,"name":1,"bigseq":1} , no_cursor_timeout=True):
+
+        if len(x["seq"]) > 10:
+            sid = "||".join([str(x["_id"]),x["name"],x.get("description","")])
+            r = SeqRecord(id=sid,name="",description="",seq=Seq(x["seq"]))
+            bpio.write(r,h,"fasta")
+        elif len(x.get("bigseq","")) > 10:
+            
+            sid = "||".join([str(x["_id"]),x["name"],x.get("description","")])
+            try:
+                seq = Seq( str(zlib.decompress( x["bigseq"] ))) 
+            except Exception as ex:
+                print (ex)
+                
+            r = SeqRecord(id=sid,name="",description="",seq=seq)
+            bpio.write(r,h,"fasta")
+
+    """
+    
 
     def process(self):
 

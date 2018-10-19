@@ -44,7 +44,7 @@ def execute(cmd_unformated,wd="./",retcodes=[0], **kargs):
             print(cmd)
         _log.debug(cmd + " -> OK")
     except CalledProcessError as ex:
-        _log.warninig(ex.output)
+        _log.warning(ex.output)
         if ex.returncode not in retcodes:
             raise
 

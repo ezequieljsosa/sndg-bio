@@ -152,19 +152,24 @@ class BioMongoDB(object):
         sc["name"] = newname
         dst_db.sequence_collection.insert(sc)
 
-        for contig in self.db.contig_collection.find({"seq_collection_id": genome_id}):
+        print("Copiando contigs:")
+        total = self.db.contig_collection.count({"seq_collection_id": genome_id})
+        for contig in tqdm(self.db.contig_collection.find({"seq_collection_id": genome_id}),total=total):
             contig["seq_collection_id"] = new_id
             contig["organism"] = newname
             dst_db.contig_collection.save(contig)
 
-        for protein in tqdm(self.db.proteins.find({"organism": name})):
+        print("Copiando proteinas:")
+        total = self.db.proteins.count({"organism": name})
+        for protein in tqdm(self.db.proteins.find({"organism": name}),total=total):
             protein["seq_collection_id"] = new_id
-            protein["organism"] = newname
+            protein["seq_collection_name"] = newname
             dst_db.proteins.save(protein)
-
-        for idx in self.db.col_ont_idx.find({"seq_collection_name": name}):
+        print("Copiando indices:")
+        total =  self.db.col_ont_idx.count({"seq_collection_name": name})
+        for idx in tqdm(self.db.col_ont_idx.find({"seq_collection_name": name}),total=total):
             idx["seq_collection_id"] = new_id
-            idx["organism"] = newname
+            idx["seq_collection_name"] = newname
             dst_db.col_ont_idx.save(idx)
 
     def delete_feature_type(self, organism, feature_type):
