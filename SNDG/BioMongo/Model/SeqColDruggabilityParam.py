@@ -45,7 +45,7 @@ class SeqColDruggabilityParam(EmbeddedDocument):
     type = StringField(default="value", choices=map(lambda x: x, SeqColDruggabilityParamTypes.values))
     target = StringField(default="protein")
     uploader = StringField(default="")
-    options = ListField(StringField())
+    options = ListField(DynamicField())
     _class = StringField(default="ar.com.bia.entity.SeqCollectionDoc")
     defaultGroupOperation = StringField(required=False)
     defaultOperation = StringField(required=False)

@@ -12,7 +12,7 @@ if __name__ == "__main__":
     logger = logging.getLogger('peewee')
     logger.setLevel(logging.INFO)
     init_log()
-    search = '("Potentilla"[Organism] OR "Argentina"[Organism] OR argentina[All Fields]) AND "attribute geographic location"[filter]'
+    search = 'argentina[All Fields] AND "attribute geographic location"[filter]'
     esearch = Entrez.read(Entrez.esearch(db="biosample", term=search, retmax=10000))["IdList"]
     for biosample_id in tqdm(esearch):
         links = Entrez.read(Entrez.elink(dbfrom="biosample", id=biosample_id, linkname="biosample_assembly"))
@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 ea = ExternalAssembly(type="assembly", name=name, identifier=assembly_id
                                       , assembly_accession=data['AssemblyAccession'], genome=genome
                                       , assembly_name=data['AssemblyName'],
-                                      sample_source=acc, sample_date=date, sample_location=location,
+                                      sample_source=acc, da=date, sample_location=location,
                                       assembly_status=status, ncbi_tax=int(tax)
                                       )
                 ea.save(force_insert=True)

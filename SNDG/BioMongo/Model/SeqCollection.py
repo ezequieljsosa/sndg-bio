@@ -5,7 +5,7 @@ import datetime
 
 from mongoengine import Document, EmbeddedDocument
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, BooleanField, ObjectIdField, IntField, \
-    DateTimeField, DictField, FloatField
+    DateTimeField, DictField, FloatField,DynamicField
 
 from SNDG.BioMongo.Model import BioProperties
 from SNDG.BioMongo.Model.Pathway import PathwaySumary
@@ -18,7 +18,7 @@ class Metric(EmbeddedDocument):
     description = StringField(required=False)
     value = FloatField(required=False)
     values = ListField(FloatField(), required=False)
-    labels = ListField(StringField(), required=False)
+    labels = ListField(DynamicField(), required=False)
 
     def __str__(self):
         return "Metric: %s (%s) %s" % (self.name, self.description, str(self.value))

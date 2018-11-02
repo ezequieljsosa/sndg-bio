@@ -237,7 +237,7 @@ class PathwaysAnnotator(object):
     def init(self):
         self.chokepoints()
         ccs = list(connected_components(self.sbmlprocessor.graph.to_undirected()))
-        cp = ccs[0]
+        cp = sorted(ccs,key=lambda x:len(x))[-1]
         centrality_json = self.work_dir + "/centrality.json"
         if os.path.exists(centrality_json):
             self.centrality = json.load(open(centrality_json))

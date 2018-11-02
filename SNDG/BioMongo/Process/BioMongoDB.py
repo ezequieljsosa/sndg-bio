@@ -52,7 +52,7 @@ class BioMongoDB(object):
         self.db = pymongo.MongoClient(host=host,port=port)[dbname]
         self.fs_resolver = FilesystemResolver(basefs)
         connect(dbname,host=host,port=port)
-        register_connection("pdb", "pdb")
+        register_connection("pdb", name="pdb",host=host,port=port)
 
         self.paths = {
             "gene": []

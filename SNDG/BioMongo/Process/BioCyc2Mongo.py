@@ -188,22 +188,11 @@ class BioCyc(object):
     def _genome_summary(self, genome):
         pathways_count = {x: len(set(y)) for x, y in self.pathways.items()}
 
-        pathways2 = []
-        for pathway, protein_count in pathways_count.items():
-            ont = self.db.ontologies.find_one({"term": pathway.lower()})
-            if ont:
-                name = ont["name"]
-            else:
-                name = pathway
-            path = PathwaySumary(term=pathway, name=name, count=protein_count)
-            pathways2.append(path)
 
-        genome.pathways = pathways2
-        genome.save()
 
         SeqColOntologyIndex.objects(seq_collection_name=genome.name, ontology=self.ontology_name + "_pw").delete()
 
-        for x in pathways2:
+        for x in genome.pathways :
             seq_ont_ont_idx = SeqColOntologyIndex(term=x["term"], name=x["name"],
                                                   seq_collection_name=genome.name,
                                                   ontology=self.ontology_name + "_pw",
