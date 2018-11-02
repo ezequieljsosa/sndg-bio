@@ -12,8 +12,9 @@ from SNDG.BioMongo.Model.Structure import ModeledStructure, Chain, Molecule, Str
     ResidueSet
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+from SNDG.BioMongo.Process.Index import StructuromeIndexer
 from SNDG.WebServices.Offtargeting import  Offtargeting
-from SNDG.BioMongo.Process.Importer import load_pathways,import_prop_blast,build_statistics
+from SNDG.BioMongo.Process.Importer import load_pathways,import_prop_blast,build_statistics,index_seq_collection
 
 import pymongo
 from bson import ObjectId
@@ -38,14 +39,15 @@ def get_compound_type(residue):
 parser = PDBParser(PERMISSIVE=1, QUIET=1)
 basepath = "/data/projects/structsN315/results/"
 # model_files = glob(basepath + "*/*/*/*.pdb")
-# model_files = [
-#     basepath + "Minc3s00001g00003/Minc3s00001g00003/Minc3s00001g00003_3uaf_A_21_137/Minc3s00001g00003.B99990001.pdb"]
-# models_count = len(model_files)
+
 organism = "SaureusN315"
 seq_col_id = ObjectId("5b2800b1be737e35a6dd9b8a")
 
-mdb = BioMongoDB("tdr",port=27018)
-db = pymongo.MongoClient().pdb
+port = 27018
+mdb = BioMongoDB("tdr",port=port)
+db = pymongo.MongoClient(port=port).pdb
+name = "SaureusN315"
+
 
 # with tqdm(model_files) as pbar:
 #     for model_file in pbar:
@@ -128,6 +130,25 @@ db = pymongo.MongoClient().pdb
 #         except Exception as ex:
 #             _log.error(ex)
 
+
+
+
+
+# with tqdm(glob("/data/organismos/SaureusN315/estructura/sndg/pockets/*.json")) as pbar:
+#     for pockets_json in pbar:
+#         model = pockets_json.split("/")[-1].split(".")[0]
+#         pbar.set_description("processing %s" % model)
+#         strdoc = ModeledStructure.objects(organism="SaureusN315",name=model).get()
+#         structure = parser.get_structure(model, "/data/organismos/SaureusN315/estructura/sndg/modelos/" + model + ".pdb")
+#         with open(pockets_json) as h:
+#             pocket_data = json.load(h)
+#         if os.path.exists(pockets_json)  and pocket_data:
+#             rss = StructureAnotator.pocket_residue_set(pockets_json, structure[0].get_atoms())
+#             strdoc.pockets = rss
+#             strdoc.save()
+#
+#
+
 # sa = StructureAnotator(basepath, struct_path=lambda wd, modeldoc: glob( "/".join(
 #     [wd, modeldoc.templates[0].aln_query.name, modeldoc.templates[0].aln_query.name, modeldoc.name, "*.pdb"]))[0])
 # total = sa.total(db, organism, {})
@@ -141,22 +162,26 @@ db = pymongo.MongoClient().pdb
 #
 #         sa.annotate_model(model, protein.domains())
 #         model.save()
+#
+#
+# si = StructuromeIndexer(SeqCollection.objects(name=name).get())
+# si.build_index()
 
 # load_pathways("SaureusN315", "/data/organismos/SaureusN315/annotation/pwtools/smallmolecules.sbml", mdb.db,
 #               "/data/organismos/SaureusN315/annotation/pwtools/",
 #               gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat", gene_map="/data/organismos/SaureusN315/annotation/pwtools/gene_map.pkl")
 
-name = "SaureusN315"
+
 
 # Offtargeting.offtargets("/data/organismos/SaureusN315/annotation/proteins.fasta",
 #                         "/data/organismos/" + name + "/annotation/offtarget/",
 #                         cpus=2  )
-import_prop_blast(mdb.db, name, "hit_in_deg",
-                  "/data/organismos/" + name + "/annotation/offtarget/degaa-p.tbl",
-                  "table", "Hit in DEG database",
-                  value_fn=lambda x: x.identity > 70,
-                  default_value="True",
-                  no_hit_value=False, choices=["True", "False"], type="value", defaultOperation="equal")
+# import_prop_blast(mdb.db, name, "hit_in_deg",
+#                   "/data/organismos/" + name + "/annotation/offtarget/degaa-p.tbl",
+#                   "table", "Hit in DEG database",
+#                   value_fn=lambda x: x.identity > 70,
+#                   default_value="True",
+#                   no_hit_value=False, choices=["True", "False"], type="value", defaultOperation="equal")
 
 # import_prop_blast(mdb.db, name, "human_offtarget",
 #                   "/data/organismos/" + name + "/annotation/offtarget/gencode.tbl",
@@ -171,4 +196,9 @@ import_prop_blast(mdb.db, name, "hit_in_deg",
 #                   default_value=0.4,
 #                   no_hit_value=1)
 
-build_statistics(mdb.db,name)
+# from SNDG.BioMongo.Process.BioCyc2Mongo import BioCyc
+# biocyc = BioCyc(mdb.db)
+# biocyc.user = BioMongoDB.demo
+# biocyc.pre_build_index(SeqCollection.objects(name=name).get())
+#
+# build_statistics(mdb.db,name)
