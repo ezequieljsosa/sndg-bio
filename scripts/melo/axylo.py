@@ -27,22 +27,17 @@ tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
 mdb = BioMongoDB("tdr")
 mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
-name = "Linf"
-org = "Leishmania infantum LinJ36"
-ann_path = "/data/projects/infantum/GCA_900500625.1_LINF_genomic.gbff"
+name = "Axylo"
+org = "Achromobacter xylosoxidans"
+ann_path = "/data/organismos/Axylo/annotation/GCF_001457475.1_NCTC10807_genomic.gbff"
 
-# from_ref_seq(name, ann_path, seqs=None, tax=5671, tmp_dir=None,
-#              extract_annotation_feature=lambda feature: feature.sub_features[
-#                  0] if feature.type == "gene" and hasattr(feature,"sub_features") and len(feature.sub_features) else feature,
-#              accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)),
-#              extract_sequence=lambda c, f: f.extract(c).seq.translate(),
-#              cpus=4)
+# from_ref_seq(name, ann_path,  tax=85698,      cpus=2)
 
-# mdb.protein_fasta("/tmp/" + name + "/genome.fasta", name)
-# update_proteins("/tmp/" + name + "/", "/tmp/" + name + "/genome.fasta", name, 5658, db_init=mysqldb)
+# mdb.protein_fasta("/data/organismos/Axylo/annotation/proteins.faa", name)
+# update_proteins("/tmp/" + name + "/", "/data/organismos/Axylo/annotation/proteins.faa", name, 85698, db_init=mysqldb)
 
 
-# Offtargeting.offtargets("/tmp/" + name + "/genome.fasta",
+# Offtargeting.offtargets("/data/organismos/Axylo/annotation/proteins.faa",
 #                         "/data/organismos/" + name + "/annotation/offtarget/",
 #                         offtarget_dbs=[  "/data/databases/deg/degaa-e.dat",
 #                                          "/data/databases/human/gencode.v17.pc_translations.fa",
@@ -76,7 +71,10 @@ ann_path = "/data/projects/infantum/GCA_900500625.1_LINF_genomic.gbff"
 # kegg.read_annotation(ilex_data)
 #
 # import_kegg_annotation(mdb.db,name,kegg)
-# load_pathways(name, "/data/organismos/Linf/annotation/pwtools/allreactions.sbml", mdb.db, "/data/organismos/Linf/annotation/pwtools/",
+
+# load_pathways(name, "/data/organismos/Axylo/annotation/pwtools/all.sbml", mdb.db, "/data/organismos/Axylo/annotation/pathways",
 #               gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
-# index_seq_collection(mdb.db,name,pathways=False,go=True,keywords=True,ec=True,organism_idx=True,structure=True)
-# build_statistics(mdb.db,name)
+
+index_seq_collection(mdb.db,name,pathways=False,go=False,keywords=False,ec=False,organism_idx=False,structure=True)
+index_seq_collection(mdb.db,name,pathways=True,go=True,keywords=True,ec=True,organism_idx=True,structure=False)
+build_statistics(mdb.db,name)

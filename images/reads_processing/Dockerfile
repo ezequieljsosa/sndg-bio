@@ -2,32 +2,23 @@ FROM ubuntu:16.04
 
 WORKDIR /app
 
-#ENV http_proxy http://proxy.fcen.uba.ar:8080
-#ENV https_proxy http://proxy.fcen.uba.ar:8080
-#ENV fps_proxy http://proxy.fcen.uba.ar:8080
-
 RUN apt-get update && apt-get install -y  openjdk-8-jdk libncurses5-dev libbz2-dev lzma liblzma-dev zlib1g-dev \
     cmake libgtk2.0-dev ncbi-blast+ libeigen3-dev unzip wget nano
 
-
-
-
-
-ADD /data /app
-
-
-RUN  cd /app/ && wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && tar xfv samtools-1.9.tar.bz2 && cd samtools-1.9 && ./configure && make && make install && \
-      cd /app/ && wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2 && tar xfv bcftools-1.9.tar.bz2 && cd bcftools-1.9 && ./configure && make && make install && \
-      cd /app/ && wget https://github.com/arq5x/bedtools2/releases/download/v2.27.1/bedtools-2.27.1.tar.gz && tar xfv bedtools-2.27.1.tar.gz && cd bedtools2 && make && make install && \
-      cd /app/ && wget -O bwa-0.7.17.tar.bz2 https://sourceforge.net/projects/bio-bwa/files/bwa-0.7.17.tar.bz2/download && tar xfv bwa-0.7.17.tar.bz2 && cd bwa-0.7.17 && make && ln -s /app/bwa-0.7.17/bwa /usr/local/bin && \
-      cd /app/ && wget -O snpEff_latest_core.zip http://sourceforge.net/projects/snpeff/files/snpEff_latest_core.zip/download && unzip snpEff_latest_core.zip && \
-      cd /app/ && wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip && unzip Trimmomatic-0.38.zip && \
-      cd /app/ && wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip && unzip fastqc_v0.11.7.zip && chmod 755 /app/FastQC/fastqc && ln -s /app/FastQC/fastqc /usr/local/bin && \
-      cd /app/ && wget http://cab.spbu.ru/files/release3.12.0/SPAdes-3.12.0-Linux.tar.gz && tar xfv SPAdes-3.12.0-Linux.tar.gz && ln -s /app/SPAdes-3.12.0-Linux/bin/spades.py /usr/local/bin && \
-      cd /app/ && wget https://downloads.sourceforge.net/project/quast/quast-5.0.0.tar.gz && tar xfv quast-5.0.0.tar.gz && cd quast-5.0.0 && ./install.sh && ln -s /app/quast-5.0.0/quast.py /usr/local/bin \
-      cd /app/ && wget https://github.com/broadinstitute/picard/releases/download/2.18.14/picard.jar && \
-      cd /app && wget https://mafft.cbrc.jp/alignment/software/mafft_7.407-1_amd64.deb && dpkg -i  mafft_7.407-1_amd64.deb && \
-      cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
+RUN  cd /app/ && wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && tar xfv samtools-1.9.tar.bz2 && cd samtools-1.9 && ./configure && make && make install
+RUN  cd /app/ && wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2 && tar xfv bcftools-1.9.tar.bz2 && cd bcftools-1.9 && ./configure && make && make install
+RUN cd /app/ && wget https://github.com/arq5x/bedtools2/releases/download/v2.27.1/bedtools-2.27.1.tar.gz && tar xfv bedtools-2.27.1.tar.gz && cd bedtools2 && make && make install
+RUN cd /app/ && wget -O bwa-0.7.17.tar.bz2 https://sourceforge.net/projects/bio-bwa/files/bwa-0.7.17.tar.bz2/download && tar xfv bwa-0.7.17.tar.bz2 && cd bwa-0.7.17 && make && ln -s /app/bwa-0.7.17/bwa /usr/local/bin
+RUN cd /app/ && wget -O snpEff_latest_core.zip http://sourceforge.net/projects/snpeff/files/snpEff_latest_core.zip/download && unzip snpEff_latest_core.zip
+RUN cd /app/ && wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip && unzip Trimmomatic-0.38.zip
+RUN cd /app/ && wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip && unzip fastqc_v0.11.7.zip && chmod 755 /app/FastQC/fastqc && ln -s /app/FastQC/fastqc /usr/local/bin
+RUN cd /app/ && wget http://cab.spbu.ru/files/release3.12.0/SPAdes-3.12.0-Linux.tar.gz && tar xfv SPAdes-3.12.0-Linux.tar.gz && ln -s /app/SPAdes-3.12.0-Linux/bin/spades.py /usr/local/bin
+RUN cd /app/ && wget https://downloads.sourceforge.net/project/quast/quast-5.0.0.tar.gz && tar xfv quast-5.0.0.tar.gz && cd quast-5.0.0 && ./install.sh && ln -s /app/quast-5.0.0/quast.py /usr/local/bin
+RUN cd /app/ && wget https://github.com/broadinstitute/picard/releases/download/2.18.14/picard.jar
+RUN cd /app && wget https://mafft.cbrc.jp/alignment/software/mafft_7.407-1_amd64.deb && dpkg -i  mafft_7.407-1_amd64.deb
+RUN cd /app && wget https://github.com/broadinstitute/gatk/releases/download/4.0.11.0/gatk-4.0.11.0.zip \
+      && unzip gatk-4.0.11.0.zip
+RUN cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
 
 
 #RUN pip install tqdm pandas biopython goatools bcbio-gff
@@ -35,6 +26,7 @@ RUN  cd /app/ && wget https://github.com/samtools/samtools/releases/download/1.9
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar
 ENV SNPEFF /app/snpEff/snpEff.jar
+ENV GATK gatk-4.0.11.0/gatk-package-4.0.11.0-local.jar
 
 ADD run.sh /app
 
@@ -42,4 +34,5 @@ ADD run.sh /app
 
 
 #ENTRYPOINT ["/app/run.sh"]
+WORKDIR /out
 CMD ["bash"]

@@ -19,6 +19,7 @@ import Bio.SearchIO as bpsio
 import logging
 import json
 
+
 init_log()
 _log = logging.getLogger(__name__)
 import os
@@ -33,12 +34,37 @@ def get_compound_type(residue):
 
 
 parser = PDBParser(PERMISSIVE=1, QUIET=1)
-organism = "Linf"
-basepath = "/data/projects/infantum/estructuras/"
-model_files = [] # glob(basepath + "*/*/*/*.pdb")
+organism = "Axylo"
+basepath = "/data/organismos/Axylo/structures/raw/"
+model_files = glob(basepath + "*/*/*/*.pdb")
 
-# model_files = [
-#     basepath + "Minc3s00001g00003/Minc3s00001g00003/Minc3s00001g00003_3uaf_A_21_137/Minc3s00001g00003.B99990001.pdb"]
+"""
+from SNDG.Structure.FPocket import FPocket
+   ...: 
+   ...: model_files = glob("./*/*/*/*.pdb")
+   ...: def pockets( pdb ):
+   ...:     pocket_data = pdb + ".pocket.json"
+   ...:     if not os.path.exists(pocket_data):
+   ...:         fpo = FPocket(pdb)
+   ...:         result = fpo.hunt_pockets()
+   ...:         result.save(pocket_data)
+   ...:         result.delete_dir()
+   ...: p = Pool(3)
+   ...: len(list(tqdm(p.imap_unordered(pockets,model_files,10))))
+
+docker run --rm -it -v $PWD:/out structurome  modellerkey bash
+from multiprocessing import Pool
+def qa (model_path):
+    ...:     if not os.path.exists(model_path + ".json"):
+    ...:         assessment = QMean.assesment(model_path)
+    ...:         with open(model_path + ".json", "w") as h:
+    ...:             json.dump(assessment, h)
+    ...:             
+    ...: p = Pool(3)
+    ...: list(tqdm(p.imap_unordered(qa,model_files,100)))
+
+"""
+
 models_count = len(model_files)
 
 seq_col_id = ObjectId("5b2800b1be737e35a6dd9b8a")
@@ -48,8 +74,9 @@ db = pymongo.MongoClient().pdb
 
 # with tqdm(model_files) as pbar:
 #     for model_file in pbar:
-#         pbar.set_description("processing %s" % model_file)
 #         model_name = model_file.split("/")[-2]
+#         pbar.set_description("processing %s" % model_name)
+#
 #         seq_name = model_file.split("/")[-3]
 #         aln = [hit[0] for hit in list(bpsio.read(basepath + "/" + seq_name + "/profile_search.xml", "blast-xml")) if
 #                hit.id == model_name.split(seq_name + "_")[1]][0]
@@ -119,13 +146,16 @@ db = pymongo.MongoClient().pdb
 #                                         x.compound_type == molecule.compound_type) and molecule.compound_type == 'SOLVENT']:
 #                             strdoc.ligands.append(molecule)
 #
-#             pockets_json = model_file + "pockets.json"
+#             pockets_json = model_file + ".pocket.json"
 #             if os.path.exists(pockets_json):
 #                 rss = StructureAnotator.pocket_residue_set(pockets_json, model.get_atoms())
 #                 strdoc.pockets = rss
 #             strdoc.save()
 #         except Exception as ex:
 #             _log.error(ex)
+#
+# print ("OK!")
+
 
 sa = StructureAnotator(basepath, struct_path=lambda wd, modeldoc: glob( "/".join(
     [wd, modeldoc.templates[0].aln_query.name, modeldoc.templates[0].aln_query.name, modeldoc.name, "*.pdb"]))[0])

@@ -338,6 +338,7 @@ def load_pathways(genome_name, sbml_path, db, pathways_dir, prefered_biocyc=None
     gregexp:  default = "\(([\-\w\.]+)\)"
     '''
     assert os.path.exists(sbml_path), sbml_path
+    pathways_dir = pathways_dir + "/" if pathways_dir[-1] != "/" else pathways_dir
     if gene_map:
         assert os.path.exists(gene_map), "%s does not exists" % gene_map
         gene_map = pickle.load(open(gene_map))

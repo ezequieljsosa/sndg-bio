@@ -282,13 +282,16 @@ class BioMongoDB(object):
             gene = fields[BioMongoDB.GENE_FIELD_IMPORT]
 
             if not gene:
-                errors.append(linenum.toString() + " gene field is empty");
+                text = str(linenum) + " gene field is empty"
+                errors.append(text);
                 continue
 
             count = Protein.objects(organism=organism_name, alias=gene).count();
 
             if not count:
-                errors.append(linenum.toString() + " " + gene + " does not exists in " + organism_name);
+                text = str(linenum) + " " + gene + " does not exists in " + organism_name
+                print(text)
+                errors.append(text);
                 continue;
 
             prots = Protein.objects(organism=organism_name, alias=gene)
@@ -308,6 +311,7 @@ class BioMongoDB(object):
             currentDp = seqCollection.druggabilityParam(p, uploader)
 
             if currentDp:
+                currentDp = currentDp[0]
                 currentDp.options = options
                 currentDp.type = dpType
             else:

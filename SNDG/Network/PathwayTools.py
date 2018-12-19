@@ -348,7 +348,7 @@ DOMAIN\t{domain}"""
 if __name__ == "__main__":
     """
     example
-    python SNDG/Network/PathwayTools.py -o /tmp/pepe2 -n "Saureus" -desc "Saureus"  -ann /home/eze/Downloads/ncbi_BIA_1.gff3 -s /home/eze/Downloads/ncbi_BIA_1.gbf -db TAX-2 -t 158879
+    python SNDG/Network/PathwayTools.py -o /tmp/pepe2 -n "Saureus" -desc "Saureus"  -ann /home/eze/Downloads/ncbi_BIA_1.gff3 -s /home/eze/Downloads/ncbi_BIA_1.gbf -dn TAX-2 -t 158879
     """
     from SNDG import init_log
     from SNDG.Sequence import smart_parse

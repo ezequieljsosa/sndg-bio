@@ -56,6 +56,7 @@ def smart_parse(path, seqs=None):
     :param seqs: dictionary of sequences. key=sequence name, value=Bio.Seq.Seq object
     :return: sequences iterator
     """
+    path = path.strip()
     it = None
     if path.endswith(".fasta"):
         it = bpio.parse(path, "fasta")
@@ -76,6 +77,7 @@ def smart_parse(path, seqs=None):
 
     if path.endswith(".gbff"):
         it = bpio.parse(path, "gb")
+
 
 
     if path.endswith(".embl"):

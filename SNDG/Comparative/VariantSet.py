@@ -13,6 +13,26 @@ from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 import pysam
 
 
+def validate_variant_fn(sample_data,min_depth=30):
+    has_depth = hasattr(sample_data, "AD") and sample_data.DP
+    depth = False
+    if hasattr(sample_data, "AD") and isinstance(sample_data.AD, list):
+
+        if sum(sample_data.AD) > 0:
+            frequent = (sample_data.AD[1]) * 1.0 / sum(sample_data.AD) >= 0.75
+        else:
+            frequent = False
+        depth = sum(sample_data.AD) >= min_depth
+
+    elif hasattr(sample_data, "AD"):
+        depth = sample_data.AD >= min_depth
+        frequent = True
+    else:
+        frequent = False
+
+    return has_depth and depth and frequent
+
+
 class VariantSet():
     """
 bams_dict = {'1_20079_S5': '/home/andres/cepas/20079_S5_L001/dedup_reads.bam',
@@ -59,19 +79,33 @@ df = gvcf.build_table()
         if bams_dict:
             bams_dict2 = {}
             for sample, path in bams_dict.items():
-                 bams_dict2[sample] = pysam.AlignmentFile(path, "rb")
+                bams_dict2[sample] = pysam.AlignmentFile(path, "rb")
             self.bam = bams_dict2
         self.gvcf = VcfSnpeffIO.parse(path_gvcf)
-        self.validate_variant_fn = lambda sample_data: hasattr(sample_data, "AD") and sample_data.DP and (
-                sum(sample_data.AD) >= 30) and ((sample_data.AD[1]) * 1.0 / sum(sample_data.AD) >= 0.75)
+        self.validate_variant_fn = validate_variant_fn
         self.default_value_fn = lambda variant, sample, alt, assigned_values: alt
-        self.default_not_called_fn = lambda  cov_ref,cov_alt: cov_ref < 30 or ((cov_ref * 1.0 / (cov_alt + cov_ref)) < 0.75)
+        self.default_not_called_fn = lambda cov_ref, cov_alt: cov_ref < 30 or (
+                (cov_ref * 1.0 / (cov_alt + cov_ref)) < 0.75)
 
-    def build_table(self, keep_all=False):
+    def build_table(self, keep_all=False,min_depth=30):
+        class Empty:
+            pass
 
         rows = []
         for variant, effects in tqdm(self.gvcf, total=self.total_variants):
-            effect = effects[0]
+            if effects:
+                effect = effects[0]
+            else:
+                effect = Empty()
+                effect.geneid = ""
+                effect.impact = ""
+                effect.aa_pos = ""
+                effect.aa_ref = ""
+                effect.aa_alt = ""
+                effect.hgvs_c = ""
+                effect.hgvs_p = ""
+                effect.annotation = []
+
             vresult = {
                 "chrom": variant.CHROM,
                 "gene": effect.geneid,
@@ -81,15 +115,23 @@ df = gvcf.build_table()
                 "type": "&".join(effect.annotation)}
             alternatives = [variant.REF] if keep_all else []
             for sample in variant.samples:
+
                 sample_name = sample.sample.split(".variant")[0]
 
                 if sample.called:
+                    assert sample.data.GT != "."
                     alt = str(variant.ALT[int(sample.data.GT) - 1])
+                    if hasattr(sample.data, "AD") and isinstance(sample.data.AD, list):
+                        vresult[sample_name + "_ada"] = sample.data.AD[1]
+                        vresult[sample_name + "_adr"] = sample.data.AD[0]
+                    elif hasattr(sample.data, "AD"):
+                        vresult[sample_name + "_ada"] = sample.data.AD
+                        vresult[sample_name + "_adr"] = 0
+                    else:
+                        vresult[sample_name + "_ada"] = 0
+                        vresult[sample_name + "_adr"] = 0
 
-                    vresult[sample_name + "_ada"] = sample.data.AD[1] if hasattr(sample.data, "AD") else 0
-                    vresult[sample_name + "_adr"] = sample.data.AD[0] if hasattr(sample.data, "AD") else 0
-
-                    if self.validate_variant_fn(sample.data):
+                    if self.validate_variant_fn(sample.data,min_depth):
                         vresult[sample_name] = alt
                     else:
                         vresult[sample_name] = self.default_value_fn(variant, sample, alt, dict(vresult))
@@ -97,10 +139,13 @@ df = gvcf.build_table()
                         vresult["aa_pos"] = effect.aa_pos
                         vresult["aa_ref"] = effect.aa_ref
                         vresult["aa_alt"] = effect.aa_alt
+                elif sample.data.GT == ".":
+                    vresult[sample_name] = self.default_value_fn(variant, sample, variant.REF, dict(vresult))
                 else:
                     vresult[sample_name] = variant.REF
                     if self.bam:
-                        for pileupcolumn in self.bam[sample_name].pileup(variant.CHROM, variant.POS - 1, variant.POS, truncate = True): # min_base_quality = 0, stepper = "nofilter"
+                        for pileupcolumn in self.bam[sample_name].pileup(variant.CHROM, variant.POS - 1, variant.POS,
+                                                                         truncate=True):  # min_base_quality = 0, stepper = "nofilter"
                             pileup = []
                             indel_pileup = []
                             for pileupread in pileupcolumn.pileups:
@@ -116,13 +161,15 @@ df = gvcf.build_table()
                             cov_ref = len(pileup) - cov_alt
                         vresult[sample_name + "_ada"] = cov_alt
                         vresult[sample_name + "_adr"] = cov_ref
-                        if self.default_not_called_fn(cov_ref,cov_alt):
+                        if self.default_not_called_fn(cov_ref, cov_alt):
                             vresult[sample_name] = self.default_value_fn(variant, sample, alt, dict(vresult))
-                        if ('ins' in str(effect.hgvs_c) or 'dup' in str(effect.hgvs_c)) and len(max(variant.ALT, key=len)) >= 25:
+                        if ('ins' in str(effect.hgvs_c) or 'dup' in str(effect.hgvs_c)) and len(
+                                max(variant.ALT, key=len)) >= 25:
                             # hay problemas en el bam con los ins muy largos
                             vresult[sample_name] = self.default_value_fn(variant, sample, alt, dict(vresult))
 
                 alternatives.append(vresult[sample_name])
+
             if len(set(alternatives)) > 1:
                 rows.append(vresult)
                 # df_result = df_result.append(vresult, ignore_index=True)
@@ -178,19 +225,60 @@ if __name__ == '__main__':
     """
 
 
-    strains = set(['0058', '1300', '0271', '0037', '1875', '3296', '1710', '1584',
-                   '1445', '0142', '1527', '0564', '3867NE', '1096', '0484', '1796',
-                   '3867NI', '1493', '0298', '1707', '3867INF', '1764', '0450'])
+    # strains = set(['0058', '1300', '0271', '0037', '1875', '3296', '1710', '1584',
+    #                '1445', '0142', '1527', '0564', '3867NE', '1096', '0484', '1796',
+    #                '3867NI', '1493', '0298', '1707', '3867INF', '1764', '0450'])
+    #
+    #
+    # bams = {
+    #     bam.split("/")[-2]:pysam.AlignmentFile(bam, "rb")
+    #     for bam in glob("/mnt/data2/data/projects/23staphylo/data/steps/03-mappingn315/*/aln.bam")
+    # }
+    #
+    #
+    #
+    # pepe = VariantSet("/mnt/data2/data/projects/23staphylo/data/steps/s07_joined_variant_call/output.ann.vcf",
+    #                   "/mnt/data2/data/projects/23staphylo/external/n315/refN315.fasta",
+    #                   bams_dict=bams)
+    # df = pepe.build_table()
+
+    def default_value_fn(variant, sample, alt, assigned_values):
+        if sample.sample == "3867INF":
+            s = [x for x in variant.samples if x.sample == "3867NI"][0]
+            if s.called and validate_variant_fn(s.data):
+                alt = str(variant.ALT[int(s.data.GT) - 1])
+                return alt
+            else:
+                s = [x for x in variant.samples if x.sample == "3867NE"][0]
+                if s.called and validate_variant_fn(s.data):
+                    alt = str(variant.ALT[int(s.data.GT) - 1])
+                    return alt
+                return variant.REF
+        elif sample.sample == "3867NE":
+            s = [x for x in variant.samples if x.sample == "3867INF"][0]
+            if s.called and validate_variant_fn(s.data):
+                alt = str(variant.ALT[int(s.data.GT) - 1])
+                return alt
+            else:
+                s = [x for x in variant.samples if x.sample == "3867NI"][0]
+                if s.called and validate_variant_fn(s.data):
+                    alt = str(variant.ALT[int(s.data.GT) - 1])
+                    return alt
+                return variant.REF
+        elif sample.sample == "3867NI":
+            s = [x for x in variant.samples if x.sample == "3867INF"][0]
+            if s.called and validate_variant_fn(s.data):
+                return str(variant.ALT[int(s.data.GT) - 1])
+            else:
+                s = [x for x in variant.samples if x.sample == "3867INF"][0]
+                if s.called and validate_variant_fn(s.data):
+                    return str(variant.ALT[int(s.data.GT) - 1])
+                return variant.REF
+        return alt
 
 
-    bams = {
-        bam.split("/")[-2]:pysam.AlignmentFile(bam, "rb")
-        for bam in glob("/mnt/data2/data/projects/23staphylo/data/steps/03-mappingn315/*/aln.bam")
-    }
+    vs = VariantSet("/mnt/data2/data/projects/23staphylo_old/external/sordelli/variant_call/cohort.g.vcf")
+    # vs.default_not_called_fn = default_not_called_fn
+    vs.default_value_fn = default_value_fn
 
-
-
-    pepe = VariantSet("/mnt/data2/data/projects/23staphylo/data/steps/s07_joined_variant_call/output.ann.vcf",
-                      "/mnt/data2/data/projects/23staphylo/external/n315/refN315.fasta",
-                      bams_dict=bams)
-    df = pepe.build_table()
+    df = vs.build_table()
