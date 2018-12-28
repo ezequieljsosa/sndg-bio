@@ -205,6 +205,33 @@ df = gvcf.build_table()
 
         return df[columns + samples]
 
+    def aln(self,aln,txt="/tmp/samples.txt",ref=None):
+
+        ref = str(bpio.read(ref,"fasta").seq)
+        if not os.path.exists(txt):
+            df = self.build_table()
+            df.to_csv(txt)
+        else:
+            df = pd.read_csv(txt)
+        samples = [c for c in df.columns if c not in ["chrom","pos","ref",'Unnamed: 0'] ]
+
+        seqmap = {s: "" for s in samples}
+        total = len(df)
+        base_idx = 0
+        for _, r in tqdm(df.sort_values("pos").iterrows(), total=total):
+            pos_size = max([len(r[x]) for x in samples])
+            for s in samples:
+                subseq = ref[base_idx:r.pos] +  r[s].ljust(pos_size, "-")
+                seqmap[s] += subseq
+            base_idx = r.pos + len(r.ref)
+
+        for s in samples:
+            seqmap[s] += ref[base_idx:]
+
+        with open(aln, "w") as h:
+            for k, v in seqmap.items():
+                bpio.write(SeqRecord(id=k, name="", description="", seq=Seq(v)), h, "fasta")
+
 
 if __name__ == '__main__':
     import glob
@@ -222,6 +249,48 @@ if __name__ == '__main__':
     df.to_csv("/tmp/pepe.csv", columns=["pos", "gene", "type", "ref"] +
                                        ["MUT-11","MUT-12","MUT-7","WT1"] + ["aa_pos", "aa_ref", "aa_alt"])
     print pepe
+    
+    
+     import vcf
+     ...: seqs = defaultdict(lambda:"")
+     ...: alelos = []
+     ...: #with open("./Full2mergeall_onlyvariants_maf.recode.vcf") as h:
+     ...: #    variantes = list(vcf.VCFReader(h))
+     ...: terminar = False
+     ...: for v in tqdm(variantes):
+     ...:         pos_size = [v.REF]
+     ...:         alts = [v.REF] + [str(x) for x in v.ALT]
+     ...:         alelos = []
+     ...:         for sample in  v.samples:
+     ...:             if (sample.data.GT != ".") and  (str(alts[int(sample.data.GT) ]) != "<CN0>"):
+     ...:                 pos_size.append(  str(alts[int(sample.data.GT) ])  )
+     ...:             if (sample.data.GT != "."):
+     ...:                 alelos.append(str(alts[int(sample.data.GT) ]) )
+     ...:         
+     ...:                           
+     ...:         if "<CN0>" in alelos:
+     ...:             continue
+     ...:         pos_size = max([len(x) for x in pos_size])
+     ...:         for sample in v.samples:
+     ...:             if sample.called:
+     ...:                 alelo = str(alts[int(sample.data.GT) ])                
+     ...:             elif sample.data.GT == ".":
+     ...:                 alelo = "N"
+     ...:             else:
+     ...:                 alelo = v.REF            
+     ...:             if alelo == "<CN0>":
+     ...:                 alelo = ""
+     ...:             alelo = alelo.ljust(pos_size, "-")
+     ...:             seqs[sample.sample] += alelo
+     ...:             if sample.sample in fasta:
+     ...:                 if seqs[sample.sample] != str(fasta[sample.sample].seq)[: len(seqs[sample.sample])]:                
+     ...:                     terminar = True
+     ...:         if terminar:
+     ...:             break
+     ...: print seqs[sample.sample][-10:] 
+     ...: print str(fasta[sample.sample].seq)[ len(seqs[sample.sample]) - 10: len(seqs[sample.sample])]
+
+    
     """
 
 

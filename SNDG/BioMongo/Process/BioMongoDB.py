@@ -172,6 +172,8 @@ class BioMongoDB(object):
             idx["seq_collection_name"] = newname
             dst_db.col_ont_idx.save(idx)
 
+
+
     def delete_feature_type(self, organism, feature_type):
         self.db.proteins.update({"organism": organism, "features.type": feature_type},
                                 {"$pull": {"features": {"type": feature_type}}},

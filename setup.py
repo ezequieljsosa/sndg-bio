@@ -12,7 +12,7 @@ setup(
     name = 'sndg-bio',
     packages = ['SNDG','SNDG.Structure','SNDG.Comparative','SNDG.WebServices'],
     version = __version__,
-    scripts = ["scripts/structurome.py"],
+    scripts = ["scripts/structurome.py","scripts/vcf2aln.py"],
     description = readme_md,
     author = 'Ezequiel Sosa - SNDG',
     install_requires=["tqdm","bcbio-gff","biopython","goatools"],

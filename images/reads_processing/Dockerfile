@@ -21,7 +21,7 @@ RUN cd /app && wget https://github.com/broadinstitute/gatk/releases/download/4.0
 RUN cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
 
 
-#RUN pip install tqdm pandas biopython goatools bcbio-gff
+RUN pip install tqdm pandas biopython goatools bcbio-gff
 
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar

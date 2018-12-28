@@ -249,7 +249,7 @@ if __name__ == "__main__":
 
 
     # jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
-    jw.create_genome("Linf")
+    jw.create_genome("Axylo")
     #
     # jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
     # jw.create_genome("Pext14-3B")

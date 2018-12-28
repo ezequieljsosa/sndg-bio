@@ -24,7 +24,7 @@ from BCBio import GFF
 from SNDG.BioMongo.Process.Taxon import Tax
 
 tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-mdb = BioMongoDB("tdr")
+mdb = BioMongoDB("tdr",port=27018)
 mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
 name = "Axylo"
@@ -72,9 +72,10 @@ ann_path = "/data/organismos/Axylo/annotation/GCF_001457475.1_NCTC10807_genomic.
 #
 # import_kegg_annotation(mdb.db,name,kegg)
 
+
+
+# index_seq_collection(mdb.db,name,pathways=False,go=False,keywords=False,ec=False,organism_idx=False,structure=True)
 # load_pathways(name, "/data/organismos/Axylo/annotation/pwtools/all.sbml", mdb.db, "/data/organismos/Axylo/annotation/pathways",
 #               gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
-
-index_seq_collection(mdb.db,name,pathways=False,go=False,keywords=False,ec=False,organism_idx=False,structure=True)
-index_seq_collection(mdb.db,name,pathways=True,go=True,keywords=True,ec=True,organism_idx=True,structure=False)
-build_statistics(mdb.db,name)
+# index_seq_collection(mdb.db,name,pathways=True,go=True,keywords=True,ec=True,organism_idx=True,structure=False)
+# build_statistics(mdb.db,name)
