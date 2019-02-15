@@ -50,6 +50,7 @@ class PDBs(object):
 
         self.pdb_seq_res_path = self.pdb_dir + "/pdb_seqres.txt"
         self.url_pdb_seq_res = "ftp://ftp.rcsb.org/pub/pdb/derived_data/pdb_seqres.txt"
+        self.url_pdb_entries = 'ftp://ftp.wwpdb.org/pub/pdb/derived_data/index/entries.idx'
 
         self.url_pdb_files = 'ftp://ftp.wwpdb.org/pub/pdb/data/structures/divided/pdb/'  # 00/pdb100d.ent.gz
 
@@ -77,12 +78,14 @@ class PDBs(object):
     def download_pdb_seq_ses(self):
         download_file(self.url_pdb_seq_res, self.pdb_seq_res_path, ovewrite=True)
 
+    def download_pdb_entries(self):
+        download_file(self.url_pdb_entries, self.entries_path, ovewrite=True)
+
     def update_pdb_dir(self):
         assert os.path.exists(self.pdb_dir), "the target directory does not exists %s" % self.pdb_dir
         assert os.path.exists(self.pdb_seq_res_path), "the pdbseqres does not exists %s" % self.pdb_seq_res_path
 
         pdbs = set([x.id.split("_")[0] for x in bpio.parse(self.pdb_seq_res_path, "fasta")])
-        total_pdbs = len(pdbs)
 
         for pdb in tqdm(pdbs):
             try:
@@ -129,10 +132,12 @@ if __name__ == '__main__':
     from SNDG import init_log
 
     init_log()
-    pdbs = PDBs(pdb_dir="/data/pdb/")
-    # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
-    #pdbs.download_pdb_seq_ses()
-    pdbs.update_pdb_dir()
-    # pdbs.pdbs_seq_for_modelling("/tmp/pepe.fasta")
+    pdbs = PDBs(pdb_dir="/data/databases/pdb/")
+    os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
+    # pdbs.download_pdb_seq_ses()
+    # pdbs.download_pdb_entries()
+
+    # pdbs.update_pdb_dir()
+    pdbs.pdbs_seq_for_modelling("/data/databases/pdb/processed/seqs_from_pdb.fasta")
     #pepe = pdbs.entries_df()
     #print pepe

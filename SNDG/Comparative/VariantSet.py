@@ -11,7 +11,9 @@ from collections import defaultdict
 from SNDG import execute
 from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 import pysam
-
+import Bio.SeqIO as bpio
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 def validate_variant_fn(sample_data,min_depth=30):
     has_depth = hasattr(sample_data, "AD") and sample_data.DP
@@ -213,13 +215,14 @@ df = gvcf.build_table()
             df.to_csv(txt)
         else:
             df = pd.read_csv(txt)
-        samples = [c for c in df.columns if c not in ["chrom","pos","ref",'Unnamed: 0'] ]
+        samples = [c for c in df.columns if c not in ["chrom","pos","ref",'Unnamed: 0',"gene","impact","type",]
+                   and  ("_ada" not in c) and ("_adr" not in c)]
 
         seqmap = {s: "" for s in samples}
         total = len(df)
         base_idx = 0
         for _, r in tqdm(df.sort_values("pos").iterrows(), total=total):
-            pos_size = max([len(r[x]) for x in samples])
+            pos_size = max([len(r[x]) for x in samples ])
             for s in samples:
                 subseq = ref[base_idx:r.pos] +  r[s].ljust(pos_size, "-")
                 seqmap[s] += subseq

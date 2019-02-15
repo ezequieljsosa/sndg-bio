@@ -27,26 +27,26 @@ init_log()
 _log = logging.getLogger(__name__)
 import os
 
-with open('/data/databases/pdb/manually_curated/compound_type.csv') as handle:
-    compound_type = {x.replace('"', "").strip().split(",")[0]: x.replace('"', "").strip().split(",")[1] if
-    x.replace('"', "").strip().split(",")[1] else "?" for x in handle.readlines()}
-
-
-def get_compound_type(residue):
-    return compound_type[residue.get_resname().strip()] if residue.get_resname().strip() in compound_type else "?"
-
-
-parser = PDBParser(PERMISSIVE=1, QUIET=1)
-basepath = "/data/projects/structsN315/results/"
-# model_files = glob(basepath + "*/*/*/*.pdb")
-
-organism = "SaureusN315"
-seq_col_id = ObjectId("5b2800b1be737e35a6dd9b8a")
-
-port = 27018
-mdb = BioMongoDB("tdr",port=port)
-db = pymongo.MongoClient(port=port).pdb
-name = "SaureusN315"
+# with open('/data/databases/pdb/manually_curated/compound_type.csv') as handle:
+#     compound_type = {x.replace('"', "").strip().split(",")[0]: x.replace('"', "").strip().split(",")[1] if
+#     x.replace('"', "").strip().split(",")[1] else "?" for x in handle.readlines()}
+#
+#
+# def get_compound_type(residue):
+#     return compound_type[residue.get_resname().strip()] if residue.get_resname().strip() in compound_type else "?"
+#
+#
+# parser = PDBParser(PERMISSIVE=1, QUIET=1)
+# basepath = "/data/projects/structsN315/results/"
+# # model_files = glob(basepath + "*/*/*/*.pdb")
+#
+# organism = "SaureusN315"
+# seq_col_id = ObjectId("5b2800b1be737e35a6dd9b8a")
+#
+# port = 27018
+# mdb = BioMongoDB("tdr",port=port)
+# db = pymongo.MongoClient(port=port).pdb
+# name = "SaureusN315"
 
 
 # with tqdm(model_files) as pbar:

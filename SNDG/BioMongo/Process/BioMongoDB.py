@@ -174,6 +174,7 @@ class BioMongoDB(object):
 
 
 
+
     def delete_feature_type(self, organism, feature_type):
         self.db.proteins.update({"organism": organism, "features.type": feature_type},
                                 {"$pull": {"features": {"type": feature_type}}},
