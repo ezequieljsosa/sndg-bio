@@ -20,8 +20,8 @@ RUN cd /app && wget https://github.com/broadinstitute/gatk/releases/download/4.0
       && unzip gatk-4.0.11.0.zip
 RUN cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
 
-
-RUN pip install tqdm pandas biopython goatools bcbio-gff
+RUN apt-get update && apt install -y python-pip
+RUN pip install tqdm pandas pyvcf hgvs biopython goatools bcbio-gff
 
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar
@@ -30,7 +30,7 @@ ENV GATK gatk-4.0.11.0/gatk-package-4.0.11.0-local.jar
 
 ADD run.sh /app
 
-#RUN pip install sndg-bio==0.1.14
+RUN pip install sndg-bio==0.1.17
 
 
 #ENTRYPOINT ["/app/run.sh"]
