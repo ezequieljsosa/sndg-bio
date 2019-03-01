@@ -47,7 +47,8 @@ _log = logging.getLogger("Importer")
 
 def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS)" and ("translation" in f.qualifiers))),
                   extract_annotation_feature=lambda f: f.type == "CDS",
-                  extract_sequence=lambda c, f: f.extract(c).seq.translate()):
+                  extract_sequence=lambda c, f: f.qualifiers["translation"][
+                      0] if "translation" in f.qualifiers else f.extract(c).seq.translate()):
     for c in contigIterator:
         for feature in c.features:
             if accept_feature(feature):
@@ -94,7 +95,8 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                      0] if feature.type == "gene" and hasattr(feature, "sub_features") and len(
                      feature.sub_features) else feature,
                  accept_protein_feature=lambda f: ((f.type == "CDS") and ("translation" in f.qualifiers)),
-                 extract_sequence=lambda c, f: f.extract(c).seq.translate(),
+                 extract_sequence=lambda c, f: f.qualifiers["translation"][
+                     0] if "translation" in f.qualifiers else f.extract(c).seq.translate(),
                  cpus=1):
     if seqs:
         seqs = {r.id: r.seq for r in bpio.parse(seqs, "fasta")}
@@ -133,6 +135,8 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 protDoc = BioDocFactory.create_protein(protein, cds_f)
                 if len(protDoc.seq) > 30000:
                     raise Exception("No existen proteinas tan largas...")
+                if protDoc.seq.count("*") > 1:
+                    raise Exception("Too many stop codons!")
                 protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)

@@ -26,7 +26,7 @@ RUN pip install tqdm pandas pyvcf hgvs biopython goatools bcbio-gff
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar
 ENV SNPEFF /app/snpEff/snpEff.jar
-ENV GATK gatk-4.0.11.0/gatk-package-4.0.11.0-local.jar
+ENV GATK /app/gatk-4.0.11.0/gatk-package-4.0.11.0-local.jar
 
 ADD run.sh /app
 

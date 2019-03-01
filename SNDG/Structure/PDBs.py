@@ -10,7 +10,7 @@ import Bio.SeqIO as bpio
 import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
 from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.Polypeptide import is_aa
+from Bio.PDB.Polypeptide import is_aa,CaPPBuilder
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqUtils import seq1
