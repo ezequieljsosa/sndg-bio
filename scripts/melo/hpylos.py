@@ -9,7 +9,7 @@ from SNDG.WebServices.Offtargeting import Offtargeting
 import Bio.SeqIO as bpio
 from tqdm import tqdm
 import json
-
+import sys
 logging.getLogger("peewee").setLevel(logging.WARN)
 from peewee import MySQLDatabase
 from SNDG.BioMongo.Process.Taxon import tax_db
@@ -17,29 +17,27 @@ from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
 from SNDG.BioMongo.Process.Importer import from_ref_seq, update_proteins, import_prop_blast
 from SNDG.BioMongo.Process.BioDocFactory import BioDocFactory
-from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Model.Protein import Protein,ChEMBL
 from SNDG.Network.KEGG import Kegg
 from SNDG.BioMongo.Process.Importer import _common_annotations, _protein_iter, import_kegg_annotation, \
     index_seq_collection, build_statistics, load_pathways
 from BCBio import GFF
 from SNDG.BioMongo.Process.Taxon import Tax
 from SNDG.BioMongo.Model.Structure import ModeledStructure, Molecule, ResidueAln, SimpleAlignment, StructureQuality, \
-    ExperimentalStructure, Chain
+    ExperimentalStructure, Chain,SeqCollection
 from SNDG.BioMongo.Model.Alignment import AlnLine
 import os
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 import Bio.SearchIO as bpsio
-
+from Bio.SeqUtils import seq1,seq3
 tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
 mdb = BioMongoDB("tdr", port=27017)
 mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
-orgs = [("Mbovis", "Mycoplasma bovis PG45",
-         "/data/organismos/Mbovis/GCF_000183385.1_ASM18338v1_genomic.gbff", 289397),
-        ("Mgalli", "Mycoplasma gallisepticum str. R(low)",
-         "/data/organismos/Mgalli/GCF_000092585.1_ASM9258v1_genomic.gbff", 710127),
-        ("Mhominis", "Mycoplasma hominis ATCC 23114",
-         "/data/organismos/Mhominis/GCF_000085865.1_ASM8586v1_genomic.gbff", 347256)
+orgs = [("Mpylori26695", "Helicobacter pylori 26695 (e-proteobacteria)",
+         "/data/organismos/Mpylori26695/GCF_000008525.1_ASM852v1_genomic.gbff", 85962),
+        ("MpyloriIndia", "Helicobacter pylori India7 (e-proteobacteria)",
+         "/data/organismos/MpyloriIndia/GCF_000185185.1_ASM18518v1_genomic.gbff", 907238),
 
         ]
 
@@ -67,8 +65,8 @@ orgs = [("Mbovis", "Mycoplasma bovis PG45",
 #                       "/data/organismos/" + name + "/annotation/offtarget/degaa-p.tbl",
 #                       "table", "Hit in DEG database",
 #                       value_fn=lambda x: x.identity > 70,
-#                       default_value=True,
-#                       no_hit_value=False, choices=[true", false], type="value", defaultOperation="equal")
+#                       default_value="true",
+#                       no_hit_value="false", choices=["true", "false"], type="value", defaultOperation="equal")
 #
 #     import_prop_blast(mdb.db, name, "human_offtarget",
 #                       "/data/organismos/" + name + "/annotation/offtarget/gencode.tbl",
@@ -83,7 +81,7 @@ orgs = [("Mbovis", "Mycoplasma bovis PG45",
 #                       default_value=0.4,
 #                       no_hit_value=1)
 
-from Bio.SeqUtils import seq1
+# from Bio.SeqUtils import seq1
 from Bio.PDB.PDBParser import PDBParser
 import logging
 import re
@@ -98,8 +96,8 @@ def get_compound_type(residue):
     return compound_type[residue.get_resname().strip()] if residue.get_resname().strip() in compound_type else "?"
 
 
-seq_col_id = "5c4f5368be737e641fe4e173"
-
+# seq_col_id = "5c4f5368be737e641fe4e173"
+#
 from SNDG.Structure.FPocket import FPocket
 
 
@@ -113,15 +111,15 @@ def hunt_pockets(pdb):
 
 
 def build_assessments(pdb_dir, pdb_name):
-    cmd = """docker run --rm  -v %s:/out structurome  modellerkey python -c 'import json;from SNDG.Structure.QMean import QMean;assessment = QMean.assesment("/out/%s");   
+    cmd = """docker run --rm  -v %s:/out structurome  modellerkey python -c 'import json;from SNDG.Structure.QMean import QMean;assessment = QMean.assesment("/out/%s");
 with open( "/out/%s.json", "w") as h:
     json.dump(assessment, h)'""" % (pdb_dir, pdb_name, pdb_name)
     sp.check_output(cmd, shell=True)
 
 
-parser = PDBParser(PERMISSIVE=1, QUIET=1)
-import subprocess as sp
-
+# parser = PDBParser(PERMISSIVE=1, QUIET=1)
+# import subprocess as sp
+#
 # for name, org, ann_path, tax in orgs:
 #     organism = name
 #     basepath = "/data/organismos/" + name + "/estructura/raw/"
@@ -132,7 +130,7 @@ import subprocess as sp
 #             sp.call(["ln", x, model_file])
 #
 #     model_files = glob(models_dir + "*.pdb")
-#
+#     seq_col_id = SeqCollection.objects.get(name=organism).id
 #     with tqdm(model_files) as pbar:
 #         for model_file in pbar:
 #             pbar.set_description("processing %s" % model_file)
@@ -223,6 +221,9 @@ import subprocess as sp
 #                     rss = StructureAnotator.pocket_residue_set(pockets_json, model.get_atoms())
 #                     strdoc.pockets = rss
 #                 strdoc.save()
+#             except ImportError as ex:
+#                 print(ex)
+#                 sys.exit(1)
 #             except Exception as ex:
 #                 _log.error(ex)
 
@@ -240,20 +241,20 @@ from pymongo import MongoClient
 #     sa = StructureAnotator(wd, struct_path= str_path)
 #     total = sa.total(db, organism, {})
 #
-#     # with tqdm(sa.iterator(db, organism, {}), total=total) as pbar:
-#     #     for model in pbar:
-#     #         pbar.set_description(model.name)
-#     #
-#     #         template = model.templates[0]
-#     #         protein = Protein.objects(organism=organism, alias=template.aln_query.name).get()
-#     #         sa.annotate_model(model, protein.domains())
-#     #         model.save()
+#     with tqdm(sa.iterator(db, organism, {}), total=total) as pbar:
+#         for model in pbar:
+#             pbar.set_description(model.name)
+#
+#             template = model.templates[0]
+#             protein = Protein.objects(organism=organism, alias=template.aln_query.name).get()
+#             sa.annotate_model(model, protein.domains())
+#             model.save()
 #
 #     index_seq_collection(mdb.db, organism, pathways=False, go=False, keywords=False, ec=False, organism_idx=False,
 #                          structure=True)
 
 
-# for xx in orgs[0:2]:
+# for xx in orgs:
 #     name = xx[0]
 #     load_pathways(name, "/data/organismos/" + name + "/annotation/pathways/small.sbml", mdb.db,
 #                   "/data/organismos/" + name + "/annotation/pathways",
@@ -264,7 +265,8 @@ from pymongo import MongoClient
 
 
 # import subprocess as sp
-# for x in ["Mbovis","Mhominis","Mgalli"]:
+# for xx in orgs:
+#     x = xx[0]
 #     for y in tqdm(glob("/data/organismos/" + x + "/estructura/sndg/modelos/*.pocket.json")):
 #         sp.call("ln %s %s" % (y, ("/data/organismos/%s/estructura/sndg/pockets/" % x) + y.split("/")[-1].replace(".pdb.pocket","") ),shell=True )
 
@@ -275,7 +277,8 @@ from pymongo import MongoClient
 
 pdbdb = dbdst = MongoClient(port=27017).pdb
 dbdst = MongoClient(port=27018).pdb
-for x in ["Mbovis","Mhominis","Mgalli"]:
-    #mdb.copy_genome(x,dst_db=MongoClient(port=27018).tdr)
+for xx in orgs:
+    x = xx[0]
+    mdb.copy_genome(x,dst_db=MongoClient(port=27018).tdr)
     for s in tqdm(pdbdb.structures.find({"organism":x}),total=pdbdb.structures.count({"organism":x})):
         dbdst.structures.insert(s)

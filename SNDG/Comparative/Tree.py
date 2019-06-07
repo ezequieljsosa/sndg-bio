@@ -1,6 +1,6 @@
 """
 BEFORE installing  ete3
-pip install pyqt5 pyqt5.qtopengl pyqt5.qtsvggit
+pip install pyqt5 pyqt5.qtopengl pyqt5.qtsvg
 
 
 """
@@ -33,7 +33,7 @@ def scipy2Newick(node, newick, parentdist, leaf_names):
         return newick
 
 
-from ete3 import Tree
+from ete3 import Tree, TreeStyle, TextFace
 import vcf
 from _collections import defaultdict
 from tqdm import tqdm
@@ -66,6 +66,48 @@ class TreeUtils(object):
 
     def load_tree(self):
         self.tree = Tree(self.tree_path)
+
+    def tree_style_with_data(self,data={},order=None,force_topology = False):
+        """
+        newick: text or file
+        render_in: default %%inline for notebooks
+        """
+
+        ts = TreeStyle()
+        if data:
+            if not order:
+                order = data[data.keys()[0]].keys()
+            ts.show_leaf_name = True
+            ts.draw_guiding_lines = True
+            ts.force_topology = force_topology
+
+
+
+        for i,x in enumerate(order):
+            tf = TextFace(x)
+            tf.margin_left = 5
+            ts.aligned_header.add_face(tf, column=i)
+        if data:
+            for leaf in self.tree.get_leaves():
+                for i,col in enumerate(order):
+                    tf = TextFace(data[leaf.name][col])
+                    tf.margin_left = 5
+                    leaf.add_face(tf, column=i, position = "aligned")
+
+        return ts
+
+    def prune_from_common_ancestor(self,leafs_for_ca):
+        ca = self.tree.get_common_ancestor(leafs_for_ca)
+        self.tree.prune(ca)
+
+    def render_tree(self,path, outgroup=None,prune=False,metadata=None,order=None):
+        assert self.tree
+        self.fix_gvcf_tree(outgroup)
+        ts = self.tree_style_with_data(metadata,order) if metadata else None
+
+        if prune:
+            self.prune_from_common_ancestor(prune)
+        self.tree.render(path,tree_style=ts)
 
     def fix_gvcf_tree(self, outgroup=None):
 
@@ -145,7 +187,7 @@ if __name__ == '__main__':
     for k,v in treeUtils.sample_variants.items():
         treeUtils.sample_variants[k.split(".variant")[0]] = v
     treeUtils.init_shared_and_exclusive_SNPs(allow_missing=True)
-    print treeUtils.shared_snps
+
 
     #     for x in treeUtils.tree:
     #         x.name = x.name.strip().split(".")[0]

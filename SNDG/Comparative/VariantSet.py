@@ -123,6 +123,9 @@ df = gvcf.build_table()
                 if sample.called:
                     assert sample.data.GT != "."
                     alt = str(variant.ALT[int(sample.data.GT) - 1])
+                    if alt == "*":
+                        alt = ""
+
                     if hasattr(sample.data, "AD") and isinstance(sample.data.AD, list):
                         vresult[sample_name + "_ada"] = sample.data.AD[1]
                         vresult[sample_name + "_adr"] = sample.data.AD[0]
@@ -215,6 +218,7 @@ df = gvcf.build_table()
             df.to_csv(txt)
         else:
             df = pd.read_csv(txt)
+            df = df.fillna("")
         samples = [c for c in df.columns if c not in ["chrom","pos","ref",'Unnamed: 0',"gene","impact","type",]
                    and  ("_ada" not in c) and ("_adr" not in c)]
 

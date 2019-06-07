@@ -53,7 +53,8 @@ class StructureAnotator(object):
             rs.residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
                                     for x in structure_atoms
                                     if str(x.serial_number) in pocket_dict["atoms"]]))
-            rss.append(rs)
+            if rs.residues:
+                rss.append(rs)
         return rss
 
 

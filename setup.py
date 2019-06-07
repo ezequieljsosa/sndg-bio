@@ -12,7 +12,7 @@ setup(
     name = 'sndg-bio',
     packages = ['SNDG','SNDG.Structure','SNDG.Comparative','SNDG.WebServices'],
     version = __version__,
-    scripts = ["scripts/structurome.py","scripts/vcf2aln.py"],
+    scripts = ["scripts/structurome.py","scripts/vcf2aln.py","scripts/render_tree.py"],
     description = readme_md,
     author = 'Ezequiel Sosa - SNDG',
     install_requires=["tqdm","bcbio-gff","biopython","goatools"],
@@ -23,8 +23,7 @@ setup(
     classifiers = [ 'Programming Language :: Python','Topic :: Scientific/Engineering :: Bio-Informatics','Intended Audience :: Science/Research',],
 )
 
-# python setup.py sdist bdist_wheel
-# twine upload dist/*
+# rm -r dist/;python setup.py sdist bdist_wheel;twine upload dist/*
 # ~/.pypirc
 # [pypi]
 # repository:https://upload.pypi.org/legacy/

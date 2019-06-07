@@ -25,7 +25,7 @@ def hit_coverage(hit, hsp):
 
 
 blast_columns = ["query", "hit", "identity", "aln_len", "mismatches", "gap_openings", "qstart", "qend", "hstart",
-                 "hend", "evalue"]
+                 "hend", "evalue","bitscore"]
 
 
 def read_blast_table(blast_table_file):

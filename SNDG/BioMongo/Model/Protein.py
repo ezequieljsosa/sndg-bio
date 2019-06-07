@@ -1,5 +1,5 @@
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, ObjectIdField, ReferenceField, FloatField, \
-    DictField
+    DictField,EmbeddedDocument
 
 from SNDG.BioMongo.Model.Sequence import Sequence
 from SNDG.BioMongo.Model.SeqCollection import SeqCollection
@@ -7,6 +7,16 @@ from SNDG.BioMongo.Model.Pathway import Reaction
 from SNDG.BioMongo.Model.Feature import Feature
 from SNDG.Sequence.so import SO_TERMS
 
+
+class ChEMBLAssay(EmbeddedDocument):
+    assay = StringField(required=True)
+    type = StringField(required=True)
+    description = StringField(required=False)
+    activities = ListField(DictField(), default=[])
+
+class ChEMBL(EmbeddedDocument):
+    target = StringField(required=True)
+    assays = ListField(EmbeddedDocumentField(ChEMBLAssay), default=[])
 
 class Protein(Sequence):
     meta = {'allow_inheritance': True, 'collection': "proteins",
@@ -25,9 +35,11 @@ class Protein(Sequence):
     gene_id = ObjectIdField()
     seq_collection_id = ReferenceField(SeqCollection)
     reactions = ListField(EmbeddedDocumentField(Reaction), default=[])
+    reactome = ListField(DictField(), default=[])
     druggability = FloatField()
     tregulation = DictField(required=False)
     alias = ListField(StringField(), default=[])
+    chembl = EmbeddedDocumentField(ChEMBL)
 
     def __init__(self, **kwargs):
         '''

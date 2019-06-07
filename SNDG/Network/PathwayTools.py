@@ -349,7 +349,7 @@ if __name__ == "__main__":
     """
     Example from Genebank 
     python SNDG/Network/PathwayTools.py -o /tmp/pepe2 -n "Saureus" -desc "Saureus"  -ann /home/eze/Downloads/ncbi_BIA_1.gff3 -s /home/eze/Downloads/ncbi_BIA_1.gbf -dn TAX-2 -t 158879
-    Example from Momgo
+    Example from Mongo
     python SNDG/Network/PathwayTools.py  -o /data/organismos/ILEX_PARA_TRANSCRIPT/annotation/pwtools/ -n ILEX_PARA_TRANCRIPT2 -desc "Ilex paraguariensis Transcript" -ann ILEX_PARA_TRANSCRIPT  -t 185542 -anntype mongo -db saureus -dn TAX-2759
     """
     from SNDG import init_log

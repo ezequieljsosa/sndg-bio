@@ -12,7 +12,7 @@ from mongoengine.document import Document, EmbeddedDocument, \
     DynamicEmbeddedDocument
 from mongoengine.errors import DoesNotExist
 from mongoengine.fields import StringField, ListField, EmbeddedDocumentField, \
-    ReferenceField, FloatField, IntField,DynamicField
+    ReferenceField, FloatField, IntField,DynamicField,DictField
 
 from SNDG.BioMongo.Model import BioProperties
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment
@@ -337,3 +337,4 @@ class ModeledStructure(Structure):
             except DoesNotExist as ex:
                 print  ex, x.aln_hit.name.split("_")[0]
         return templates
+

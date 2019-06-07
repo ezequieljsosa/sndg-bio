@@ -1,11 +1,8 @@
 workflow processBacterialStrain {
     String cpus
-    String strain
-    String species
     File reference_dir
     String reference_filename
-    File fastq1
-    File fastq2
+    Array[File] vcfs
 
     Int? headcrop
 
@@ -18,6 +15,7 @@ workflow processBacterialStrain {
     }
 
 
+
     call alignment {
         input:
             reference_dir=reference_dir,
@@ -28,17 +26,6 @@ workflow processBacterialStrain {
 	    fastq1=trimming.trimmed1,
 	    fastq2=trimming.trimmed2,
     }
-
-    call denovo {
-            input:
-                fastq1=trimming.trimmed1,
-                fastq2=trimming.trimmed2,
-                cpus=cpus,
-        }
-
-
-    #TODO http://qualimap.bioinfo.cipf.es/
-
     call variant_call {
       input:
         alignment_bam=alignment.mapped_bam,
@@ -65,7 +52,6 @@ task denovo {
 
     command {
         spades.py --cov-cutoff 5 -t ${cpus} --pe1-1 ${fastq1} --pe1-2 ${fastq2} -o ./
-
     }
     runtime {
             docker: "ezequieljsosa/reads_processing"
@@ -127,9 +113,6 @@ task alignment {
         java -jar $PICARD SortSam INPUT=mapped_reads.bam OUTPUT=sorted_reads.bam SORT_ORDER=coordinate
         rm mapped_reads.bam
         java -jar $PICARD MarkDuplicates INPUT=sorted_reads.bam OUTPUT=mapped_reads.bam METRICS_FILE=dedup.txt
-        java -jar $PICARD CollectInsertSizeMetrics I=sorted_reads.bam O=insert_size_metrics.txt H=insert_size_histogram.pdf M=0.5
-
-
 
         rm aligned_reads.bam unmapped_reads.bam aligned_reads.sam sorted_reads.bam
         java -jar $PICARD BuildBamIndex INPUT=mapped_reads.bam
@@ -140,7 +123,6 @@ task alignment {
         File mapped_bam = "mapped_reads.bam"
         File mapped_bam_idx = "mapped_reads.bai"
         File unmapped_1_fastq = "unmapped_1.fastq"
-        File insert_size_metrics = "insert_size_metrics.txt"
 	File unmapped_2_fastq = "unmapped_2.fastq"
 	File dedup = "dedup.txt"
 	File flagstat = "flagstat.txt"
@@ -160,7 +142,7 @@ task variant_call {
     command {
         java -jar /gatk/gatk-package-4.1.0.0-local.jar  HaplotypeCaller -ERC GVCF \
 	    -R ${reference_dir}/${reference_filename} -ploidy ${default=1 ploidy} \
-	    -I ${alignment_bam} --output-mode EMIT_ALL_SITES \
+	    -I ${alignment_bam} \
 	    -O raw.g.vcf.gz
     }
     output {
@@ -181,9 +163,9 @@ task genotype_gvcf {
     String? ploidy
 
     command {
-        java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs \
+        java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs -ploidy 1 \
 	    -R ${reference_dir}/${reference_filename} -ploidy ${default=1 ploidy} \
-	    -V ${gvcf}  \
+	    -V raw.g.vcf.gz  \
 	    -O output.vcf.gz
     }
     output {
@@ -194,6 +176,3 @@ task genotype_gvcf {
         docker: "broadinstitute/gatk:4.1.0.0"
     }
 }
-
-
-

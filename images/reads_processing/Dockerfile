@@ -16,8 +16,6 @@ RUN cd /app/ && wget http://cab.spbu.ru/files/release3.12.0/SPAdes-3.12.0-Linux.
 RUN cd /app/ && wget https://downloads.sourceforge.net/project/quast/quast-5.0.0.tar.gz && tar xfv quast-5.0.0.tar.gz && cd quast-5.0.0 && ./install.sh && ln -s /app/quast-5.0.0/quast.py /usr/local/bin
 RUN cd /app/ && wget https://github.com/broadinstitute/picard/releases/download/2.18.14/picard.jar
 RUN cd /app && wget https://mafft.cbrc.jp/alignment/software/mafft_7.407-1_amd64.deb && dpkg -i  mafft_7.407-1_amd64.deb
-RUN cd /app && wget https://github.com/broadinstitute/gatk/releases/download/4.0.11.0/gatk-4.0.11.0.zip \
-      && unzip gatk-4.0.11.0.zip
 RUN cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
 
 RUN apt-get update && apt install -y python-pip
@@ -26,11 +24,11 @@ RUN pip install tqdm pandas pyvcf hgvs biopython goatools bcbio-gff
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar
 ENV SNPEFF /app/snpEff/snpEff.jar
-ENV GATK /app/gatk-4.0.11.0/gatk-package-4.0.11.0-local.jar
+
 
 ADD run.sh /app
 
-RUN pip install sndg-bio==0.1.17
+RUN pip install sndg-bio==0.1.23
 
 
 #ENTRYPOINT ["/app/run.sh"]
