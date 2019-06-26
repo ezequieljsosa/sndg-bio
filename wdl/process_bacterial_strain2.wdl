@@ -8,11 +8,7 @@ workflow processBacterialStrain {
     File fastq2
 
     Int? headcrop
-    Int? crop
-    Int? windowsize
-    Int? windowqa
     Int? ploidy
-    Boolean callDeNovo
 
     call trimming {
         input:
@@ -20,9 +16,6 @@ workflow processBacterialStrain {
             fastq2=fastq2,
             cpus=cpus,
             headcrop=headcrop,
-            windowsize=windowsize,
-            windowqa=windowqa,
-            crop=crop,
     }
 
 
@@ -35,15 +28,17 @@ workflow processBacterialStrain {
             cpus=cpus  ,
 	    fastq1=trimming.trimmed1,
 	    fastq2=trimming.trimmed2,
+	    fastqs=trimming.singles,
     }
-    if(callDeNovo){
+
     call denovo {
             input:
                 fastq1=trimming.trimmed1,
                 fastq2=trimming.trimmed2,
+                fastqs=trimming.singles,
                 cpus=cpus,
         }
-    }
+
 
     #TODO http://qualimap.bioinfo.cipf.es/
 
@@ -70,10 +65,16 @@ workflow processBacterialStrain {
 task denovo {
     File fastq1
     File fastq2
+    File fastqs
     String cpus
 
     command {
-        spades.py --cov-cutoff 5 -t ${cpus} --pe1-1 ${fastq1} --pe1-2 ${fastq2} -o ./
+        singletons=""
+        if [ -z "${fastqs}" ]
+        then
+              singletons="--pe1-s ${fastqs}"
+        fi
+        spades.py --cov-cutoff 5 -t ${cpus} --pe1-1 ${fastq1} --pe1-2 ${fastq2} -o ./ $singletons
 
     }
     runtime {
@@ -91,15 +92,12 @@ task trimming {
     File fastq2
     String cpus
     Int? headcrop
-    Int? windowsize
-    Int? windowqa
-    Int? crop
 
     command {
         java -jar $TRIMMOMATIC PE -phred33 -threads ${cpus} ${fastq1} ${fastq2} 1.fastq.gz  1U.fastq.gz 2.fastq.gz 2U.fastq.gz \
 	ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq2-PE.fa:2:30:10  ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/NexteraPE-PE.fa:2:30:10 \
 	ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10 ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa:2:30:10  \
-	CROP:${default=300 crop}  HEADCROP:${default=18 headcrop}  TRAILING:3 SLIDINGWINDOW:${default=10 windowsize}:${default=5 windowqa} MINLEN:36
+	HEADCROP:${default=18 headcrop}  TRAILING:3 SLIDINGWINDOW:10:5 MINLEN:36
 	zcat 1U.fastq.gz  2U.fastq.gz > U.fastq
 	gzip U.fastq
 	rm 1U.fastq.gz  2U.fastq.gz
@@ -122,6 +120,7 @@ task alignment {
     String reference_filename
     File fastq1
     File fastq2
+    File? fastqs
 
     command {
 
@@ -131,29 +130,32 @@ task alignment {
         samtools view -@ ${cpus} -S -b -h aligned_reads.sam > aligned_reads.bam
         samtools flagstat -@ ${cpus} aligned_reads.bam > flagstat.txt
 
+        singletons=""
+        if [ -z "${fastqs}" ]
+        then
+               bwa mem -t ${cpus} -M -R '@RG\tID:group1\tSM:${strain}\tPL:illumina\\tLB:${species}' \
+                      ${reference_dir}/${reference_filename} ${fastqs}  > saligned_reads.sam
+               samtools view -@ ${cpus} -S -b -h saligned_reads.sam > saligned_reads.bam
+        fi
+
         samtools view -@ ${cpus} -F 4 -S -b -h aligned_reads.bam > mapped_reads.bam
         samtools view -@ ${cpus} -f 4 -S -b -h aligned_reads.bam > unmapped_reads.bam
         bedtools bamtofastq -i unmapped_reads.bam -fq unmapped_1.fastq -fq2 unmapped_2.fastq
 
-
         java -jar $PICARD SortSam INPUT=mapped_reads.bam OUTPUT=sorted_reads.bam SORT_ORDER=coordinate
         rm mapped_reads.bam
         java -jar $PICARD MarkDuplicates INPUT=sorted_reads.bam OUTPUT=mapped_reads.bam METRICS_FILE=dedup.txt
-
         java -jar $PICARD CollectInsertSizeMetrics I=mapped_reads.bam O=insert_size_metrics.txt H=insert_size_histogram.pdf M=0.5
-
-
 
         rm aligned_reads.bam unmapped_reads.bam aligned_reads.sam sorted_reads.bam
         java -jar $PICARD BuildBamIndex INPUT=mapped_reads.bam
-
 
     }
     output {
         File mapped_bam = "mapped_reads.bam"
         File mapped_bam_idx = "mapped_reads.bai"
         File unmapped_1_fastq = "unmapped_1.fastq"
-        File? insert_size_metrics = "insert_size_metrics.txt"
+        File insert_size_metrics = "insert_size_metrics.txt"
 	File unmapped_2_fastq = "unmapped_2.fastq"
 	File dedup = "dedup.txt"
 	File flagstat = "flagstat.txt"

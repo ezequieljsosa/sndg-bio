@@ -45,8 +45,9 @@ if __name__ == '__main__':
     if args.metadata:
         data = {}
         metadata = pd.read_csv(args.metadata)
-        metadata = metadata.fillna("")
         node_id = metadata.columns[0]
+        metadata = pd.read_csv(args.metadata, dtype={node_id: str})
+        metadata = metadata.fillna("")
 
         for c in metadata.columns:
             metadata[c] = metadata[c].astype(str)

@@ -41,7 +41,8 @@ RUN pip2 install matplotlib==2 scipy==1.2
 RUN pip2 install pyvcf
 RUN pip3 install pyvcf
 RUN pip2 install VCF-kit
-RUN pip3 install sndg-bio==0.1.25
+RUN pip3 install goatools
+RUN pip3 install sndg-bio==0.1.26
 RUN sed -i 's/np.set_printoptions(threshold=np.nan)/#np.set_printoptions(threshold=np.nan)/' /usr/local/lib/python2.7/dist-packages/vcfkit/utils/vcf.py
 
 #ENTRYPOINT ["/app/run.sh"]

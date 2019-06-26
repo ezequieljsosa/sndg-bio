@@ -3,6 +3,7 @@
 
 import sys
 import re
+import traceback
 import os
 from tqdm import tqdm
 from glob import glob
@@ -15,12 +16,11 @@ import subprocess as sp
 
 def process_sample(sample_name, fastq1, fastq2, cpus, reference_filename, reference_directory,
                    organism_name, cromwell, wdl_geno, wdl_filter, output_dir, without_filter,
-                   headcrop=18):
+                   headcrop=18,crop=300,windowsize=10,windowqa=5,callDeNovo=True):
     sample_dir = os.sep.join([output_dir, sample_name])
     if not os.path.exists(sample_dir):
         os.makedirs(sample_dir)
 
-    # Create input
     input_json = {
         "processBacterialStrain.strain": sample_name,
         "processBacterialStrain.fastq1": fastq1,
@@ -29,7 +29,13 @@ def process_sample(sample_name, fastq1, fastq2, cpus, reference_filename, refere
         "processBacterialStrain.reference_filename": reference_filename,
         "processBacterialStrain.species": organism_name,
         "processBacterialStrain.cpus": str(cpus),
-        "processBacterialStrain.headcrop":headcrop
+        "processBacterialStrain.headcrop":headcrop,
+        "processBacterialStrain.crop":crop,
+        "processBacterialStrain.windowsize":windowsize,
+        "processBacterialStrain.windowqa":windowqa,
+        "processBacterialStrain.callDeNovo":callDeNovo,
+
+
     }
     input_json_path = os.sep.join([output_dir, sample_name, "in.json"])
     with open(input_json_path, "w") as h:
@@ -81,16 +87,23 @@ def with_filter(cromwell, sample_dir,sample_name, reference_directory, reference
 def collect_results(stdout_file, sample_dir):
     with open(stdout_file) as h:
         outstr = h.read()
+    if "Final Outputs:" not in outstr:
+        raise Exception("pipeline did not finished correctly")
     output = outstr.split("Final Outputs:")[1].split("\n}\n")[0] + "}"
 
     output = json.loads(output)
 
     for k, outfile in output.items():
-        task = k.split(".")[1]
-        task_dir = os.sep.join([sample_dir, task])
-        if not os.path.exists(task_dir):
-            os.makedirs(task_dir)
-        sp.run(["ln", outfile, task_dir], stdout=sys.stderr)
+        try:
+            if outfile:
+                task = k.split(".")[1]
+                task_dir = os.sep.join([sample_dir, task])
+                if not os.path.exists(task_dir):
+                    os.makedirs(task_dir)
+                sp.run(["ln", outfile, task_dir], stdout=sys.stderr)
+        except:
+            sys.stderr.write("Error linking outputs '%s' \n" % outfile)
+            raise
     return output
 
 
@@ -113,8 +126,13 @@ if __name__ == "__main__":
     parser.add_argument('--wdl_filter', default="./filter_bacterial_variants.wdl")
 
     parser.add_argument('-o', "--output_dir", default="./results", help="output directory")
-    parser.add_argument('--without_filter', action='store_false')
+
     parser.add_argument('--headcrop', default=18, help="bases to remove from the start of the read - usually affected by gc bias")
+    parser.add_argument('--crop', default=300, help="max read length")
+    parser.add_argument('--windowsize', default=10, help="window to crop low quality bases")
+    parser.add_argument('--windowqa', default=5, help="phred score mean for the window")
+    parser.add_argument('--without_filter', action='store_true')
+    parser.add_argument('--denovo', action='store_true')
 
 
 
@@ -149,15 +167,15 @@ if __name__ == "__main__":
                     process_sample(sample_name, fastqs[0], fastqs[1], args.cpus, args.reference_filename,
                                    args.reference_directory,
                                    args.organism_name, args.cromwell, args.wdl_geno, args.wdl_filter, args.output_dir,
-                                   args.without_filter,args.headcrop)
+                                   args.without_filter,args.headcrop,args.crop,args.windowsize,args.windowqa,args.denovo)
 
                 elif (not args.without_filter) and os.path.exists(out_geno) and not os.path.exists(out_filter):
                     print("NO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                     # with_filter(args.cromwell, sample_name, args.reference_directory, args.reference_filename,
                     #             out_geno, out_geno + ".tbi", args.wdl_filter, args.output_dir)
 
-
             except Exception as ex:
+                traceback.print_exc(file=sys.stderr)
                 sys.stderr.write("error processing %s (%s)\n" % (sample_name, str(ex)))
         else:
             sys.stderr.write("%s has only one fastq\n" % sample_name)

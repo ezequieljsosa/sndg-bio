@@ -3,19 +3,21 @@
 """
 import os
 import subprocess as sp
-
+import sys
 import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
-
+import glob
 from SNDG import execute
 from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 import pysam
 import Bio.SeqIO as bpio
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from collections import Counter
 
-def validate_variant_fn(sample_data,min_depth=30):
+
+def validate_variant_fn(sample_data, min_depth=30):
     has_depth = hasattr(sample_data, "AD") and sample_data.DP
     depth = False
     if hasattr(sample_data, "AD") and isinstance(sample_data.AD, list):
@@ -58,6 +60,79 @@ df = gvcf.build_table()
     """
 
     @staticmethod
+    def get_base(chrom, pos, samfile, mincount=5, min_mapq=15):
+
+        pos = pos - 1
+        # nofilter
+        i = samfile.pileup(chrom, pos, pos + 1, mapq=min_mapq,
+                           stepper="nofilter", truncate=True,
+                           min_base_quality=15)
+
+        data = []
+        try:
+            pileupcolumn = next(i)
+
+            for pileupread in pileupcolumn.pileups:
+
+                if not pileupread.is_del and not pileupread.is_refskip:
+                    # pileupread.alignment.qname == "HWI-1KL178:96:H5H5WADXX:1:1214:7738:39187"
+                    # pileupread.alignment.query_alignment_qualities
+                    base = pileupread.alignment.query_sequence[pileupread.query_position]
+                    data.append(base)  # if not pileupread.alignment.is_reverse else str(Seq(base).reverse_complement())
+        except StopIteration:
+            pass
+        counter = Counter(data)
+
+        base, count = sorted(counter.items(), key=lambda k_v: k_v[1])[-1] if counter else (None,{})
+
+        return (base, counter) if count >= mincount else (None, counter)
+
+    @staticmethod
+    def complete_vcf_with_bams(vcf_path, bams_paths, extract_bam_fn=lambda path: path.split(os.path.sep)[-3],
+                               stdout=sys.stdout):
+        total_variants = int(sp.check_output('grep -vc "^#" ' + vcf_path, shell=True))
+        with open(vcf_path) as h:
+            last = None
+            for line in h:
+                if line.startswith("#"):
+                    stdout.write(line)
+                    last = line.split("\t")
+                else:
+                    break
+        samples = [x.split(".variant")[0] for x in last[9:]]
+
+        bams_dict = {}
+        for path in glob.glob(bams_paths):
+            sample = extract_bam_fn(path)
+            bams_dict[sample] = pysam.AlignmentFile(path, "r")
+        for s in samples:
+            assert s in bams_dict, "bam for %s not found" % s
+
+        with open(vcf_path) as h:
+            for line in tqdm(h, file=sys.stderr, total=total_variants):
+                if line.startswith("#"):
+                    continue
+                record = line.split("\t")
+                new_samples = [x.strip() for x in record[:9]]
+                for sample_idx, genotype in enumerate(record[9:]):
+                    if genotype in ["./.", "."] and (len(record[3]) == 1) and (len(record[4]) == 1):
+                        base, counter = VariantSet.get_base(record[0], int(record[1]), bams_dict[samples[sample_idx]])
+                        if base:
+                            if base == record[3]:
+                                gt = "0"
+                            elif base in record[4].split(","):
+                                gt = str(record[4].split(",").index(base) + 1)
+                            else:
+                                gt = str(1 + len(record[4].split(",")))
+                                record[4] = record[4] + "," + base
+                            new_samples.append(gt + "/" + gt)
+                        else:
+                            new_samples.append(genotype)
+                    else:
+                        new_samples.append(genotype)
+                stdout.write("\t".join(new_samples) + "\n")
+
+    @staticmethod
     def create_gvcf(vcfs_path_list, gvcf_path, ref_path):
         """
 
@@ -89,7 +164,7 @@ df = gvcf.build_table()
         self.default_not_called_fn = lambda cov_ref, cov_alt: cov_ref < 30 or (
                 (cov_ref * 1.0 / (cov_alt + cov_ref)) < 0.75)
 
-    def build_table(self, keep_all=False,min_depth=30):
+    def build_table(self, keep_all=False, min_depth=30):
         class Empty:
             pass
 
@@ -136,7 +211,7 @@ df = gvcf.build_table()
                         vresult[sample_name + "_ada"] = 0
                         vresult[sample_name + "_adr"] = 0
 
-                    if self.validate_variant_fn(sample.data,min_depth):
+                    if self.validate_variant_fn(sample.data, min_depth):
                         vresult[sample_name] = alt
                     else:
                         vresult[sample_name] = self.default_value_fn(variant, sample, alt, dict(vresult))
@@ -210,25 +285,25 @@ df = gvcf.build_table()
 
         return df[columns + samples]
 
-    def aln(self,aln,txt="/tmp/samples.txt",ref=None):
+    def aln(self, aln, txt="/tmp/samples.txt", ref=None):
 
-        ref = str(bpio.read(ref,"fasta").seq)
+        ref = str(bpio.read(ref, "fasta").seq)
         if not os.path.exists(txt):
             df = self.build_table()
             df.to_csv(txt)
         else:
             df = pd.read_csv(txt)
             df = df.fillna("")
-        samples = [c for c in df.columns if c not in ["chrom","pos","ref",'Unnamed: 0',"gene","impact","type",]
-                   and  ("_ada" not in c) and ("_adr" not in c)]
+        samples = [c for c in df.columns if c not in ["chrom", "pos", "ref", 'Unnamed: 0', "gene", "impact", "type", ]
+                   and ("_ada" not in c) and ("_adr" not in c)]
 
         seqmap = {s: "" for s in samples}
         total = len(df)
         base_idx = 0
         for _, r in tqdm(df.sort_values("pos").iterrows(), total=total):
-            pos_size = max([len(r[x]) for x in samples ])
+            pos_size = max([len(r[x]) for x in samples])
             for s in samples:
-                subseq = ref[base_idx:r.pos] +  r[s].ljust(pos_size, "-")
+                subseq = ref[base_idx:r.pos] + r[s].ljust(pos_size, "-")
                 seqmap[s] += subseq
             base_idx = r.pos + len(r.ref)
 
@@ -353,8 +428,12 @@ if __name__ == '__main__':
         return alt
 
 
-    vs = VariantSet("/mnt/data2/data/projects/23staphylo_old/external/sordelli/variant_call/cohort.g.vcf")
-    # vs.default_not_called_fn = default_not_called_fn
-    vs.default_value_fn = default_value_fn
-
-    df = vs.build_table()
+    # vs = VariantSet("/mnt/data2/data/projects/23staphylo_old/external/sordelli/variant_call/cohort.g.vcf")
+    # # vs.default_not_called_fn = default_not_called_fn
+    # vs.default_value_fn = default_value_fn
+    #
+    # df = vs.build_table()
+    with open("/tmp/imputed.vcf", "w") as h:
+        VariantSet.complete_vcf_with_bams("/home/eze/projects/ST5/processed/groups/arg_chi/all.vcf",
+                                          "/home/eze/projects/ST5/processed/strains/*/alignment/mapped_reads.bam",
+                                          stdout=h)

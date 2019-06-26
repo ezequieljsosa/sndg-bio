@@ -12,7 +12,7 @@ warnings.simplefilter('ignore', BiopythonParserWarning)
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.25'
+__version__ = '0.1.26'
 
 _log = logging.getLogger(__name__)
 
