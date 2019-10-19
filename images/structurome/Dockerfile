@@ -2,9 +2,7 @@ FROM ubuntu:16.04
 
 WORKDIR /app
 
-#ENV http_proxy http://proxy.fcen.uba.ar:8080
-#ENV https_proxy http://proxy.fcen.uba.ar:8080
-#ENV ftp_proxy http://proxy.fcen.uba.ar:8080
+
 # docker build -t structurome --build-arg=http_proxy=http://proxy.fcen.uba.ar:8080 --build-arg=https_proxy=http://proxy.fcen.uba.ar:8080  --build-arg=ftp_proxy=http://proxy.fcen.uba.ar:8080 .
 
 RUN apt-get update && apt-get install -y python-tk python-pip libnetcdf-dev \
@@ -41,6 +39,7 @@ RUN pip install sndg-bio==0.1.16
 ENV PYTHONPATH=/app/structurome/:/opt/qmean/lib64/qmean:/opt/ost/lib64/python2.7/site-packages/:/opt/ost/
 ENV LD_LIBRARY_PATH=/opt/ost/lib64/:/opt/qmean/lib64/
 
+WORKDIR /out
 
 ENTRYPOINT ["/app/run.sh"]
 CMD ["xxx"]

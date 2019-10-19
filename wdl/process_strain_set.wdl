@@ -163,7 +163,7 @@ task genotype_gvcf {
     String? ploidy
 
     command {
-        java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs -ploidy 1 \
+        java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs  \
 	    -R ${reference_dir}/${reference_filename} -ploidy ${default=1 ploidy} \
 	    -V raw.g.vcf.gz  \
 	    -O output.vcf.gz

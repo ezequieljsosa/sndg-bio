@@ -171,7 +171,7 @@ task variant_call {
     String? ploidy
 
     command {
-        java -jar /gatk/gatk-package-4.1.0.0-local.jar  HaplotypeCaller -ERC GVCF \
+         java -jar /gatk/gatk-package-4.1.0.0-local.jar  HaplotypeCaller -ERC GVCF \
 	    -R ${reference_dir}/${reference_filename} -ploidy ${default=2 ploidy} \
 	    -I ${alignment_bam} --output-mode EMIT_ALL_SITES \
 	    -O raw.g.vcf.gz
@@ -195,7 +195,6 @@ task genotype_gvcf {
 
     command {
         java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs \
-	    -R ${reference_dir}/${reference_filename} -ploidy ${default=2 ploidy} \
 	    -V ${gvcf}  \
 	    -O output.vcf.gz
     }

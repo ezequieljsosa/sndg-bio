@@ -374,7 +374,7 @@ if __name__ == '__main__':
 
     mdb.load_metadata("Kp13", "/home/eze/workspace/kp13/metadata.tbl")
 
-    # tax_db.initialize(MySQLDatabase('biosql', user='root', passwd="mito"))
+    # tax_db.initialize(MySQLDatabase('bioseq', user='root', passwd="mito"))
     #     bacs = []
     #     ts = []
     #     for x in open("/data/databases/biocyc/metacyc/pathways.dat"):

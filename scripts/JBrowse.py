@@ -211,7 +211,7 @@ class JBrowse(object):
 
 if __name__ == "__main__":
     init_log()
-    #     sqldb = BiaSql("biosql",user="root",passwd="mito")
+    #     sqldb = BiaSql("bioseq",user="root",passwd="mito")
     #     for i,x in enumerate(ExternalAssembly.select().where(ExternalAssembly.genome.is_null() )):
     #         print ( "procesando: " +  str(i))
     #         mdb = BioMongoDB("saureus")

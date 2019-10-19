@@ -2,7 +2,7 @@ import logging
 import traceback
 from termcolor import colored
 
-_log = logging.getLogger('py.Analysis')
+_log = loggin.getLogger('py.Analysis')
 
 def execute(cmd_unformated,wd="./",retcodes=[0], **kargs):
     cmd = "cd " + wd + ";" + cmd_unformated.format(**kargs)

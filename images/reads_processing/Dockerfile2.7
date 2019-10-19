@@ -19,18 +19,18 @@ RUN cd /app && wget https://mafft.cbrc.jp/alignment/software/mafft_7.407-1_amd64
 RUN cd /app && rm *.zip && rm *.gz && rm *.deb && rm *.bz2
 
 RUN apt-get update && apt install -y python3-pip
-RUN pip3 install numpy
-RUN pip3 install pandas
-RUN pip3 install scipy
-RUN pip3 install tqdm
-RUN pip3 install pyvcf 
-RUN pip3 install biopython
-RUN pip3 install goatools
-RUN pip3 install bcbio-gff
-RUN pip3 install "websockets<8"
-RUN pip3 install hgvs
+RUN pip install "numpy<1.15" 
+RUN pip install "pandas<0.25" 
+RUN pip install "scipy<0.17" 
+RUN pip install tqdm
+RUN pip install pyvcf 
+RUN pip install biopython
+RUN pip install goatools
+RUN pip install bcbio-gff
+RUN pip install "websockets<6"
+RUN pip install hgvs
 
-RUN wget -O prinseq-lite-0.20.4.tar.gz https://sourceforge.net/projects/prinseq/files/standalone/prinseq-lite-0.20.4.tar.gz/download && tar xfv prinseq-lite-0.20.4.tar.gz && ln -s /app/prinseq-lite-0.20.4/prinseq-lite.pl /usr/local/bin/ && chmod +x /usr/local/bin/prinseq-lite.pl
+RUN wget -O prinseq-lite-0.20.4.tar.gz https://sourceforge.net/projects/prinseq/files/standalone/prinseq-lite-0.20.4.tar.gz/download && tar xfv prinseq-lite-0.20.4.tar.gz && ln -s /app/prinseq-lite-0.20.4/prinseq-lite.pl /usr/local/bin/
 
 ENV TRIMMOMATIC /app/Trimmomatic-0.38/trimmomatic-0.38.jar
 ENV PICARD /app/picard.jar
@@ -39,7 +39,7 @@ ENV SNPEFF /app/snpEff/snpEff.jar
 
 ADD run.sh /app
 
-RUN pip3 install sndg-bio==0.1.23
+RUN pip install sndg-bio==0.1.23
 
 
 #ENTRYPOINT ["/app/run.sh"]

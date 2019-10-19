@@ -31,7 +31,7 @@ class SBMLProcessor(object):
         reg = r'\((.*?)\)'
         # self.fn_extract_genes = lambda x: [y.strip().replace("(", "").replace(")", "").replace("</p>", "") for y in
         #                                    x.split() if y.strip() and y.strip() != 'GENE_ASSOCIATION:' and y != "or"]
-        self.fn_extract_genes = lambda x: re.findall(reg,x)
+        self.fn_extract_genes = lambda x: re.findall(reg, x)
         self.graph = nx.DiGraph()
         self.pathways = {}
         self.genes = {}
@@ -147,13 +147,76 @@ class SBMLProcessor(object):
                                                         self.decode_sbml(reaction2.getName()),
                                                         linkedby=self.decode_sbml(element1.species))
 
-    def toSIF(self, filename):
+    def toSIF(self, filename, cc=False):
+
+        if cc:
+            g = self.graph.subgraph(
+                sorted([(x, len(x)) for x in nx.connected_components(self.graph)], key=lambda y: y[0])[0][0])
+        else:
+            g = self.graph
+
         with open(filename, "w") as filehandler:
-            for reaction in self.sbmlprocessor.graph.nodes_iter(data=False):
-                successors = self.sbmlprocesor.graph.successors(reaction)
-                if successors:
-                    for reaction2 in successors:
-                        link = reaction.id + "\tlinkedWith\t" + reaction2.id;
-                        print >> filehandler, self.decode_sbml(link);
-                else:
-                    print  >> filehandler, self.decode_sbml(reaction.id);
+            for reaction,reaction2 in g.edges:
+                link = reaction + "\tlinkedWith\t" + reaction2;
+                print >> filehandler, self.decode_sbml(link);
+                    # else:
+                    #     print  >> filehandler, self.decode_sbml(reaction.id);
+
+"""Reactions graph
+from networkx.algorithms import bipartite
+document = readSBML("./pathways-sm.sbml");
+model = document.getModel() 
+
+reacts = []                               
+comps = []           
+edges = []                                                                                
+for reaction in model.getListOfReactions():                  
+    r = decode_sbml(reaction.getName())                                                    
+    reacts.append(  r )                           
+    for s in reaction.getListOfProducts():                
+        s = decode_sbml(s.getSpecies())    
+        if s.lower() not in exclude:
+            comps.append(s)               
+            edges.append( (r,s,) )         
+    for s in reaction.getListOfReactants():
+        s = decode_sbml(s.getSpecies())
+        if s.lower() not in exclude:
+            comps.append(s)
+            edges.append( (s,r,) )
+                 
+g = nx.DiGraph()
+g.add_nodes_from(reacts, bipartite=0)
+g.add_nodes_from(comps, bipartite=1)
+g.add_edges_from(edges)
+
+
+production = []
+consuption = []
+for x in comps:
+    if g.out_degree(x) == 1:
+        e = list(g.out_edges(x))[0]
+        consuption.append(e[1])
+    if g.in_degree(x) == 1:
+        e = list(g.in_edges(x))[0]
+        production.append(e[0])
+        
+double = set(production) & set(consuption)
+production = set(production) - double
+consuption = set(consuption) -double
+print("Double")
+print(double)
+print("Prod")
+print(production)
+print("Consu")
+print(consuption)
+
+"""
+
+
+if __name__ == "__main__":
+    sbml = SBMLProcessor()
+    sbml.sbml_file_path = "./bartonella_SBML"
+    sbml.init()
+    sbml.create_filter("./allfilters_con_c.dat")
+    sbml.process_sbml()
+    sbml.toSIF("fede_sif.txt")

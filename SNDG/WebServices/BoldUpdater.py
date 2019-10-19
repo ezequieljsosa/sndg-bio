@@ -19,7 +19,7 @@ class Bold(object):
         self.dbname = db
         self.datadir = datadir
 
-    def download(self,config,datadir):   
+    def download(self,datadir):
         self.bolddir = datadir + "bold/"
     
         if not os.path.exists(self.bolddir):

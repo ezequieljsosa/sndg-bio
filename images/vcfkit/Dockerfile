@@ -42,8 +42,21 @@ RUN pip2 install pyvcf
 RUN pip3 install pyvcf
 RUN pip2 install VCF-kit
 RUN pip3 install goatools
+
+RUN apt-get install -y wget nano ncbi-blast+
+RUN  cd /app/ && wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && tar xfv samtools-1.9.tar.bz2 && cd samtools-1.9 && ./configure  --without-curses && make && make install
+RUN  cd /app/ && wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2 && tar xfv bcftools-1.9.tar.bz2 && cd bcftools-1.9 && ./configure && make && make install
+RUN cd /app/ && wget -O bwa-0.7.17.tar.bz2 https://sourceforge.net/projects/bio-bwa/files/bwa-0.7.17.tar.bz2/download && tar xfv bwa-0.7.17.tar.bz2 && cd bwa-0.7.17 && make && ln -s /app/bwa-0.7.17/bwa /usr/local/bin
+RUN apt-get -y install tabix
+RUN apt-get -y install primer3
+
+
 RUN pip3 install sndg-bio==0.1.26
 RUN sed -i 's/np.set_printoptions(threshold=np.nan)/#np.set_printoptions(threshold=np.nan)/' /usr/local/lib/python2.7/dist-packages/vcfkit/utils/vcf.py
+RUN sed -i 's/np.set_printoptions(threshold=np.nan)/#np.set_printoptions(threshold=np.nan)/' /usr/local/lib/python2.7/dist-packages/vcfkit/utils/primer_vcf.py
+RUN sed -i 's/^primer3_config = /primer3_config = "\/etc\/primer3_config\/" #/' /usr/local/lib/python2.7/dist-packages/vcfkit/utils/primer3.py
+
+
 
 #ENTRYPOINT ["/app/run.sh"]
 WORKDIR /out

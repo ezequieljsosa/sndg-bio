@@ -59,14 +59,20 @@ class BBH:
 
 
 if __name__ == '__main__':
-    import itertools
     import os
+    import argparse
 
-    # os.chdir("/mnt/Data/data/organismos/ILEX_PARA/blast")
-    for x, y in itertools.product(["Genome", "Arabidopsis"], ["DEG", "KOG", "BUSCO"]):
-        file_path1 = x + "_" + y + "2.blastout"
-        file_path2 = y + "_" + x + "2.blastout"
-        print (x, y)
-        data = BBH.bbhs_from_blast(file_path1, file_path2, ident_threshold=0.8)
-        data = set([x for x, y in data])
-        print  len(data)
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-f1','--file_path1', required=True)
+    parser.add_argument('-f2','--file_path2', required=True)
+    parser.add_argument('-i','--ident_threshold', default=0.9)
+
+    args = parser.parse_args()
+
+    data = BBH.bbhs_from_blast(args.file_path1, args.file_path2, ident_threshold=args.ident_threshold)
+
+
+    for x,y in data:
+        print(x + "\t" + y)
+
+

@@ -177,7 +177,7 @@ class PathwaysAnnotator(object):
             self.sbmlprocessor.init()
             self.sbmlprocessor.create_filter(self.work_dir + "/")
         else:
-            self.sbmlprocessor.filter_filename =  self.work_dir + "/" + self.sbmlprocessor.filter_filename
+            self.sbmlprocessor.filter_filename = self.work_dir + "/" + self.sbmlprocessor.filter_filename
             self.sbmlprocessor.init()
 
         self.sbmlprocessor.process_sbml()
@@ -237,15 +237,17 @@ class PathwaysAnnotator(object):
     def init(self):
         self.chokepoints()
         ccs = list(connected_components(self.sbmlprocessor.graph.to_undirected()))
-        cp = sorted(ccs,key=lambda x:len(x))[-1]
+        cp = sorted(ccs, key=lambda x: len(x))[-1]
         centrality_json = self.work_dir + "/centrality.json"
         if os.path.exists(centrality_json):
             self.centrality = json.load(open(centrality_json))
         else:
             self.centrality = {x: 0 for x in self.sbmlprocessor.graph.nodes()}
+            cc = sorted(nx.connected_components(self.sbmlprocessor.graph.to_undirected()), key=lambda x: len(x))[-1]
+            g2 = self.sbmlprocessor.graph.to_undirected().subgraph(cc)
             self.centrality = {x: (y if x in cp else 0) for x, y in
-                           betweenness_centrality(self.sbmlprocessor.graph).items()}
-            json.dump(self.centrality,open(centrality_json,"w"))
+                               betweenness_centrality(g2).items()}
+            json.dump(self.centrality, open(centrality_json, "w"))
 
     def annotate(self):
         if not os.path.exists(self.work_dir + "/pathways.dat"):
@@ -378,3 +380,19 @@ class PathwaysAnnotator(object):
             pw_obj = PathwaySumary(term=pw, name=name, count=pws_dict[pw]["genes"], properties=pws_dict[pw])
 
             self.pathways.append(pw_obj)
+
+
+if __name__ == "__main__":
+    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+    from SNDG.BioMongo.Process.Importer import _common_annotations, _protein_iter, import_kegg_annotation, \
+        index_seq_collection, build_statistics, load_pathways
+
+    mdb = BioMongoDB("tdr",port=27018)
+    # ps = PathwaysAnnotator(mdb.db, "SaureusN315", "/data/organismos/SaureusN315/pathways/")
+    # ps.sbml("Red_Staphylo_Curada_rs.sbml")
+    # ps.species_filter("allfilters_con_c.dat")
+    # ps.extract_genes_from_notes(lambda notes: gene_name_regexp.findall(notes))
+    # ps.annotate()
+    # index_seq_collection(mdb.db, "SaureusN315", pathways=True, go=True, keywords=True, ec=True, organism_idx=True,
+    #                      structure=False)
+    build_statistics(mdb.db, "SaureusN315")
