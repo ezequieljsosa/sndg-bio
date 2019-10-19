@@ -31,7 +31,7 @@ if __name__ == '__main__':
             # links = Entrez.read(Entrez.elink(dbfrom="genome", id=genome["Id"], linkname="genome_assembly"))
             # links[0]["LinkSetDb"]
             pbar1.set_description(genome["Organism_Name"])
-            query = '"%s"[Organism] AND ((latest[filter] OR "latest refseq"[filter]) AND all[filter] NOT anomalous[filter])'
+            query = '"%s"[Organism] AND ((latest[filter] AND "latest refseq"[filter]) AND all[filter] NOT anomalous[filter])'
             query = query % genome["Organism_Name"]
 
             try:

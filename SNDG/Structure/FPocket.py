@@ -193,7 +193,7 @@ class FPocket(object):
     def hunt_pockets(self):
         cmd = "{fpocket} -f {pdb_file}".format(fpocket=self.fpocket_binary, pdb_file=self.pdb_file_path)
         self._execute(cmd)
-        if self._pdb_file_directory != self.work_directory:
+        if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
             if os.path.exists(self.dest_path()):
                 shutil.rmtree(self.dest_path(), True)
             work_dir = self._pdb_file_directory + "/" + self._out_directory()
@@ -211,7 +211,7 @@ class FPocket(object):
         _log.debug("Running: " + command)
         try:
             subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             _log.fatal("nCmd error:" + e.output)
             raise
         _log.debug("Command: " + command + "---- Executed correctly")
@@ -289,4 +289,4 @@ if __name__ == '__main__':
                 res = fpo.hunt_pockets()
                 res.save(pocket_data)
         except Exception as e:
-            print e
+            print (e)

@@ -20,7 +20,7 @@ def save_sequences(strain):
     list_of_lists = [sequencesList[i:i+n] for i in range(0, len(sequencesList), n)]
     def seq_iterator():
         for seq_ids in list_of_lists:
-            handle = Entrez.efetch(db="nuccore", id=",".join(seq_ids), rettype="gb", retmode="text")
+            handle = Entrez.efetch(db="nuccore", id=",".join(seq_ids), rettype="gbwithparts", retmode="text")
             for seq in SeqIO.parse(handle, "genbank"):
                 yield seq
 
@@ -80,4 +80,7 @@ if __name__ == '__main__':
                                 if strain.acc in server:
                                     server.remove_database(strain.acc)
                                     server.commit()
+                                mysql_db = MySQLDatabase('bioseqdb', user="root", password="mito")
+                                server = BioSeqDatabase.open_database(driver="MySQLdb", user="root",
+                                                                      passwd="mito", host="localhost", db="bioseqdb")
 

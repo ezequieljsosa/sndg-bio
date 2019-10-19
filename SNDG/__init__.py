@@ -18,6 +18,7 @@ _log = logging.getLogger(__name__)
 
 test_execution = []
 
+
 def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
     default_formatter = logging.Formatter(log_format)
     console_handler = logging.StreamHandler()
@@ -34,9 +35,9 @@ def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
     root.setLevel(rootloglevel)
 
 
-def execute(cmd_unformated,wd="./", **kargs):
+def execute(cmd_unformated, wd="./", **kargs):
     cmd = "cd " + wd + ";" + cmd_unformated.format(**kargs)
-    _log.debug( cmd)
+    _log.debug(cmd)
     try:
         if not test_execution:
             sp.check_output(cmd, shell=True, stderr=sp.STDOUT)
@@ -67,7 +68,12 @@ class Struct:
         self.__dict__.update(entries)
 
 
-from itertools import izip_longest
+try:
+    from itertools import izip_longest
+except:
+    from itertools import zip_longest
+
+    izip_longest = zip_longest
 
 
 def grouper(iterable, n, fillvalue=None):
