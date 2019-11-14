@@ -1,0 +1,4 @@
+# BUSCO version is: 3.1.0 
+# The lineage dataset is: fungi_odb9 (Creation date: 2016-02-13, number of species: 85, number of BUSCOs: 290)
+# To reproduce this run: python /busco/scripts/run_BUSCO.py -i augustus.hints.aa -o busco_search_alt -l fungi_odb9/ -m proteins -c 3
+#

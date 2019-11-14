@@ -51,7 +51,7 @@ class Uniprot2(object):
         Constructor
         '''
         self.mdb = "saureus"
-        self.sqldb = "biosql"
+        self.sqldb = "bioseq"
         
         Entrez.email = 'A.N.Other@example.com' 
         self.ncbi = NCBI()
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     dep.mdb = "saureus"
     #dep.annotation_tax = "158879"
     dep.init()
-    tax_db.initialize(MySQLDatabase('biosql', user='root',passwd="mito"))
+    tax_db.initialize(MySQLDatabase('bioseq', user='root',passwd="mito"))
     
     
 

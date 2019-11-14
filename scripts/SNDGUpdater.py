@@ -99,7 +99,7 @@ with open("/data/databases/sndg/nucleotides.fasta","w") as h:
                                              seq=Seq(seq)), h, "fasta")
         execute("makeblastdb -dbtype prot -in " + structures_path)
 
-        # cnx = connector.connect(user='root', database='biosql',password='mito')
+        # cnx = connector.connect(user='root', database='bioseq',password='mito')
         # try:
         #     nucleotides_path = "/data/databases/sndg/nucleotides.fasta"
         #     with open(nucleotides_path,"w") as h:

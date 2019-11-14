@@ -193,8 +193,8 @@ basepath = "/mnt/Data/data/organismos/Ainsu/estructura/raw/results/"
 
 
 # index_seq_collection(mdb.db,name,pathways=False,go=False,keywords=False,ec=False,organism_idx=False,structure=True)
-# load_pathways(name, "/data/organismos/Ainsu/annotation/pwtools/small_molecule.sbml", mdb.db,
-#               "/data/organismos/Ainsu/annotation/pathways",
-#               gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
+load_pathways(name, "/data/organismos/Ainsu/annotation/pwtools/small_molecule.sbml", mdb.db,
+              "/data/organismos/Ainsu/annotation/pathways",
+              gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
 # index_seq_collection(mdb.db,name,pathways=True,go=True,keywords=True,ec=True,organism_idx=True,structure=False)
 # build_statistics(mdb.db,name)
