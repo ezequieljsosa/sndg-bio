@@ -10,9 +10,6 @@ import os
 import subprocess as sp
 import sys
 
-from peewee import ForeignKeyField, CharField, Model, BooleanField, \
-    DateTimeField, CompositeKey, IntegerField,ManyToManyField,TextField
-from peewee import Proxy
 from tqdm import tqdm
 
 from Bio import Entrez
@@ -23,31 +20,39 @@ mysql_db = Proxy()
 
 ftp_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all"
 
+try:
+    from peewee import ForeignKeyField, CharField, Model, BooleanField, \
+        DateTimeField, CompositeKey, IntegerField,ManyToManyField,TextField
+    from peewee import Proxy
 
-class Submitter(Model):
-    '''
+    class Submitter(Model):
+        '''
 
-    '''
+        '''
 
-    # parent = ForeignKeyField('self', related_name='children')
-    name = CharField()
-    source = CharField()  # ncbi embl bold ...
-    rejected = BooleanField(default=False)
-    created = DateTimeField(default=datetime.datetime.now)
-    modified = DateTimeField()
+        # parent = ForeignKeyField('self', related_name='children')
+        name = CharField()
+        source = CharField()  # ncbi embl bold ...
+        rejected = BooleanField(default=False)
+        created = DateTimeField(default=datetime.datetime.now)
+        modified = DateTimeField()
 
-    def save(self, *args, **kwargs):
-        self.modified = datetime.datetime.now()
-        return super(Submitter, self).save(*args, **kwargs)
+        def save(self, *args, **kwargs):
+            self.modified = datetime.datetime.now()
+            return super(Submitter, self).save(*args, **kwargs)
 
-    class Meta:
-        database = mysql_db
+        class Meta:
+            database = mysql_db
 
-    def __repr__(self):
-        return self.__str__()
+        def __repr__(self):
+            return self.__str__()
 
-    def __str__(self):
-        return str(self.__data__)
+        def __str__(self):
+            return str(self.__data__)
+
+except:
+    logging.warn("pewee not loaded")
+    pass
 
 
 class ExternalResource(Model):
