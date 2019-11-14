@@ -1,9 +1,0 @@
-# Original release date: 2016-11-01
-
-# Update date: 2017-02-13
-# Changes: 
-#	1- fixed metadata ("ogs.id.info") -- removed entries not corresponding to BUSCO IDs
-
-# Update date: 2017-01-26
-# Changes: fixed issue with "ancestral_variants" file
-
