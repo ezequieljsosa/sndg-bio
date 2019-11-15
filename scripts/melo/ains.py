@@ -10,11 +10,11 @@ import Bio.SeqIO as bpio
 from tqdm import tqdm
 import json
 
-logging.getLogger("peewee").setLevel(logging.WARN)
-from peewee import MySQLDatabase
-from SNDG.BioMongo.Process.Taxon import tax_db
+
+
+
 from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
-from SNDG.Sequence.ProteinAnnotator import ProteinAnnotator, Mapping
+
 from SNDG.BioMongo.Process.Importer import from_ref_seq, update_proteins, import_prop_blast
 from SNDG.BioMongo.Process.BioDocFactory import BioDocFactory
 from SNDG.BioMongo.Model.Protein import Protein
@@ -22,25 +22,28 @@ from SNDG.Network.KEGG import Kegg
 from SNDG.BioMongo.Process.Importer import _common_annotations, _protein_iter, import_kegg_annotation, \
     index_seq_collection, build_statistics, load_pathways
 from BCBio import GFF
-from SNDG.BioMongo.Process.Taxon import Tax
+
 from SNDG.BioMongo.Model.Structure import ModeledStructure, Molecule, ResidueAln, SimpleAlignment, StructureQuality, \
     ExperimentalStructure,Chain
 from SNDG.BioMongo.Model.Alignment import AlnLine
 import os
 from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 import Bio.SearchIO as bpsio
-tax_db.initialize(MySQLDatabase('bioseqdb', user='root', passwd="mito"))
-mdb = BioMongoDB("tdr", port=27017)
-mysqldb = ProteinAnnotator.connect_to_db(database="unipmap", user="root", password="mito")
 
-name = "Ainsu"
+mdb = BioMongoDB("tdr", port=27017)
+
+
+name = "Ainsu2"
 organism = name
-# org = "Achromobacter insuavis AXX-A"
-# ann_path = "/data/organismos/Ainsu/GCF_000219745.1_ASM21974v1_genomic.gbff"
+org = "Achromobacter insuavis AXX-A"
+ann_path = "/data/organismos/Ainsu/GCF_000219745.1_ASM21974v1_genomic.gbff"
 #
-# from_ref_seq(name, ann_path,  tax=1003200,      cpus=3)
-# mdb.protein_fasta("/data/organismos/" + name + "/annotation/proteins.faa", name)
-# update_proteins("/tmp/" + name + "/", "/data/organismos/" + name + "/annotation/proteins.faa", name, 1003200, db_init=mysqldb)
+from_ref_seq(name, ann_path,  cpus=3)
+mdb.protein_fasta("/data/organismos/" + name + "/annotation/proteins.faa", name)
+# from SNDG.Annotation.EMapper import EMapper
+# em = EMapper()
+# em.read_file("proteins.")
+#update_proteins("/tmp/" + name + "/", "/data/organismos/" + name + "/annotation/proteins.faa", name, 1003200, db_init=mysqldb)
 #
 #
 # Offtargeting.offtargets("/data/organismos/" + name + "/annotation/proteins.faa",
@@ -193,8 +196,8 @@ basepath = "/mnt/Data/data/organismos/Ainsu/estructura/raw/results/"
 
 
 # index_seq_collection(mdb.db,name,pathways=False,go=False,keywords=False,ec=False,organism_idx=False,structure=True)
-load_pathways(name, "/data/organismos/Ainsu/annotation/pwtools/small_molecule.sbml", mdb.db,
-              "/data/organismos/Ainsu/annotation/pathways",
-              gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
+# load_pathways(name, "/data/organismos/Ainsu/annotation/pwtools/small_molecule.sbml", mdb.db,
+#               "/data/organismos/Ainsu/annotation/pathways",
+#               gregexp="\(([\-\w\.]+)\)", filter_file="allfilters_con_c.dat")
 # index_seq_collection(mdb.db,name,pathways=True,go=True,keywords=True,ec=True,organism_idx=True,structure=False)
 # build_statistics(mdb.db,name)

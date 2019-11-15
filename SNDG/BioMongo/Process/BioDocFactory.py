@@ -29,6 +29,7 @@ class BioDocFactory(object):
         '''
         TaxEDoc
         '''
+        tax = None
         if tax_provider:
             if not ncbi_tax:
                 ncbi_tax = seqrecord.annotations["ncbi_taxid"] if "ncbi_taxid" in seqrecord.annotations else None

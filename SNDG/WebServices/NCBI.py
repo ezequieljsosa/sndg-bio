@@ -16,14 +16,16 @@ from Bio import Entrez
 from SNDG import execute, init_log
 from SNDG.WebServices import download_file
 
-mysql_db = Proxy()
+
 
 ftp_url = "ftp://ftp.ncbi.nlm.nih.gov/genomes/all"
 
 try:
+
     from peewee import ForeignKeyField, CharField, Model, BooleanField, \
         DateTimeField, CompositeKey, IntegerField,ManyToManyField,TextField
     from peewee import Proxy
+    mysql_db = Proxy()
 
     class Submitter(Model):
         '''
@@ -50,15 +52,10 @@ try:
         def __str__(self):
             return str(self.__data__)
 
-except:
-    logging.warn("pewee not loaded")
-    pass
-
-
-class ExternalResource(Model):
-    '''
-    classdocs
-    '''
+    class ExternalResource(Model):
+        '''
+        classdocs
+        '''
     # id = IntegerField(primary_key=True)
     # submitter = ForeignKeyField(Submitter)
     name = CharField()
@@ -87,189 +84,197 @@ class ExternalResource(Model):
 
 
 
-class ExternalAssembly(ExternalResource):
-    '''
-    Se puede relacionar con sus bioentry haciendo:
-    SELECT be.bioentry_id from bioentry be, bioentry_dbxref xr, dbxref r
-    WHERE r.accession = "GCF_001742375.1"
-        AND r.dbxref_id = xr.dbxref_id
-        AND be.bioentry_id = xr.bioentry_id;
-
-    '''
-    assembly_accession = CharField()
-    assembly_name = CharField()
-    sample_source = CharField(null=True)
-    sample_date = CharField(null=True)
-    sample_location = CharField(null=True)
-    genome = CharField(null=True)
-    ncbi_tax = IntegerField(null=True)
-
-    class Meta:
-        database = mysql_db
-        indexes = (
-            (('submitter', 'identifier',), True),
-        )
-
-    def ftpurl(self, dtype):
-        return "/".join([ftp_url
-                            , self.assembly_accession[0:3], self.assembly_accession[4:7]
-                            , self.assembly_accession[7:10], self.assembly_accession[10:13]
-                            , self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#", "_")
-                            , self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#",
-                                                                                                           "_") + "_" + dtype
-                         ])
-
-    def file_name(self, dtype):
-        return self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#", "_") + "_" + dtype
-
-    def gbk_file_name(self):
-        return self.file_name("genomic.gbff.gz")
-
-    def gff_file_name(self):
-        return self.file_name("genomic.gff.gz")
-
-    def genome_file_name(self):
-        return self.file_name("genomic.fna.gz")
-
-    def prots_file_name(self):
-        return self.file_name("protein.faa.gz")
-
-    def dowload_from_ftp(self, dtype, dst_dir):
-        current = os.getcwd()
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-        os.chdir(dst_dir)
-        cmd = "ftp_proxy=http://proxy.fcen.uba.ar:8080/ wget --timeout=20 -q " + self.ftpurl(dtype)
-        sp.call(cmd, shell=True)
-        sp.call("gunzip -f " + self.file_name(dtype), shell=True)
-        os.chdir(current)
-        return dst_dir + "/" + self.file_name(dtype).replace(".gz", "")
-
-    def download_gff(self, dst_dir):
-        return self.dowload_from_ftp("genomic.gff.gz", dst_dir)
-
-    def download_gbk(self, dst_dir):
-        return self.dowload_from_ftp("genomic.gbff.gz", dst_dir)
-
-    def download_genome(self, dst_dir):
-        return self.dowload_from_ftp("genomic.fna.gz", dst_dir)
-
-    def download_prots(self, dst_dir):
-        return self.dowload_from_ftp("protein.faa.gz", dst_dir)
-
-
-class BioProject(Model):
-    '''
-
-    '''
-    # id = IntegerField(primary_key=True)
-    name = TextField()
-    identifier = CharField()
-    accession = CharField()
-    material = CharField()
-    scope = CharField()
-    description = TextField()
-    created = DateTimeField(default=datetime.datetime.now)
-    modified = DateTimeField()
-    submitters = ManyToManyField(Submitter,backref="projects")
-    assemblies = ManyToManyField(ExternalAssembly,backref="projects")
-
-    def save(self, *args, **kwargs):
-        self.modified = datetime.datetime.now()
-        return super(BioProject, self).save(*args, **kwargs)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def __str__(self):
-        return str(self.__data__)
 
 
 
-    class Meta:
-        database = mysql_db
 
 
-class AssemblySubmitters(Model):
-    submitter = ForeignKeyField(Submitter,backref="assemblies")
-    resource = ForeignKeyField(ExternalAssembly,backref="submitters")
+    class ExternalAssembly(ExternalResource):
+        '''
+        Se puede relacionar con sus bioentry haciendo:
+        SELECT be.bioentry_id from bioentry be, bioentry_dbxref xr, dbxref r
+        WHERE r.accession = "GCF_001742375.1"
+            AND r.dbxref_id = xr.dbxref_id
+            AND be.bioentry_id = xr.bioentry_id;
 
-    def __repr__(self):
-        return self.__str__()
+        '''
+        assembly_accession = CharField()
+        assembly_name = CharField()
+        sample_source = CharField(null=True)
+        sample_date = CharField(null=True)
+        sample_location = CharField(null=True)
+        genome = CharField(null=True)
+        ncbi_tax = IntegerField(null=True)
 
-    def __str__(self):
-        return str(self.__data__)
+        class Meta:
+            database = mysql_db
+            indexes = (
+                (('submitter', 'identifier',), True),
+            )
 
-    class Meta:
-        database = mysql_db
-        primary_key = CompositeKey('submitter', 'resource')
+        def ftpurl(self, dtype):
+            return "/".join([ftp_url
+                                , self.assembly_accession[0:3], self.assembly_accession[4:7]
+                                , self.assembly_accession[7:10], self.assembly_accession[10:13]
+                                , self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#", "_")
+                                , self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#",
+                                                                                                               "_") + "_" + dtype
+                             ])
 
+        def file_name(self, dtype):
+            return self.assembly_accession + "_" + self.assembly_name.replace(" ", "_").replace("#", "_") + "_" + dtype
 
-_log = logging.getLogger(__name__)
+        def gbk_file_name(self):
+            return self.file_name("genomic.gbff.gz")
 
+        def gff_file_name(self):
+            return self.file_name("genomic.gff.gz")
 
-class NCBIAssembly():
+        def genome_file_name(self):
+            return self.file_name("genomic.fna.gz")
 
-    def name(self, data):
-        return data["DocumentSummarySet"]["DocumentSummary"][0]["AssemblyName"]
+        def prots_file_name(self):
+            return self.file_name("protein.faa.gz")
 
-    def attributes(self, data):
-        return data["DocumentSummarySet"]["DocumentSummary"][0]
+        def dowload_from_ftp(self, dtype, dst_dir):
+            current = os.getcwd()
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+            os.chdir(dst_dir)
+            cmd = "ftp_proxy=http://proxy.fcen.uba.ar:8080/ wget --timeout=20 -q " + self.ftpurl(dtype)
+            sp.call(cmd, shell=True)
+            sp.call("gunzip -f " + self.file_name(dtype), shell=True)
+            os.chdir(current)
+            return dst_dir + "/" + self.file_name(dtype).replace(".gz", "")
 
+        def download_gff(self, dst_dir):
+            return self.dowload_from_ftp("genomic.gff.gz", dst_dir)
 
-class NCBIProject():
+        def download_gbk(self, dst_dir):
+            return self.dowload_from_ftp("genomic.gbff.gz", dst_dir)
 
-    def name(self, data):
-        return data["DocumentSummarySet"]["DocumentSummary"][0]["Project_Name"]
+        def download_genome(self, dst_dir):
+            return self.dowload_from_ftp("genomic.fna.gz", dst_dir)
 
-
-class NCBIGene():
-
-    def name(self, data):
-        return data["DocumentSummarySet"]["DocumentSummary"][0]["NomenclatureName"]
-
-
-class NCBIBiosample():
-
-    def name(self, data):
-        return data["DocumentSummarySet"]["DocumentSummary"][0]["Title"]
-
-
-class NCBIReads():
-    def name(self, data):
-        import xmltodict
-        return xmltodict.parse("<x>" + data[0]["ExpXml"] + "</x>")["x"]["Summary"]["Title"]
-
-
-class NCBIPubmed():
-
-    def name(self, data):
-        return data[0]["Title"]
-
-
-class NCBIProtein():
-
-    def name(self, data):
-        return data[0]["Title"]
-
-
-class NCBINucleotide():
-
-    def name(self, data):
-        return data[0]["Title"]
-
-
-class NCBIGenome():
-
-    def name(self, data):
-        return data[0]["DefLine"]
+        def download_prots(self, dst_dir):
+            return self.dowload_from_ftp("protein.faa.gz", dst_dir)
 
 
-class AssemblyNotFoundError(Exception):
+    class BioProject(Model):
+        '''
 
-    def __init__(self, assembly_name):
-        self.assembly_name = assembly_name
+        '''
+        # id = IntegerField(primary_key=True)
+        name = TextField()
+        identifier = CharField()
+        accession = CharField()
+        material = CharField()
+        scope = CharField()
+        description = TextField()
+        created = DateTimeField(default=datetime.datetime.now)
+        modified = DateTimeField()
+        submitters = ManyToManyField(Submitter,backref="projects")
+        assemblies = ManyToManyField(ExternalAssembly,backref="projects")
 
+        def save(self, *args, **kwargs):
+            self.modified = datetime.datetime.now()
+            return super(BioProject, self).save(*args, **kwargs)
+
+        def __repr__(self):
+            return self.__str__()
+
+        def __str__(self):
+            return str(self.__data__)
+
+
+
+        class Meta:
+            database = mysql_db
+
+
+    class AssemblySubmitters(Model):
+        submitter = ForeignKeyField(Submitter,backref="assemblies")
+        resource = ForeignKeyField(ExternalAssembly,backref="submitters")
+
+        def __repr__(self):
+            return self.__str__()
+
+        def __str__(self):
+            return str(self.__data__)
+
+        class Meta:
+            database = mysql_db
+            primary_key = CompositeKey('submitter', 'resource')
+
+
+    _log = logging.getLogger(__name__)
+
+
+    class NCBIAssembly():
+
+        def name(self, data):
+            return data["DocumentSummarySet"]["DocumentSummary"][0]["AssemblyName"]
+
+        def attributes(self, data):
+            return data["DocumentSummarySet"]["DocumentSummary"][0]
+
+
+    class NCBIProject():
+
+        def name(self, data):
+            return data["DocumentSummarySet"]["DocumentSummary"][0]["Project_Name"]
+
+
+    class NCBIGene():
+
+        def name(self, data):
+            return data["DocumentSummarySet"]["DocumentSummary"][0]["NomenclatureName"]
+
+
+    class NCBIBiosample():
+
+        def name(self, data):
+            return data["DocumentSummarySet"]["DocumentSummary"][0]["Title"]
+
+
+    class NCBIReads():
+        def name(self, data):
+            import xmltodict
+            return xmltodict.parse("<x>" + data[0]["ExpXml"] + "</x>")["x"]["Summary"]["Title"]
+
+
+    class NCBIPubmed():
+
+        def name(self, data):
+            return data[0]["Title"]
+
+
+    class NCBIProtein():
+
+        def name(self, data):
+            return data[0]["Title"]
+
+
+    class NCBINucleotide():
+
+        def name(self, data):
+            return data[0]["Title"]
+
+
+    class NCBIGenome():
+
+        def name(self, data):
+            return data[0]["DefLine"]
+
+
+    class AssemblyNotFoundError(Exception):
+
+        def __init__(self, assembly_name):
+            self.assembly_name = assembly_name
+
+except:
+    logging.warn("pewee not loaded")
+    pass
 
 class NCBI(object):
     f_mRNA = "mRNA"

@@ -30,11 +30,19 @@ from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
 from SNDG.BioMongo.Process.SearchLoader import SearchLoader
 from SNDG.BioMongo.Process.SearchLoader import load_hmm, load_blast_pdb
-from SNDG.BioMongo.Process.Taxon import Tax
+
+has_tax = False
+try :
+    from SNDG.BioMongo.Process.Taxon import Tax
+    from SNDG.Sequence.ProteinAnnotator import Mapping
+    has_tax = True
+except:
+    pass
+
 from SNDG.Sequence import read_blast_table
 from SNDG.Sequence import smart_parse as sp
 from SNDG.Sequence.Hmmer import Hmmer
-from SNDG.Sequence.ProteinAnnotator import Mapping
+
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.WebServices.NCBI import NCBI
 from SNDG.WebServices.Uniprot import Uniprot
@@ -103,7 +111,10 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
 
     iter_seqs = list(sp(ann_path, seqs=seqs) if seqs else sp(ann_path))
     for contig in iter_seqs:
-        seqCol = BioDocFactory.create_genome(name, contig, tax, Tax)
+        if has_tax:
+            seqCol = BioDocFactory.create_genome(name, contig, tax, Tax)
+        else:
+            seqCol = BioDocFactory.create_genome(name, contig)
         seqCol.save()
         break
     if not tmp_dir:
