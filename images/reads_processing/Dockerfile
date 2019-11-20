@@ -12,7 +12,7 @@ RUN cd /app/ && wget -O bwa-0.7.17.tar.bz2 https://sourceforge.net/projects/bio-
 RUN cd /app/ && wget -O snpEff_latest_core.zip http://sourceforge.net/projects/snpeff/files/snpEff_latest_core.zip/download && unzip snpEff_latest_core.zip
 RUN cd /app/ && wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip && unzip Trimmomatic-0.38.zip
 RUN cd /app/ && wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip && unzip fastqc_v0.11.7.zip && chmod 755 /app/FastQC/fastqc && ln -s /app/FastQC/fastqc /usr/local/bin
-RUN cd /app/ && wget http://cab.spbu.ru/files/release3.12.0/SPAdes-3.12.0-Linux.tar.gz && tar xfv SPAdes-3.12.0-Linux.tar.gz && ln -s /app/SPAdes-3.12.0-Linux/bin/spades.py /usr/local/bin
+RUN cd /app/ && wget http://cab.spbu.ru/files/release3.13.0/SPAdes-3.13.0-Linux.tar.gz && tar xfv SPAdes-3.13.0-Linux.tar.gz && ln -s /app/SPAdes-3.13.0-Linux/bin/spades.py /usr/local/bin
 RUN cd /app/ && wget https://downloads.sourceforge.net/project/quast/quast-5.0.0.tar.gz && tar xfv quast-5.0.0.tar.gz && cd quast-5.0.0 && ./install.sh && ln -s /app/quast-5.0.0/quast.py /usr/local/bin
 RUN cd /app/ && wget https://github.com/broadinstitute/picard/releases/download/2.18.14/picard.jar
 RUN cd /app && wget https://mafft.cbrc.jp/alignment/software/mafft_7.407-1_amd64.deb && dpkg -i  mafft_7.407-1_amd64.deb

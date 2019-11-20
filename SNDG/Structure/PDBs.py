@@ -5,10 +5,12 @@ Created on Jul 4, 2014
 '''
 import logging
 import os
+from collections import defaultdict
 
 import Bio.SeqIO as bpio
 import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
+from Bio.PDB import PDBList
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.Polypeptide import is_aa,CaPPBuilder
 from Bio.Seq import Seq
@@ -18,6 +20,8 @@ from tqdm import tqdm
 
 from SNDG import mkdir, execute
 from SNDG.WebServices import download_file
+
+
 
 _log = logging.getLogger(__name__)
 
@@ -82,42 +86,41 @@ class PDBs(object):
         download_file(self.url_pdb_entries, self.entries_path, ovewrite=True)
 
     def update_pdb_dir(self):
-        assert os.path.exists(self.pdb_dir), "the target directory does not exists %s" % self.pdb_dir
-        assert os.path.exists(self.pdb_seq_res_path), "the pdbseqres does not exists %s" % self.pdb_seq_res_path
-
-        pdbs = set([x.id.split("_")[0] for x in bpio.parse(self.pdb_seq_res_path, "fasta")])
-
-        for pdb in tqdm(pdbs):
-            try:
-                mkdir(self.pdbs_dir + pdb[1:3])
-                if os.path.exists(self.pdb_path_gzipped(pdb)):
-                    execute("gunzip " + self.pdb_path_gzipped(pdb))
-                elif not os.path.exists(self.pdb_path(pdb)):
-                    download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
-                                  self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
-                    execute("gunzip " + self.pdb_path_gzipped(pdb))
-
-            except Exception as ex:
-                _log.warn(str(ex))
+        pl = PDBList(pdb=self.pdbs_dir )
+        pl.update_pdb(file_format="pdb")
 
     def pdbs_seq_for_modelling(self, out_fasta=None,
-                               pdbsIter=None):
+                               pdbsIter=None, reuse_previours=None):
         if pdbsIter == None:
             pdbsIter = PDBs(self.pdb_dir)
         if not out_fasta:
             out_fasta = self.pdb_dir + "processed/seqs_from_pdb.fasta"
+
+        pdb_codes = {x.lower():1 for x in self.entries_df().IDCODE}
+
+        reuse = defaultdict(lambda :[])
+        if  reuse_previours:
+            for x in bpio.parse(reuse_previours,"fasta"):
+                pdb = x.id.split("_")[0]
+                reuse[pdb].append(x)
+        reuse = dict(reuse)
+
         pdblist = list(pdbsIter)
         with open(out_fasta, "w") as handle:
             for (pdb, pdb_file_path) in tqdm(pdblist):
-                struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
-                for chain in struct.get_chains():
-                    residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]
-                    if residues:
-                        seq = "".join([seq1(x.resname) for x in residues])
-                        start = str(residues[0].id[1])
-                        end = str(residues[-1].id[1])
-                        record = SeqRecord(id="_".join([pdb, chain.id, start, end]), seq=Seq(seq))
-                        bpio.write(record, handle, "fasta")
+                if pdb in pdb_codes:
+                    if pdb in reuse:
+                        bpio.write(reuse[pdb], handle, "fasta")
+                    else:
+                        struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
+                        for chain in struct.get_chains():
+                            residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]
+                            if residues:
+                                seq = "".join([seq1(x.resname) for x in residues])
+                                start = str(residues[0].id[1])
+                                end = str(residues[-1].id[1])
+                                record = SeqRecord(id="_".join([pdb, chain.id, start, end]), description="", seq=Seq(seq))
+                                bpio.write(record, handle, "fasta")
 
     def pdb_path(self, pdb):
         return self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + ".ent"
@@ -131,13 +134,17 @@ class PDBs(object):
 if __name__ == '__main__':
     from SNDG import init_log
 
+    import argparse
+    from SNDG.Structure.PDBs import PDBs
+    parser = argparse.ArgumentParser(description='PDB Update utils')
+
     init_log()
     pdbs = PDBs(pdb_dir="/data/databases/pdb/")
-    os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
+    #os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
     # pdbs.download_pdb_seq_ses()
-    # pdbs.download_pdb_entries()
+    pdbs.download_pdb_entries()
 
-    # pdbs.update_pdb_dir()
+    pdbs.update_pdb_dir()
     pdbs.pdbs_seq_for_modelling("/data/databases/pdb/processed/seqs_from_pdb.fasta")
     #pepe = pdbs.entries_df()
     #print pepe
