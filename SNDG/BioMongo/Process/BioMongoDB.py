@@ -244,7 +244,7 @@ class BioMongoDB(object):
                 p.alias = list(set(p.alias))
                 p.properties.append(prop)
                 p.save()
-        print i
+
 
     def load_metadata(self, organism_name, datafile, uploader=demo):
         import pandas as pd
@@ -576,4 +576,4 @@ if __name__ == '__main__':
     #     for x in ["TB-16-1109","TB-15-2748","TB-15-6324","TB-16-138"]:
     #         mdb.delete_seq_collection(x)
 
-    print "ok!"
+
