@@ -147,20 +147,21 @@ class SBMLProcessor(object):
                                                         self.decode_sbml(reaction2.getName()),
                                                         linkedby=self.decode_sbml(element1.species))
 
-    def toSIF(self, filename, cc=False):
+    def toSIF(self, filename, cc=True):
 
         if cc:
             g = self.graph.subgraph(
-                sorted([(x, len(x)) for x in nx.connected_components(self.graph)], key=lambda y: y[0])[0][0])
+                sorted([(x, len(x)) for x in nx.connected_components(self.graph)], key=lambda y: y[1])[0][0])
         else:
             g = self.graph
 
         with open(filename, "w") as filehandler:
-            for reaction,reaction2 in g.edges:
-                link = reaction + "\tlinkedWith\t" + reaction2;
-                print >> filehandler, self.decode_sbml(link);
-                    # else:
-                    #     print  >> filehandler, self.decode_sbml(reaction.id);
+            for reaction, reaction2 in g.edges:
+                link = reaction + "\tlinkedWith\t" + reaction2 + "\n";
+                filehandler.write(self.decode_sbml(link));
+                # else:
+                #     print  >> filehandler, self.decode_sbml(reaction.id);
+
 
 """Reactions graph
 from networkx.algorithms import bipartite
@@ -211,7 +212,6 @@ print("Consu")
 print(consuption)
 
 """
-
 
 if __name__ == "__main__":
     sbml = SBMLProcessor()
