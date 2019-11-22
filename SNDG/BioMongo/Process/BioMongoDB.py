@@ -392,7 +392,7 @@ class BioMongoDB(object):
             # [seq,source,feature,start,end,score,strand,frame,attributes ])
             feature = Feature(_id=ObjectId(), location=Location(start=start, end=end),
                               identifier=attributes["Name"], type=source)
-            prot = Protein.objects(organism=organism, gene=locus_tag)
+            prot = Protein.objects(organism=organism, gene=locus_tag).get()
 
 
 
@@ -408,6 +408,7 @@ class BioMongoDB(object):
                     prot.ontologies.append(ont.lower())
 
             prot.features.append(feature)
+            prot.save()
 
 import re
 
