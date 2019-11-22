@@ -20,6 +20,7 @@ from Bio.SeqRecord import SeqRecord
 import Bio.SeqIO as bpio
 from SNDG import init_log
 from SNDG.BioMongo.Model.Protein import Protein
+from SNDG.BioMongo.Model.Feature import Feature,Location
 from SNDG.BioMongo.Model.SeqColDruggabilityParam import SeqColDruggabilityParam
 from SNDG.BioMongo.Model.SeqCollection import SeqCollection, DataUpload
 from SNDG.BioMongo.Model.Sequence import BioProperty, Contig
@@ -47,12 +48,12 @@ class BioMongoDB(object):
     demo = "demo"
     GENE_FIELD_IMPORT = "id"
 
-    def __init__(self, dbname,port=27017, host='127.0.0.1', basefs='/data/'):
+    def __init__(self, dbname, port=27017, host='127.0.0.1', basefs='/data/'):
 
-        self.db = pymongo.MongoClient(host=host,port=port)[dbname]
+        self.db = pymongo.MongoClient(host=host, port=port)[dbname]
         self.fs_resolver = FilesystemResolver(basefs)
-        connect(dbname,host=host,port=port)
-        register_connection("pdb", name="pdb",host=host,port=port)
+        connect(dbname, host=host, port=port)
+        register_connection("pdb", name="pdb", host=host, port=port)
 
         self.paths = {
             "gene": []
@@ -154,26 +155,23 @@ class BioMongoDB(object):
 
         print("Copiando contigs:")
         total = self.db.contig_collection.count({"seq_collection_id": genome_id})
-        for contig in tqdm(self.db.contig_collection.find({"seq_collection_id": genome_id}),total=total):
+        for contig in tqdm(self.db.contig_collection.find({"seq_collection_id": genome_id}), total=total):
             contig["seq_collection_id"] = new_id
             contig["organism"] = newname
             dst_db.contig_collection.save(contig)
 
         print("Copiando proteinas:")
         total = self.db.proteins.count({"organism": name})
-        for protein in tqdm(self.db.proteins.find({"organism": name}),total=total):
+        for protein in tqdm(self.db.proteins.find({"organism": name}), total=total):
             protein["seq_collection_id"] = new_id
             protein["seq_collection_name"] = newname
             dst_db.proteins.save(protein)
         print("Copiando indices:")
-        total =  self.db.col_ont_idx.count({"seq_collection_name": name})
-        for idx in tqdm(self.db.col_ont_idx.find({"seq_collection_name": name}),total=total):
+        total = self.db.col_ont_idx.count({"seq_collection_name": name})
+        for idx in tqdm(self.db.col_ont_idx.find({"seq_collection_name": name}), total=total):
             idx["seq_collection_id"] = new_id
             idx["seq_collection_name"] = newname
             dst_db.col_ont_idx.save(idx)
-
-
-
 
     def delete_feature_type(self, organism, feature_type):
         self.db.proteins.update({"organism": organism, "features.type": feature_type},
@@ -234,8 +232,6 @@ class BioMongoDB(object):
                     if ((models[i].templates[0].aln_query.start == models[j].templates[0].aln_query.start)
                             and (models[i].templates[0].aln_query.end == models[j].templates[0].aln_query.end)):
                         models[i].delete()
-
-
 
     def props_from_dbxref(self, name):
 
@@ -361,6 +357,57 @@ class BioMongoDB(object):
                     contig.features.append(feature)
             yield contig
 
+    def load_from_emapper(self, organism, emapperv2_file):
+        from SNDG.Annotation.EMapper import EMapper
+        em = EMapper()
+        em.read_file(emapperv2_file)
+        for locus_tag, record in em.data.items():
+            prot = Protein.objects(organism=organism, gene=locus_tag)
+            for ec in record.EC.split(","):
+                prot.ontologies.append("ec:" + ec)
+            for go in record.GOs.split(","):
+                prot.ontologies.append(go.lower())
+            prot.save()
+
+    def load_from_interpro(self, organism, interprot_gff):
+        for l in open(interprot_gff):
+            if l.startswith(">"):
+                break
+            if l.startswith("##"):
+                continue
+            l = l.replace("EC=", "EC ")
+            locus_tag, source, feature, start, end, score, strand, frame = l.split("\t")[:8]
+            attributes = " ".join(l.split("\t")[8:])
+
+            if feature == "polypeptide":
+                continue
+
+            start, end = int(start), int(end)
+
+            if "signature_desc=" in attributes:
+                repl = attributes.split("signature_desc=")[1].split(";Name=")[0]
+                attributes = attributes.replace(repl,repl.replace("=","%3D").replace(";","%3B"))
+
+            attributes = {x.split("=")[0]: x.split("=")[1] for x in attributes.split(";")}
+            # [seq,source,feature,start,end,score,strand,frame,attributes ])
+            feature = Feature(_id=ObjectId(), location=Location(start=start, end=end),
+                              identifier=attributes["Name"], type=source)
+            prot = Protein.objects(organism=organism, gene=locus_tag)
+
+
+
+            if "signature_desc" in attributes:
+                feature.qualifiers = {"description":attributes["signature_desc"]}
+            if "Ontology_term" in attributes:
+                for ont in attributes["Ontology_term"].split(","):
+                    ont = ont.replace('"',"").strip()
+                    prot.ontologies.append(ont.lower())
+            if "Dbxref" in attributes:
+                for ont in attributes["Dbxref"].split(","):
+                    ont = ont.replace('"',"").strip()
+                    prot.ontologies.append(ont.lower())
+
+            prot.features.append(feature)
 
 import re
 
