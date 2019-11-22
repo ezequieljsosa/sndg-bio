@@ -86,8 +86,24 @@ class PDBs(object):
         download_file(self.url_pdb_entries, self.entries_path, ovewrite=True)
 
     def update_pdb_dir(self):
-        pl = PDBList(pdb=self.pdbs_dir )
-        pl.update_pdb(file_format="pdb")
+        assert os.path.exists(self.pdb_dir), "the target directory does not exists %s" % self.pdb_dir
+        assert os.path.exists(self.entries_path), "the entries path does not exists %s" % self.entries_path
+
+        pdbs =  [x.lower() for x in self.entries_df().IDCODE]
+        pbar = tqdm(pdbs)
+        for pdb in pbar:
+            try:
+                pbar.set_description(pdb)
+                mkdir(self.pdbs_dir + pdb[1:3])
+                if os.path.exists(self.pdb_path_gzipped(pdb)):
+                    execute("gunzip " + self.pdb_path_gzipped(pdb))
+                elif not os.path.exists(self.pdb_path(pdb)):
+                    download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
+                                  self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
+                    execute("gunzip " + self.pdb_path_gzipped(pdb))
+
+            except Exception as ex:
+                _log.warn(str(ex))
 
     def pdbs_seq_for_modelling(self, out_fasta=None,
                                pdbsIter=None, reuse_previours=None):
