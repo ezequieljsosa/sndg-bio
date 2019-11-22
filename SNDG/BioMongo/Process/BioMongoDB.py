@@ -362,7 +362,7 @@ class BioMongoDB(object):
         em = EMapper()
         em.read_file(emapperv2_file)
         for locus_tag, record in em.data.items():
-            prot = Protein.objects(organism=organism, gene=locus_tag)
+            prot = Protein.objects(organism=organism, gene=locus_tag).get()
             for ec in record["EC"].split(","):
                 prot.ontologies.append("ec:" + ec)
             for go in record["GOs"].split(","):
