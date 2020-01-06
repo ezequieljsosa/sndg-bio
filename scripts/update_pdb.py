@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     parser.add_argument("-host", "--db_host", default='127.0.0.1')
     parser.add_argument("-db", "--db_name", default='tdr')
-    parser.add_argument("-host", "--pdb_entries", default='127.0.0.1')
+    parser.add_argument( "--pdb_entries", default='/data/databases/pdb/entries.idx')
     parser.add_argument( "--pdbs", default='/data/databases/pdb/')
 
 
