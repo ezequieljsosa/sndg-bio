@@ -64,11 +64,15 @@ class PDBs(object):
         self.uncompress_file = True
         self.delete_compressed = True
         self.entries_path = pdb_dir + '/entries.idx'
+        self._entries_df = None
+
 
     def entries_df(self):
-        entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
-                           "EXPERIMENT"]
-        return pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
+        if self._entries_df == None:
+            entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
+                               "EXPERIMENT"]
+            self._entries_df = pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
+        return self._entries_df
 
     def pdb_path(self, pdb):
         return self.pdbs_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention

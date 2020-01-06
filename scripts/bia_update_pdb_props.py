@@ -257,7 +257,7 @@ def main(argv=None):  # IGNORE:C0111
 
     parser.add_argument( "--csa", default='/data/databases/csa/csa.txt')
     parser.add_argument( "--hmm", default='/data/databases/pdb/pdb_seq_res.hmm')
-    parser.add_argument( "--pdbs", default='/data/databases/pdb/divided')
+    parser.add_argument( "--pdbs", default='/data/databases/pdb/')
     parser.add_argument( "--distances", default='/data/databases/pdb/processed/distances.tbl')
 
 

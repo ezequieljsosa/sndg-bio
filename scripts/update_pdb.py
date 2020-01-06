@@ -35,10 +35,10 @@ from SNDG.Structure.PDBs import PDBs
 init_log(rootloglevel=logging.INFO)
 _log = logging.getLogger(__name__)
 
-pdbUtils = PDBs()
 
 
-def complete_pdb_attrs(pdb, struct_doc):
+
+def complete_pdb_attrs(pdb, struct_doc,pdbUtils):
     # TODO QMEAN SASA FOLDX DSSP BINDINGDB DRUGDATABANK!!
     pdb_entries_df = pdbUtils.entries_df()
     row = pdb_entries_df[pdb_entries_df.IDCODE == pdb.upper()]
@@ -59,10 +59,10 @@ def complete_pdb_attrs(pdb, struct_doc):
             struct_doc.experiment = row["EXPERIMENT"].strip()
 
 
-def complete_pockets(pdb, strdoc, structure):
+def complete_pockets(pdb, strdoc, structure,pdbUtils):
     pdb_file = pdbUtils.pdb_path(pdb)
     pockets_json = pdbUtils.pdb_pockets_path(pdb)
-    mkdir("/data/databases/pdb/pockets/%s/" % (pdb[1:3]))
+    mkdir(os.path.dirname(pockets_json))
 
     if not os.path.exists(pockets_json) or os.path.getsize(pockets_json) < 10:
         r = FPocket(pdb_file).hunt_pockets()
@@ -73,17 +73,17 @@ def complete_pockets(pdb, strdoc, structure):
         strdoc.pockets = StructureAnotator.pocket_residue_set(pockets_json, structure.get_atoms())
 
 
-def procesar_pdb(pdb, parser):
+def procesar_pdb(pdb, pdbUtils):
     pdb_file = pdbUtils.pdb_path(pdb)
     if not os.path.exists(pdb_file):
         with open("/tmp/pdb_load_errors.txt", "a") as handle:
-            handle.write(pdb + "|NO EXISTE: " + pdb_file + " \n")
+            handle.write(pdb + "|NOT FOUND: " + pdb_file + " \n")
     try:
         structure = parser.get_structure(pdb, pdb_file)
         models = list(structure)
         if len(models) == 0:
             with open("/tmp/pdb_load_errors.txt", "a") as handle:
-                handle.write("No tiene modelos: " + pdb_file + " \n")
+                handle.write("Has no models: " + pdb_file + " \n")
         else:
             strdoc = ExperimentalStructure(name=pdb, seq_collection_name="pdb")
 
@@ -108,14 +108,14 @@ def procesar_pdb(pdb, parser):
                         if molecule.compound_type != 'SOLVENT':
                             strdoc.ligands.append(molecule)
             try:
-                complete_pockets(pdb, strdoc, structure)
+                complete_pockets(pdb, strdoc, structure,pdbUtils)
             except:
                 pass
 
-            complete_pdb_attrs(pdb, strdoc)
+            complete_pdb_attrs(pdb, strdoc,pdbUtils)
             strdoc.save()
     except Exception as ex:
-        with open("pdb_load_errors.txt", "a") as handle:
+        with open("/tmp/pdb_load_errors.txt", "a") as handle:
             handle.write(pdb + "|" + str(ex) + "\n")
 
 
@@ -127,8 +127,16 @@ if __name__ == "__main__":
                         help="set verbosity level [default: %(default)s]")
 
     parser.add_argument("-host", "--db_host", default='127.0.0.1')
-    BioMongoDB("sndg")
+    parser.add_argument("-db", "--db_name", default='tdr')
+    parser.add_argument("-host", "--pdb_entries", default='127.0.0.1')
+    parser.add_argument( "--pdbs", default='/data/databases/pdb/')
+
+
     args = parser.parse_args()
+
+    BioMongoDB(args.db_name)
+
+    pdbUtils = PDBs(pdb_dir=args.pdbs)
 
     db = MongoClient(args.db_host)["pdb"]
     col_name = "pdb"
@@ -157,13 +165,20 @@ if __name__ == "__main__":
                     strdoc = q.get()
                     try:
                         structure = parser.get_structure(pdb, pdbUtils.pdb_path(pdb))
-                        procesar_pdb(pdb, strdoc, structure)
+                        try:
+                            complete_pockets(pdb, strdoc, structure,pdbUtils)
+                            strdoc.save()
+                        except:
+                            pass
+
+                        complete_pdb_attrs(pdb, strdoc,pdbUtils)
+                        strdoc.save()
+
                     except Exception as ex:
                         _log.warn("ERROR " + pdb + " : " + str(ex))
                         continue
-                    if strdoc.pockets:
-                        strdoc.save()
+
         else:
-            procesar_pdb(pdb, parser)
+            procesar_pdb(pdb,pdbUtils)
 
     print ("OK!")
