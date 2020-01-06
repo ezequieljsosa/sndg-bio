@@ -141,6 +141,10 @@ if __name__ == "__main__":
     db = MongoClient(args.db_host)["pdb"]
     col_name = "pdb"
 
+    if not os.path.exists(args.pdb_entries):
+        sys.stderr.write("%s does not exists" % args.pdb_entries)
+        sys.exit(1)
+
     """
     collection = SeqCollection.objects(name=col_name)
     if len(collection):
@@ -155,7 +159,7 @@ if __name__ == "__main__":
                              db.structures.find({"seq_collection_name": "pdb", "pockets.0": {"$exists": 0}},
                                                 {"name": 1})}
     procesados = {x["name"]: 1 for x in db.structures.find({"seq_collection_name": "pdb"}, {"name": 1})}
-    pdbs = list(PDBs())
+    pdbs = list(pdbUtils)
     for (pdb, pdb_file) in tqdm(pdbs):
 
         if pdb in procesados:
