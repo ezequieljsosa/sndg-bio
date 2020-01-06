@@ -191,7 +191,12 @@ class FPocket(object):
         return self.work_directory + "/" + self._out_directory()
 
     def hunt_pockets(self):
-        cmd = "{fpocket} -f {pdb_file}".format(fpocket=self.fpocket_binary, pdb_file=self.pdb_file_path)
+        abs_path = os.path.abspath(self.pdb_file_path)
+        pdb_file = os.path.basename(abs_path)
+        pdb_dir = os.path.dirname(abs_path)
+
+        cmd = "docker run -u $(id -u):$(id -g) -w /out -v '{pdb_dir}':/out --rm ezequieljsosa/fpocket {fpocket} -f '{pdb_file}'".format(
+            fpocket=self.fpocket_binary, pdb_file=pdb_file,pdb_dir=pdb_dir)
         self._execute(cmd)
         if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
             if os.path.exists(self.dest_path()):
