@@ -68,7 +68,7 @@ class PDBs(object):
 
 
     def entries_df(self):
-        if self._entries_df == None:
+        if not hasattr( self._entries_df,"apply" ) :
             entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
                                "EXPERIMENT"]
             self._entries_df = pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
