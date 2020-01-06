@@ -18,6 +18,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import traceback
 
 from Bio.PDB.PDBParser import PDBParser
 from pymongo.mongo_client import MongoClient
@@ -179,6 +180,7 @@ if __name__ == "__main__":
                         strdoc.save()
 
                     except Exception as ex:
+                        traceback.print_exc()
                         _log.warn("ERROR " + pdb + " : " + str(ex))
                         continue
 

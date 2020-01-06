@@ -276,19 +276,19 @@ def main(argv=None):  # IGNORE:C0111
     # residues near ligands --> metal drug/cofactor
 
     if not os.path.exists(args.csa):
-        sys.stderr.print("%s not found. Download it from %s" % (
+        sys.stderr.write("%s not found. Download it from %s" % (
             args.csa,
             "http://www.ebi.ac.uk/thornton-srv/databases/CSA/downloads/CSA_2_0_121113.txt"
         ))
         sys.exit(1)
 
     if not os.path.exists(args.pdbs):
-        sys.stderr.print("%s not found. Specify where is pdbs/divided directory" % (
+        sys.stderr.write("%s not found. Specify where is pdbs/divided directory" % (
             args.pdbs
         ))
         sys.exit(1)
     if not os.path.exists(args.distances):
-        sys.stderr.print("%s not found. Run extended_domain.py script to create it." % (
+        sys.stderr.write("%s not found. Run extended_domain.py script to create it." % (
             args.distances
         ))
         sys.exit(1)
