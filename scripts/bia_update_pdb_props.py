@@ -31,6 +31,9 @@ from SNDG.BioMongo.Model import BioProperties
 from SNDG.BioMongo.Model import Cluster
 from SNDG.BioMongo.Model.Structure import ExperimentalStructure, ResidueSet
 from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+from SNDG.Structure.CompoundTypes import get_compound_type
+from SNDG.Structure.FPocket import FPocket
+from SNDG.Structure.PDBs import PDBs
 
 # from Bia.Programs.Cluster.CDHit import CDHit
 
@@ -61,11 +64,11 @@ def update_clusters():
                     cristal_doc.clusters.append(cluster)
                     cristal_doc.save()
             except DoesNotExist as ex:
-                print str(ex)
-                pass
+                print(str(ex))
 
-def update_binding_residues():
-    df_binding_dist = pd.read_table("/data/databases/pdb/processed/distances.tbl", sep="\t",
+
+def update_binding_residues(distances_tbl):
+    df_binding_dist = pd.read_table(distances_tbl, sep="\t",
                                     names=[
                                         "pdb", "chain", "hmm_name", "prot_res", "resname",
                                         "res_atom_id",
@@ -101,14 +104,14 @@ def update_binding_residues():
             _log.warn("%s does not exists" % pdb)
 
 
-def free_cys_tyr():
+def free_cys_tyr(pdb_utils):
     parser = PDBParser(PERMISSIVE=1, QUIET=1)
     _log.debug("procesing free cys/tyr")
     total = ExperimentalStructure.objects().count()
     for strdoc in tqdm(ExperimentalStructure.objects().no_cache().timeout(False), total=total):
 
         if not (strdoc.residue_set("free_cys") or strdoc.residue_set("free_tyr")):
-            bp_pdb = list(parser.get_structure(strdoc.name, strdoc.file_path()))[0]
+            bp_pdb = list(parser.get_structure(strdoc.name, pdb_utils.pdb_path(strdoc.name)  ))[0]
             free = {"CYS": [], "TYR": []}
             codes = {"CYS": "SG", "TYR": "OH"}
             for x in bp_pdb.get_residues():
@@ -127,8 +130,8 @@ def free_cys_tyr():
                 strdoc.save()
 
 
-def update_csa():
-    df_csa = pd.read_csv("/data/databases/csa/csa.txt")
+def update_csa(csa_txt):
+    df_csa = pd.read_csv(csa_txt)
 
     for pdb in tqdm(set(df_csa["PDB ID"])):
         try:
@@ -147,7 +150,7 @@ def update_csa():
                 strdoc.residue_sets.append(csa_res_set)
 
 
-def update_quaternary():
+def update_quaternary(pdbUtils):
     '''
     Example – Author and computed assembly predictions agree
     REMARK 350 BIOMOLECULE: 1
@@ -170,7 +173,6 @@ REMARK 350 CHANGE IN SOLVENT FREE ENERGY: -40.0 KCAL/MOL
 REMARK 350 APPLY THE FOLLOWING TO CHAINS: A, B, C, D, E, F, G, H, I,
 REMARK 350 AND CHAINS: J, K, L
     '''
-    pdbUtils = PDBs()
     total = ExperimentalStructure.objects().count()
 
     for strdoc in tqdm(ExperimentalStructure.objects().no_cache(), total=total):
@@ -207,8 +209,8 @@ REMARK 350 AND CHAINS: J, K, L
                 _log.debug("no se puede parsear %s" % strdoc.name)
 
 
-def important_pfam():
-    for query in bpsio.parse('/data/databases/pdb/seqs_from_pdb.hmm', 'hmmer3-text'):
+def important_pfam(seqs_from_pdb_hmm):
+    for query in bpsio.parse(seqs_from_pdb_hmm, 'hmmer3-text'):
         try:
             pdb, chain, start, end = query.id.split("_")  # @UnusedVariable
             strdoc = ExperimentalStructure.objects(name=pdb).get()
@@ -243,51 +245,66 @@ def main(argv=None):  # IGNORE:C0111
     else:
         sys.argv.extend(argv)
 
-    try:
-
-        parser = ArgumentParser( formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument("-v", "--verbose", dest="verbose", action="count",
-                            help="set verbosity level [default: %(default)s]")
-
-        # parser.add_argument("-dir", "--structs_dir", required = True )
-        parser.add_argument("-db", "--database_name", default='pdb')
-        parser.add_argument("-host", "--db_host", default='127.0.0.1')
 
 
+    parser = ArgumentParser( formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument("-v", "--verbose", dest="verbose", action="count",
+                        help="set verbosity level [default: %(default)s]")
 
-        args = parser.parse_args()
+    # parser.add_argument("-dir", "--structs_dir", required = True )
+    parser.add_argument("-db", "--database_name", default='pdb')
+    parser.add_argument("-host", "--db_host", default='127.0.0.1')
 
-
-        #         pdbs = PDBs()
-        #         pdbs.update('/data/pdb/divided/')
-
-        BioMongoDB(args.database_name) #args.db_host
-
-        # update_quaternary()
-        #         # clusters cd hit
-        #         update_clusters()
-        #
-        # residues near ligands --> metal drug/cofactor
-
-        #update_quaternary()
-        update_csa()
-
-        update_binding_residues()
-
-        #free_cys_tyr()
+    parser.add_argument( "--csa", default='/data/databases/csa/csa.txt')
+    parser.add_argument( "--hmm", default='/data/databases/pdb/pdb_seq_res.hmm')
+    parser.add_argument( "--pdbs", default='/data/databases/pdb/divided')
+    parser.add_argument( "--distances", default='/data/databases/pdb/processed/distances.tbl')
 
 
+    args = parser.parse_args()
 
-        # important_pfam()
 
-        _log.info("update pdb properties finished!!")
+    #         pdbs = PDBs()
+    #         pdbs.update('/data/pdb/divided/')
 
-    except Exception:
+    BioMongoDB(args.database_name) #args.db_host
 
-        import traceback
-        print(traceback.format_exc())
+    # update_quaternary()
+    #         # clusters cd hit
+    #         update_clusters()
+    #
+    # residues near ligands --> metal drug/cofactor
 
-        return 2
+    if not os.path.exists(args.csa):
+        sys.stderr.print("%s not found. Download it from %s" % (
+            args.csa,
+            "http://www.ebi.ac.uk/thornton-srv/databases/CSA/downloads/CSA_2_0_121113.txt"
+        ))
+        sys.exit(1)
+
+    if not os.path.exists(args.pdbs):
+        sys.stderr.print("%s not found. Specify where is pdbs/divided directory" % (
+            args.pdbs
+        ))
+        sys.exit(1)
+    if not os.path.exists(args.distances):
+        sys.stderr.print("%s not found. Run extended_domain.py script to create it." % (
+            args.distances
+        ))
+        sys.exit(1)
+
+
+    pdbUtils = PDBs(pdb_dir=args.pdbs)
+    update_quaternary(pdbUtils)
+
+    update_csa(args.csa)
+    update_binding_residues(args.distances)
+    important_pfam(args.hmm)
+    free_cys_tyr(pdbUtils)
+
+    _log.info("update pdb properties finished!!")
+
+
 
 
 if __name__ == "__main__":

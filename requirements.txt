@@ -1,0 +1,4 @@
+tqdm
+bcbio-gff
+biopython
+goatools

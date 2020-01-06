@@ -335,6 +335,6 @@ class ModeledStructure(Structure):
                 struct = ExperimentalStructure.objects(name=x.aln_hit.name.split("_")[0]).get()
                 templates.append(struct)
             except DoesNotExist as ex:
-                print  ex, x.aln_hit.name.split("_")[0]
+                print  ([ex, x.aln_hit.name.split("_")[0]])
         return templates
 

@@ -157,7 +157,7 @@ if __name__ == "__main__":
                     strdoc = q.get()
                     try:
                         structure = parser.get_structure(pdb, pdbUtils.pdb_path(pdb))
-                        complete_pockets(pdb, strdoc, structure)
+                        procesar_pdb(pdb, strdoc, structure)
                     except Exception as ex:
                         _log.warn("ERROR " + pdb + " : " + str(ex))
                         continue
@@ -166,4 +166,4 @@ if __name__ == "__main__":
         else:
             procesar_pdb(pdb, parser)
 
-    print "OK!"
+    print ("OK!")

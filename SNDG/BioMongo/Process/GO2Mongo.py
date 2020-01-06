@@ -246,7 +246,7 @@ db.ontologies.update({ontology:"go",term:"go:0005575"},{$pull:{"children":"go:99
     def pre_build_index(self, genome, annotated_collection="proteins", annotated_collection_field="ontologies",
                         drop=True):
         if drop:
-            print self.col_go_index.remove({"seq_collection_id": genome.id, "ontology": self.ontology_name})
+            print (self.col_go_index.remove({"seq_collection_id": genome.id, "ontology": self.ontology_name}))
 
         ont_succ_cache = {}
         for ont_doc in tqdm(Ontology.objects(ontology=self.ontology_name).no_cache(),
@@ -305,4 +305,4 @@ if __name__ == '__main__':
     #     genome = SeqCollection.objects(name="SaureusN315").get()
     #     go2mongo.pre_build_index(genome)
     #     go2mongo.cleanup_cellular_component_annotations(genome)
-    print "ok!"
+    print ("ok!")

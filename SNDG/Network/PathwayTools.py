@@ -54,6 +54,7 @@ class PathwayTools:
                     "Note": "note",
 
                     "EC": ("EC_number", lambda x: x.split(":")[1] if len(x.split(":")) > 1 else x),
+                    "EC_number": "EC_number",
                     "x": "product_comment",
                     "x": "gene_comment",
                     "x": "pseudo",
@@ -390,7 +391,7 @@ if __name__ == "__main__":
         mdb = BioMongoDB(args.mongodb)
         iterator = mdb.organism_iterator(args.annotation, contigmap)
     else:
-        iterator = smart_parse(args.annotation, contigmap)
+        iterator = smart_parse(args.annotation, contigmap).__iter__()
 
     pw.create_genebank(iterator)
     pw.create_organism_params(name=args.name, organism=args.description, domain=args.domain,

@@ -255,9 +255,29 @@ class StructureAnotator(object):
         self.calculated_annotations(domains, model)
         self.aligned_annoations(model)
 
+    def annotate_pdb(self, model, domains):
+        self.calculated_annotations(domains, model)
+        self.aligned_annoations(model)
+
+    def complete_pockets(pdb, strdoc, structure):
+        pdbUtils = PDBs()
+        pdb_file = pdbUtils.pdb_path(pdb)
+        pockets_json = pdbUtils.pdb_pockets_path(pdb)
+        mkdir("/data/databases/pdb/pockets/%s/" % (pdb[1:3]))
+
+        if not os.path.exists(pockets_json) or os.path.getsize(pockets_json) < 10:
+            r = FPocket(pdb_file).hunt_pockets()
+            r.save(pockets_json)
+            r.delete_dir()
+
+    if os.path.exists(pockets_json):
+        strdoc.pockets = StructureAnotator.pocket_residue_set(pockets_json, structure.get_atoms())
+
     def total(self, db, organism, query={}):
         query["organism"] = organism
         return db.structures.count(query)
+
+
 
     def iterator(self, db, organism, query={}):
         """

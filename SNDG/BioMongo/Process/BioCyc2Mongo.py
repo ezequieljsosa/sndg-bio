@@ -365,7 +365,7 @@ class BioCyc(object):
                 if ec:
                     ont_doc.keywords.append(ec)
                 if not ont_doc.term:
-                    print record
+                    print (record)
                 else:
                     ont_doc.save()
 
@@ -431,7 +431,7 @@ class BioCyc(object):
                 ont_doc.keywords = self.ki.extract_keywords(ont_doc.name) + [ont_doc.term]
                 ont_doc.types = reaction_types
                 if not ont_doc.term:
-                    print record
+                    print (record)
                 else:
                     ont_doc.save()
 
@@ -467,4 +467,4 @@ if __name__ == '__main__':
     #     bcyc.load_compounds("/data/databases/biocyc/metacyc/compounds.dat", "metacyc")
     #     bcyc.load_compounds("/data/databases/biocyc/ecocyc/compounds.dat", "ecocyc")
 
-    print "OK"
+    print ("OK")

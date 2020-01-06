@@ -161,6 +161,8 @@ if __name__ == '__main__':
     pdbs.download_pdb_entries()
 
     pdbs.update_pdb_dir()
+    from SNDG.Structure.PDBs import PDBs
+    pdbs = PDBs(pdb_dir="/data/databases/pdb/")
     pdbs.pdbs_seq_for_modelling("/data/databases/pdb/processed/seqs_from_pdb.fasta")
     #pepe = pdbs.entries_df()
     #print pepe
