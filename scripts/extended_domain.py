@@ -106,13 +106,13 @@ def main(argv=None):  # IGNORE:C0111
     if not os.path.exists(DNsPDBs):
         seqs_from_pdb =args.seqs
         if not os.path.exists(seqs_from_pdb):
-            sys.stderr.print("%s does not exists and %s not found. Specify where it is." % (
+            sys.stderr.write("%s does not exists and %s not found. Specify where it is." % (
                 DNsPDBs,seqs_from_pdb
             ))
             sys.exit(1)
 
-        sys.stderr.print("%s not found. You can create it with the following command: \n" % DNsPDBs)
-        sys.stderr.print(
+        sys.stderr.write("%s not found. You can create it with the following command: \n" % DNsPDBs)
+        sys.stderr.write(
             "hmmscan --cut_tc --domtblout dns_pdbs.tlb --acc -o pdb_seq_res.hmm Pfam-A.hmm seqs_from_pdb.fasta")
         sys.exit(1)
 
