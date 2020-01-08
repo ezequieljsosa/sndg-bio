@@ -61,7 +61,7 @@ def main(argv=None):  # IGNORE:C0111
     args = parser.parse_args()
 
     if not os.path.exists(args.pdbs):
-        sys.stderr.print("%s not found. Specify where is pdbs/divided directory" % (
+        sys.stderr.write("%s not found. Specify where is pdbs/divided directory" % (
             parser.pdbs
         ))
         sys.exit(1)
@@ -70,13 +70,13 @@ def main(argv=None):  # IGNORE:C0111
 
     pdbs_with_drug_path = args.pdbs_with_drug
     if not os.path.exists(os.path.dirname(args.pdbs_with_drug)):
-        sys.stderr.print("can't %s create %s. Set pdbs_with_drug correctly" % (
+        sys.stderr.write("can't %s create %s. Set pdbs_with_drug correctly" % (
             pdbs_with_drug_path
         ))
         sys.exit(1)
 
     if not os.path.exists(os.path.dirname(args.distances)):
-        sys.stderr.print("can't %s create %s. Set distances correctly" % (
+        sys.stderr.write("can't %s create %s. Set distances correctly" % (
             args.distances
         ))
         sys.exit(1)
