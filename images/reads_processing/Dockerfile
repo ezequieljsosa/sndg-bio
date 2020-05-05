@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 WORKDIR /app
 
@@ -28,6 +28,8 @@ RUN pip3 install biopython
 RUN pip3 install goatools
 RUN pip3 install bcbio-gff
 RUN pip3 install "websockets<8"
+RUN pip3 install Cython
+#RUN pip3 install https://github.com/pysam-developers/pysam/archive/master.zip
 RUN pip3 install hgvs
 
 RUN wget -O prinseq-lite-0.20.4.tar.gz https://sourceforge.net/projects/prinseq/files/standalone/prinseq-lite-0.20.4.tar.gz/download && tar xfv prinseq-lite-0.20.4.tar.gz && ln -s /app/prinseq-lite-0.20.4/prinseq-lite.pl /usr/local/bin/ && chmod +x /usr/local/bin/prinseq-lite.pl
@@ -42,7 +44,7 @@ ENV SNPEFF /app/snpEff/snpEff.jar
 
 ADD run.sh /app
 
-RUN pip3 install sndg-bio==0.1.26
+RUN pip3 install sndg-bio==0.1.27
 
 
 #ENTRYPOINT ["/app/run.sh"]

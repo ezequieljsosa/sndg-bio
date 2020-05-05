@@ -138,7 +138,7 @@ task alignment {
 
         java -jar $PICARD SortSam INPUT=mapped_reads.bam OUTPUT=sorted_reads.bam SORT_ORDER=coordinate
         rm mapped_reads.bam
-        java -jar $PICARD MarkDuplicates INPUT=sorted_reads.bam OUTPUT=mapped_reads.bam METRICS_FILE=dedup.txt
+        java -jar $PICARD MarkDuplicates INPUT=sorted_reads.bam OUTPUT=mapped_reads.bam METRICS_FILE=dedup.txt MAX_FILE_HANDLES=1000
 
         java -jar $PICARD CollectInsertSizeMetrics I=mapped_reads.bam O=insert_size_metrics.txt H=insert_size_histogram.pdf M=0.5
 

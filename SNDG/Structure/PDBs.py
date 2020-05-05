@@ -37,6 +37,8 @@ class PDBs(object):
 
     '''
 
+
+
     def __iter__(self):
         for index_dir in os.listdir(self.pdbs_dir):
             if len(index_dir) == 2:

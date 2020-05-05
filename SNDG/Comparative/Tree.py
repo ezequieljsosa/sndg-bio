@@ -76,7 +76,10 @@ class TreeUtils(object):
         ts = TreeStyle()
         if data:
             if not order:
-                order = data[data.keys()[0]].keys()
+
+                first = data.keys()
+                first = list(first)[0]
+                order = data[first].keys()
             ts.show_leaf_name = True
             ts.draw_guiding_lines = True
             ts.force_topology = force_topology

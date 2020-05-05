@@ -2,3 +2,5 @@ tqdm
 bcbio-gff
 biopython
 goatools
+twine
+#PyQt5 --> for ete3
