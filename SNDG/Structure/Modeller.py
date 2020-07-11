@@ -9,7 +9,7 @@ import sys
 import logging
 
 
-from modeller import alignment, model, environ
+from modeller import alignment, model, environ,profile
 from modeller.automodel import assess, refine
 from modeller.automodel.automodel import automodel
 from modeller.parallel import local_slave, job
@@ -70,6 +70,22 @@ class Modeller(object):
     '''
     classdocs
     '''
+
+    @staticmethod
+    def process_modpipe_profiles():
+        # https://salilab.org/modbase-download/projects/genomes/M_tuberculosis/2018/m_tuberculosis_2018.tar
+        # https://salilab.org/modbase-download/projects/genomes/L_major/2016/l_major_2016.tar
+        # https://salilab.org/modbase-download/modbase_models_academic-20120928.txt.gz
+        # https://salilab.org/modeller/supplemental.html
+        # https://salilab.org/modeller/downloads/20200513_pdb95.pir.gz
+        # https://salilab.org/modeller/downloads/20200513_pdb95_profiles.tar.bz2 -> data/i8/1i8oA
+
+
+        env = environ()
+        # /mnt/data/data/databases/pdb/modpipe/data/i8/1i8oA
+        prf = profile(env, file="./1i8oA-uniprot90.prf", profile_format="TEXT")
+        aln = prf.to_alignment()
+        aln.write(file='pepe.fasta', alignment_format='FASTA')
 
     def __init__(self, base_path, pdbs_dir):
         '''
@@ -223,6 +239,8 @@ class Modeller(object):
     def _create_directory_structure(self, model_id, query_id):
         if not os.path.exists(self.model_directory(model_id, query_id)):
             os.makedirs(self.model_directory(model_id, query_id))
+
+
 
 
 

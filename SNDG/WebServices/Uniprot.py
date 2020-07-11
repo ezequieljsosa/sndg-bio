@@ -1,11 +1,8 @@
 import logging
 import requests
 
-import os
-
 import Bio.SeqIO as bpio
-import StringIO
-
+from io import StringIO
 from SNDG.WebServices import download_file
 from SNDG import execute
 
@@ -50,6 +47,7 @@ class Uniprot(object):
     '''
     classdocs
     '''
+    DEFAULT_UNIPROT_URL = 'http://www.uniprot.org/uniprot/'
 
     def __init__(self):
         '''
@@ -61,22 +59,26 @@ class Uniprot(object):
         self._query_result = None
         self.queried = False
         self.iterated = False
-        self.uniprot_url = 'http://www.uniprot.org/uniprot/'
+        self.uniprot_url = Uniprot.DEFAULT_UNIPROT_URL
         self.alias_download_url = "ftp://ftp.uniprot.org/pub/databases/uniprot/knowledgebase/docs/sec_ac.txt"
         self.aliases_begin = 30
+
+    @staticmethod
+    def download_fasta(uniprot_id, outdir="./", overwrite=False):
+        download_file(Uniprot.DEFAULT_UNIPROT_URL + uniprot_id + ".fasta", f'{outdir}/{uniprot_id}.fasta', overwrite)
 
     def database_file(self, fasta_path):
         self.fasta_path = fasta_path
         return self
 
-    def download_and_load_seqrecord(self, uniprot_id):
-        res = requests.get(self.uniprot_url + uniprot_id + ".xml", )
+    def download_and_load_seqrecord(self, uniprot_id, format=".xml"):
+        res = requests.get(self.uniprot_url + uniprot_id + format, )
         if res.status_code == 200:
-            try:
-                return bpio.read(StringIO.StringIO(res.text), "uniprot-xml")
-            except:
-                _log.warn("error parsing: " + uniprot_id )
-                pass
+
+                return bpio.read(StringIO(res.text), "uniprot-xml" if "xml" in format else "fasta")
+
+                _log.warn("error parsing: " + uniprot_id)
+
         return None
 
     def download_alias(self, dst):

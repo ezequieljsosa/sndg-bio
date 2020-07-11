@@ -18,8 +18,9 @@ from Bio.SeqRecord import SeqRecord
 from SNDG import init_log, execute
 from SNDG.BioMongo.Model.Sequence import Contig
 from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
-from bson.objectid import ObjectId
+
 from tqdm import tqdm
+
 # from BIADeploy.BiaSql import BiaSql
 # from SNDGInt.Submitter import ExternalAssembly
 
@@ -29,7 +30,8 @@ _log = logging.getLogger(__name__)
 
 class JBrowse(object):
     '''
-    classdocs
+    https://jbrowse.org/docs/installation.html
+    http://gmod.org/wiki/JBrowse_Configuration_Guide
     '''
 
     def __init__(self, db, jbrowse_dir='/data/xomeq/jbrowse/',
@@ -72,7 +74,7 @@ class JBrowse(object):
                     else:
                         if not c["seq"]:
                             if c["bigseq"]:
-                                c["seq"] = str(c["bigseq"]) # zlib.decompressobj(c["bigseq"])
+                                c["seq"] = str(c["bigseq"])  # zlib.decompressobj(c["bigseq"])
                             else:
                                 raise Exception("Empty sequence")
                         bpio.write(SeqRecord(id=c["name"], seq=Seq(c["seq"])), h, "fasta")
@@ -101,6 +103,7 @@ class JBrowse(object):
                 if f._id:
                     ident = str(f._id)
                 else:
+                    from bson.objectid import ObjectId
                     ident = str(ObjectId())
 
                 fl = FeatureLocation(start=f.location.start, end=f.location.end, strand=f.location.strand)
@@ -118,7 +121,7 @@ class JBrowse(object):
                             name = f.identifier
 
                             ftype = "tRNA" if "tRNA" in f.identifier else "rRNA"
-                        elif [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)] :
+                        elif [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)]:
                             name = [fa for fa in f.alias if ("tRNA" in fa) or ("rRNA" in fa)][0]
                             ftype = "tRNA" if "tRNA" in name else "rRNA"
                         else:
@@ -130,7 +133,7 @@ class JBrowse(object):
                 elif f.type in ["rRNA", "tRNA"]:
                     pass
                 else:
-                    print f
+                    print(f)
 
                 if name in proceced:
                     continue
@@ -144,7 +147,7 @@ class JBrowse(object):
             GFF.write(contigs, h)
 
         os.chdir(self.jbrowse_dir)
-        #CanvasFeatures / FeatureTrack
+        # CanvasFeatures / FeatureTrack
         execute(
             'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" --trackType FeatureTrack --className  feature',
             gff=gff4jbrowse_file, out_dir=self.organism_dir(organism), name="Genes")
@@ -233,7 +236,7 @@ if __name__ == "__main__":
     mdb = BioMongoDB("tdr")
     jw = JBrowse(db=mdb.db)
 
-    #http://localhost:8080/sndg/genome/Eco109B
+    # http://localhost:8080/sndg/genome/Eco109B
     # jw.create_genome("Eco109B")
     # for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
     #     if not os.path.exists("/data/xomeq/jbrowse/data/"+ genome + "/xomeq" ):
@@ -244,9 +247,7 @@ if __name__ == "__main__":
     # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
     # for x in ["SaureusN315","Lepto-Bov1","Lepto-CLM-U50","Lepto-CLM-R50","Eco86A","Eco22A","Eco1CT136A","Eco188B"]:
     #     sp.call('scp -r "' + jw.organism_dir(x) + '" 157.92.24.249:' + jw.organism_dir(x), shell=True)
-        #jw.create_genome(x) #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False,extra_features=dict(extra_features)
-
-
+    # jw.create_genome(x) #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False,extra_features=dict(extra_features)
 
     # jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
     jw.create_genome("Ainsu")

@@ -12,7 +12,6 @@ import math
 import requests
 from requests.exceptions import ConnectionError
 
-from SNDG.BioMongo.Model.Ontology import Ontology
 from Bio.Data.IUPACData import protein_letters_1to3
 
 abundance = {"A": 8.91, "R": 5.64, "N": 3.98, "D": 5.42, "C": 1.25,
@@ -25,13 +24,15 @@ _log = logging.getLogger(__name__)
 
 class PFamProfile:
 
+    DEFAULT_TEMPLATE = "/data/databases/xfam/pfam_profiles/%s.hmm"
+
     @classmethod
-    def create_profile(cls, domain_id, template="/data/databases/xfam/pfam_profiles/%s.hmm"):
+    def create_profile(cls, domain_id, hmm_path=None, template=DEFAULT_TEMPLATE):
         domain = domain_id
         if "." in domain_id:
             domain, version = domain_id.split(".")[0:2]  # @UnusedVariable
 
-        hmm_path = template % domain_id
+        hmm_path = hmm_path if hmm_path else template % domain_id
         if not os.path.exists(hmm_path):
             try:
                 r = requests.get('http://pfam.xfam.org/family/' + domain + '/hmm')
@@ -198,3 +199,22 @@ are paying transition probabilities into and out of their inserted residue
 
 class ProfileNotFoundError(Exception):
     pass
+
+
+if __name__ == '__main__':
+    import os
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-p', '--profile_path', default=None)
+    parser.add_argument('-n', '--profile_name', default=None)
+    parser.add_argument('-t', '--hmm_path_template', default="./%s.hmm")
+
+    args = parser.parse_args()
+
+    assert args.profile_path or args.profile_name, "either profile_name or profile_name must be specified"
+
+    profile = args.profile_name if args.profile_name else args.profile_path.split("/")[-1].split(".")[0]
+
+    pfam_profile = PFamProfile.create_profile(profile, args.profile_path,template=args.hmm_path_template)
+    print(pfam_profile.bitscores())

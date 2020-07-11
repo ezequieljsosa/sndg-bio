@@ -37,3 +37,5 @@ if __name__ == "__main__":
         else:
             execute("python emapper.py -i %s.faa --output %s -d euk" %
                     (args.out_dir + accession , args.out_dir + accession) )
+
+

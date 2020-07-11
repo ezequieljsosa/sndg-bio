@@ -73,7 +73,16 @@ class PDBs(object):
         if not hasattr( self._entries_df,"apply" ) :
             entries_columns = ["IDCODE", "HEADER", "ACCESSIONDATE", "COMPOUND", "SOURCE", "AUTHORS", "RESOLUTION",
                                "EXPERIMENT"]
-            self._entries_df = pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
+            data = []
+            with open(self.entries_path) as h:
+                for i,line in enumerate(h):
+                    if i < 3:
+                        continue
+                    vec = line.split("\t")
+                    data.append( {c:vec[idx] for idx,c in enumerate(entries_columns)})
+
+            # self._entries_df = pd.read_table(self.entries_path, skiprows=[0, 1, 2], sep='\t', names=entries_columns)
+            self._entries_df = pd.DataFrame(data)
         return self._entries_df
 
     def pdb_path(self, pdb):
@@ -167,8 +176,8 @@ if __name__ == '__main__':
     pdbs.download_pdb_entries()
 
     pdbs.update_pdb_dir()
-    from SNDG.Structure.PDBs import PDBs
-    pdbs = PDBs(pdb_dir="/data/databases/pdb/")
-    pdbs.pdbs_seq_for_modelling("/data/databases/pdb/processed/seqs_from_pdb.fasta")
+    # from SNDG.Structure.PDBs import PDBs
+    # pdbs = PDBs(pdb_dir="/data/databases/pdb/")
+    # pdbs.pdbs_seq_for_modelling("/data/databases/pdb/processed/seqs_from_pdb.fasta")
     #pepe = pdbs.entries_df()
     #print pepe

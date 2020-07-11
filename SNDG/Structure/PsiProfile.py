@@ -27,7 +27,7 @@ class PsiProfile:
     @staticmethod
     def profile_search(seq_id, database, pssm_file, search_result, cpu):
         execute(
-            "psiblast -db {database} -in_pssm {input} -num_threads {cpu}  -evalue 0.001  -outfmt 5 -out {output} > {cmd_out} ",
+                "psiblast -db {database} -in_pssm {input} -num_threads {cpu}  -evalue 0.001  -outfmt 5 -out {output} > {cmd_out} ",
             output=search_result,
             database=database, input=pssm_file, cpu=cpu, cmd_out=search_result + ".out")
 

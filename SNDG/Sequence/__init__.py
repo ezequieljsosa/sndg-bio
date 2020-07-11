@@ -8,7 +8,7 @@ from SNDG import Struct
 import Bio.SeqIO as bpio
 import Bio.SearchIO as bpsio
 from BCBio import GFF
-
+import gzip
 
 def identity(hsp):
     return 1.0 * hsp.ident_num / hsp.aln_span
@@ -49,60 +49,72 @@ def add_blast_xml_props(sndg_iter):
         yield (query, hit, hsp)
 
 
-def smart_parse(path, seqs=None):
+
+
+def smart_parse(path, seqs=None,gz_input=None):
     """
 
     :param path: sequence path
     :param seqs: dictionary of sequences. key=sequence name, value=Bio.Seq.Seq object
     :return: sequences iterator
     """
-    path = path.strip()
-    it = None
-    if path.endswith(".fasta"):
-        it = bpio.parse(path, "fasta")
-    if path.endswith(".faa"):
-        it = bpio.parse(path, "fasta")
-    if path.endswith(".fna"):
-        it = bpio.parse(path, "fasta")
+    raw_path = path.strip()
 
-    if path.endswith(".gb"):
-        it = bpio.parse(path, "gb")
-    if path.endswith(".gbf"):
-        it = bpio.parse(path, "gb")
+    if gz_input or raw_path.endswith(".gz"):
+        path = path[:-3]
+        handle = gzip.open(raw_path,"rt")
+    else:
+        path = raw_path
+        handle = open(path,"r")
+    try:
+        it = None
+        if path.endswith(".fasta"):
+            it = bpio.parse(handle, "fasta")
+        if path.endswith(".faa"):
+            it = bpio.parse(handle, "fasta")
+        if path.endswith(".fna"):
+            it = bpio.parse(handle, "fasta")
 
-    if path.endswith(".gbk"):
-        it = bpio.parse(path, "gb")
-    if path.endswith(".genebank"):
-        it = bpio.parse(path, "gb")
+        if path.endswith(".gb"):
+            it = bpio.parse(handle, "gb")
+        if path.endswith(".gbf"):
+            it = bpio.parse(handle, "gb")
 
-    if path.endswith(".gbff"):
-        it = bpio.parse(path, "gb")
+        if path.endswith(".gbk"):
+            it = bpio.parse(handle, "gb")
+        if path.endswith(".genebank"):
+            it = bpio.parse(path, "gb")
+
+        if path.endswith(".gbff"):
+            it = bpio.parse(handle, "gb")
 
 
 
-    if path.endswith(".embl"):
-        it = bpio.parse(path, "embl")
+        if path.endswith(".embl"):
+            it = bpio.parse(handle, "embl")
 
 
-    if  path.endswith(".gff") or path.endswith(".gff3"):
-        it = GFF.parse(open(path))
+        if  path.endswith(".gff") or path.endswith(".gff3"):
+                it = GFF.parse(handle)
 
-    if path.endswith(".fq"):
-        it = bpio.parse(path, "fastq")
-    if path.endswith(".fastq"):
-        it = bpio.parse(path, "fastq")
+        if path.endswith(".fq"):
+            it = bpio.parse(handle, "fastq")
+        if path.endswith(".fastq"):
+            it = bpio.parse(handle, "fastq")
 
-    if path.endswith(".hmm"):
-        it = search_iterator(bpsio.parse(path, "hmmer3-text"))
+        if path.endswith(".hmm"):
+            it = bpsio.parse(handle, "hmmer3-text")
 
-    if path.endswith(".xml"):
-        with open(path) as h:
-            h.readline()
-            l = h.readline()
-            if "BlastOutput" in l:
-                it = add_blast_xml_props(search_iterator(bpsio.parse(path, "blast-xml")))
-            if "<uniprot" in l:
-                it = bpio.parse(path, "uniprot-xml")
+        if path.endswith(".xml"):
+            with open(path) as h:
+                h.readline()
+                l = h.readline()
+                if "BlastOutput" in l:
+                    it = add_blast_xml_props(search_iterator(bpsio.parse(handle, "blast-xml")))
+                if "<uniprot" in l:
+                    it = bpio.parse(handle, "uniprot-xml")
+    except:
+        handle.close()
     if it:
         if seqs:
             def witer():
