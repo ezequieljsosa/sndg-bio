@@ -195,7 +195,7 @@ task genotype_gvcf {
 
     command {
         java -jar /gatk/gatk-package-4.1.0.0-local.jar GenotypeGVCFs \
-	    -V ${gvcf}  \
+	    -V ${gvcf} -R ${reference_dir}/${reference_filename}   \
 	    -O output.vcf.gz
     }
     output {

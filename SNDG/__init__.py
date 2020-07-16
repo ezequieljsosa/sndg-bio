@@ -45,7 +45,9 @@ DOCKER_MAPPINGS = {
     "spades.py": "staphb/spades:latest",
     "bwa": "biocontainers/bwa:v0.7.17_cv1",
     "blast": "ncbi/blast:latest",
-    "makeblastdb": "ncbi/blast:latest"
+    "makeblastdb": "ncbi/blast:latest",
+    "mafft": "biocontainers/mafft:v7.407-2-deb_cv1",
+    "diamond-aligner": "biocontainers/diamond-aligner:v0.9.24dfsg-1-deb_cv1"
 }
 
 import shlex
@@ -113,11 +115,12 @@ def docker_wrap_command(cmd):
     return f'docker run -u $(id -u):$(id -g) --rm -v $PWD:/out -w /out {mappings_str}  {img} {new_part}'
 
 
-def execute(cmd_unformated, wd="./", retcodes=[0], docker_mode=False, **kargs):
+def execute(cmd_unformated, wd="./", retcodes=[0], stdout=sys.stdout, stderr=sys.stderr, docker_mode=False, **kargs):
     cmd = cmd_unformated.format(**kargs)
 
     try:
-        process = sp.Popen(cmd, shell=True)
+        _log.debug(cmd)
+        process = sp.Popen(cmd, shell=True, stdout=stdout, stderr=stderr)
         process.communicate()
         return process.returncode
 

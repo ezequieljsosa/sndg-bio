@@ -6,7 +6,7 @@ Created on May 26, 2017
 from io import StringIO
 import unittest
 
-from VARDB.VcfSnpeffIO import VcfSnpeffIO
+from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
 
 
 class TestVcfSnpeffIO(unittest.TestCase):

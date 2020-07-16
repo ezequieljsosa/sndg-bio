@@ -7,7 +7,7 @@ from SNDG import Struct
 
 import Bio.SeqIO as bpio
 import Bio.SearchIO as bpsio
-from BCBio import GFF
+
 import gzip
 
 def identity(hsp):
@@ -95,7 +95,8 @@ def smart_parse(path, seqs=None,gz_input=None):
 
 
         if  path.endswith(".gff") or path.endswith(".gff3"):
-                it = GFF.parse(handle)
+            from BCBio import GFF
+            it = GFF.parse(handle)
 
         if path.endswith(".fq"):
             it = bpio.parse(handle, "fastq")

@@ -13,7 +13,7 @@ import subprocess
 from tqdm import tqdm
 from numpy.lib.scimath import sqrt
 from glob import glob
-from SNDG import mkdir
+from SNDG import mkdir, execute
 
 _log = logging.getLogger(__name__)
 
@@ -135,23 +135,38 @@ class FpocketOutput():
     def parse(self):
         assert os.path.exists(self._info_file_path()), "info file not found in: " + self._info_file_path()
 
-        pockets_index = [int(x.split("_")[0].split("pocket")[1]) for x in os.listdir(self.directory + "/pockets/")]
+        pockets_index = [int(x.split("_")[0].split("pocket")[1]) for x in os.listdir(self.directory + "/pockets/") if
+                         "pocket" in x]
         min_pocket_index = 0
         if pockets_index:
             min_pocket_index = min(pockets_index)
 
-        self.pockets = [OutputPocket(pocket_num, self.directory, min_pocket_index, properties) for
-                        pocket_num, properties in self._parse_info_file()]
+        self.pockets = [p for p in [OutputPocket(pocket_num, self.directory, min_pocket_index, properties) for
+                                    pocket_num, properties in self._parse_info_file()] if
+                        p.properties["Druggability Score"] > 0.2]
 
         for pocket in self.pockets:
             pocket.load_atoms()
             pocket.load_alpha()
 
+    @staticmethod
+    def load_json(file_path):
+        result = FpocketOutput(os.path.dirname(file_path))
+        with open(file_path) as h:
+            data = json.load(h)
+            result.pockets = [p for p in [OutputPocket(pocket_dict["number"], result.directory, 0,
+                                                       pocket_dict["properties"], residues=pocket_dict["residues"]
+                                                       , atoms=pocket_dict["atoms"]
+                                                       ) for pocket_dict in data] if
+                              p.properties["Druggability Score"] > 0.2]
+        return result
+
     def save(self, file_path):
         mkdir(os.path.dirname(os.path.abspath(file_path)))
         with open(file_path, "w") as handle:
             json.dump(
-                [{"number": p.pocket_num, "as_lines": p.alpha_spheres, "atoms": p.atoms, "properties": p.properties}
+                [{"number": p.pocket_num, "residues": p.residues, "as_lines": p.alpha_spheres, "atoms": p.atoms,
+                  "properties": p.properties}
                  for p in self.pockets if p.properties["Druggability Score"] > 0.2], handle)
 
     def __str__(self):
@@ -196,14 +211,14 @@ class FPocket(object):
         pdb_dir = os.path.dirname(abs_path)
 
         cmd = "docker run -u $(id -u):$(id -g) -w /out -v '{pdb_dir}':/out --rm ezequieljsosa/fpocket {fpocket} -f '{pdb_file}'".format(
-            fpocket=self.fpocket_binary, pdb_file=pdb_file,pdb_dir=pdb_dir)
+            fpocket=self.fpocket_binary, pdb_file=pdb_file, pdb_dir=pdb_dir)
         self._execute(cmd)
         if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
             if os.path.exists(self.dest_path()):
                 shutil.rmtree(self.dest_path(), True)
             work_dir = self._pdb_file_directory + "/" + self._out_directory()
             if os.path.exists(work_dir):
-                shutil.move(work_dir, self.dest_path())
+                execute(f'mv "{work_dir}" "{self.dest_path()}"')
         result = FpocketOutput(self.dest_path())
         result.parse()
         return result
@@ -228,15 +243,16 @@ class OutputPocket(object):
     '''
 
     # @param descriptor: list of Residue charges, balls, all the hetatms that defines the pockets
-    def __init__(self, pocket_num, directory, min_pocket_index=0, properties=lambda: {}):
+    def __init__(self, pocket_num, directory, min_pocket_index=0, properties=None, residues=None, atoms=None):
         '''
         pocket_num: pocket number in the info file --> Index in the .info and STP file starts in 1
         '''
         self.pocket_num = pocket_num
         self.directory = directory
         self.alpha_spheres = []
-        self.atoms = []
-        self.properties = properties
+        self.atoms = atoms if atoms else []
+        self.residues = residues if residues else []
+        self.properties = properties if properties else {}
 
         self.min_pocket_index = min_pocket_index
 
@@ -246,16 +262,18 @@ class OutputPocket(object):
                 if line[0:6].strip() == 'ATOM':
                     atom_num = line[6:11].strip()
                     self.atoms.append(atom_num)
+                    self.residues.append(line[22:26].strip() + line[16].strip())
 
     def load_alpha(self):
         with open(self._vert_file_path()) as h:
             for line in h:
-                if line[0:6].strip() == 'HETATM' :
-                    #HETATM    1 APOL STP C   1       7.330  72.769  16.106  0.00  0.00          Ve
+                if line[0:6].strip() == 'HETATM':
+                    # HETATM    1 APOL STP C   1       7.330  72.769  16.106  0.00  0.00          Ve
                     self.alpha_spheres.append(line)
                 elif line[0:6].strip() == 'ATOM':
-                    #ATOM      1    O STP     1       3.174  33.184  26.211    0.00     4.00
-                    line = line.replace("ATOM  ","HETATM").replace("  O","POL").replace("   C","APOL").replace("  0.00   ","0.00")
+                    # ATOM      1    O STP     1       3.174  33.184  26.211    0.00     4.00
+                    line = line.replace("ATOM  ", "HETATM").replace("  O", "POL").replace("   C", "APOL").replace(
+                        "  0.00   ", "0.00")
                     self.alpha_spheres.append(line)
 
     def _atoms_file_path(self):
@@ -302,4 +320,4 @@ if __name__ == '__main__':
                 res = fpo.hunt_pockets()
                 res.save(pocket_data)
         except Exception as e:
-            print (e)
+            print(e)

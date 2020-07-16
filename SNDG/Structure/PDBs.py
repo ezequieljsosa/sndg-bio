@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from SNDG import mkdir, execute
 from SNDG.WebServices import download_file
-
+import fileinput
 
 
 _log = logging.getLogger(__name__)
@@ -30,6 +30,33 @@ HOMOLOGOUS = ["InterPro", "UniProt", "SCOP", "CATH", "NCBI"]
 
 
 # ftp://ftp.ebi.ac.uk/pub/databases/pdb/derived_data/index/entries.idx
+
+class PDBFile:
+
+    def __init__(self,code,in_pdb):
+        self.code = code
+        self.struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(self.code, in_pdb)
+
+    def residues_map(self,selected_chain=None,standard_aa=True):
+        rmap = {}
+        for chain in self.struct.get_chains():
+            if (not selected_chain) or (selected_chain == chain.id):
+                residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
+                rmap [chain.id] = {i:x.id for i,x in enumerate(residues)}
+        return rmap
+
+    def seq(self,selected_chain=None,standard_aa=True):
+        records =  []
+        for chain in self.struct.get_chains():
+            if (not selected_chain) or (selected_chain == chain.id):
+                residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
+                if residues:
+                    seq = "".join([seq1(x.resname) for x in residues])
+                    start = str(residues[0].id[1])
+                    end = str(residues[-1].id[1])
+                    record = SeqRecord(id="_".join([self.code, chain.id, start, end]), description="", seq=Seq(seq))
+                    records.append(record)
+        return records
 
 
 class PDBs(object):
@@ -100,6 +127,8 @@ class PDBs(object):
     def download_pdb_entries(self):
         download_file(self.url_pdb_entries, self.entries_path, ovewrite=True)
 
+
+
     def update_pdb_dir(self):
         assert os.path.exists(self.pdb_dir), "the target directory does not exists %s" % self.pdb_dir
         assert os.path.exists(self.entries_path), "the entries path does not exists %s" % self.entries_path
@@ -109,16 +138,21 @@ class PDBs(object):
         for pdb in pbar:
             try:
                 pbar.set_description(pdb)
-                mkdir(self.pdbs_dir + pdb[1:3])
-                if os.path.exists(self.pdb_path_gzipped(pdb)):
-                    execute("gunzip " + self.pdb_path_gzipped(pdb))
-                elif not os.path.exists(self.pdb_path(pdb)):
-                    download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
-                                  self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
-                    execute("gunzip " + self.pdb_path_gzipped(pdb))
+                self.update_pdb(pdb)
 
             except Exception as ex:
                 _log.warn(str(ex))
+
+    def update_pdb(self, pdb):
+        pdb = pdb.lower()
+        mkdir(self.pdbs_dir + pdb[1:3])
+        if os.path.exists(self.pdb_path_gzipped(pdb)):
+            execute("gunzip " + self.pdb_path_gzipped(pdb))
+        elif not os.path.exists(self.pdb_path(pdb)):
+            download_file(self.url_pdb_files + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention,
+                          self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + self.pdb_download_extention)
+            execute("gunzip " + self.pdb_path_gzipped(pdb))
+
 
     def pdbs_seq_for_modelling(self, out_fasta=None,
                                pdbsIter=None, reuse_previours=None):
@@ -137,21 +171,28 @@ class PDBs(object):
         reuse = dict(reuse)
 
         pdblist = list(pdbsIter)
-        with open(out_fasta, "w") as handle:
+        with open(out_fasta, "w") as out_fasta_handle:
             for (pdb, pdb_file_path) in tqdm(pdblist):
                 if pdb in pdb_codes:
                     if pdb in reuse:
-                        bpio.write(reuse[pdb], handle, "fasta")
+                        bpio.write(reuse[pdb], out_fasta_handle, "fasta")
                     else:
-                        struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
-                        for chain in struct.get_chains():
-                            residues = [x for x in chain.get_residues() if is_aa(x, standard=True)]
-                            if residues:
-                                seq = "".join([seq1(x.resname) for x in residues])
-                                start = str(residues[0].id[1])
-                                end = str(residues[-1].id[1])
-                                record = SeqRecord(id="_".join([pdb, chain.id, start, end]), description="", seq=Seq(seq))
-                                bpio.write(record, handle, "fasta")
+                        self.seq_from_pdb(out_fasta_handle, pdb, pdb_file_path)
+
+    def seq_from_pdb(self, out_fasta_handle, pdb, pdb_file_path,standard_aa=True,selected_chain=None):
+        struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
+        for chain in struct.get_chains():
+            if (not selected_chain) or (selected_chain == chain.id):
+                residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
+                if residues:
+                    seq = "".join([seq1(x.resname) for x in residues])
+                    start = str(residues[0].id[1])
+                    end = str(residues[-1].id[1])
+                    record = SeqRecord(id="_".join([pdb, chain.id, start, end]), description="", seq=Seq(seq))
+                    bpio.write(record, out_fasta_handle, "fasta")
+
+
+
 
     def pdb_path(self, pdb):
         return self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + ".ent"
