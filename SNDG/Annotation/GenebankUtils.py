@@ -64,7 +64,10 @@ class GenebankUtils:
         finally:
             if isinstance(h_or_str_faa, str):
                 h_faa.close()
-            h_gb.close()
+            try:
+                h_gb.close()
+            except:
+                pass
 
 
 if __name__ == '__main__':

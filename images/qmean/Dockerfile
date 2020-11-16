@@ -1,4 +1,5 @@
-FROM registry.scicore.unibas.ch/schwede/openstructure:2.0.0
+#FROM registry.scicore.unibas.ch/schwede/openstructure:2.0.0
+FROM registry.scicore.unibas.ch/schwede/openstructure
 #https://git.scicore.unibas.ch/schwede/openstructure/tree/2.0.0/docker
 
 
