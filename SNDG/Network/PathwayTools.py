@@ -29,6 +29,7 @@ from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio.SeqRecord import SeqRecord
 from SNDG import execute, mkdir
+from SNDG.BioMongo.Model.SeqCollection import SeqCollection
 
 _log = logging.getLogger(__name__)
 
@@ -389,7 +390,10 @@ if __name__ == "__main__":
 
     if args.annotation_type == "mongo":
         mdb = BioMongoDB(args.mongodb)
-        iterator = mdb.organism_iterator(args.annotation, contigmap)
+
+        assert mdb.seq_col_exists(args.annotation)
+        iterator = list(mdb.organism_iterator(args.annotation, contigmap))
+        assert len(iterator)
     else:
         iterator = smart_parse(args.annotation, contigmap).__iter__()
 

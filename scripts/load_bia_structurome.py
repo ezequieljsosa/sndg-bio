@@ -167,8 +167,8 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
         prot_start = int(float(model_data["qstart"]))
         prot_end = int(float(model_data["qend"]))
 
-        pdb_start = int(float(model_data["hresstart"]))
-        pdb_end = int(float(model_data.template.split("_")[-1]))
+        pdb_start = int(float(model_data["hstartres"]))
+        pdb_end = int(float(model_data["hendres"]))
 
         hit_start = int(float(model_data["hstart"]))
         hit_end = int(float(model_data["hend"]))
@@ -200,7 +200,7 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
     pockets_json = structs_dir + "/" + model_name + ".pdb.json"
 
     if os.path.exists(pockets_json):
-        rss = StructureAnotator.pocket_residue_set(pockets_json,model.get_atoms())
+        rss = StructureAnotator.pocket_residue_set(pockets_json,list(model.get_atoms()))
         strdoc.pockets = rss
     return strdoc
 

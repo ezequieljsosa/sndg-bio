@@ -48,13 +48,13 @@ class StructureAnotator(object):
         with open(pockets_json) as handle:
             pockets_dict = json.load(handle)
         for pocket_dict in pockets_dict:
-            rs = ResidueSet(name="Pocket_" + str(pocket_dict["number"]), type="pocket")
+            rs = ResidueSet(name="Pocket_" + str(pocket_dict["number"]), type="pocket",residues=[])
             for key, value in pocket_dict["properties"].items():
                 rs[eq2[key]] = value
-
-            rs.residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
-                                    for x in structure_atoms
-                                    if str(x.serial_number) in pocket_dict["atoms"]]))
+            residues = list(set([x.parent.parent.id + "_" + str(x.parent.id[1])
+                                 for x in structure_atoms
+                                 if str(x.serial_number) in pocket_dict["atoms"]]))
+            rs.residues = residues
             if rs.residues:
                 rss.append(rs)
         return rss

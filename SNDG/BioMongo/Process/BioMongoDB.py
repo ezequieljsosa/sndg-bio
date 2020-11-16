@@ -7,6 +7,7 @@ import glob
 import logging
 import os
 from itertools import combinations
+from tqdm import tqdm
 
 import numpy as np
 import pymongo
@@ -51,6 +52,7 @@ class BioMongoDB(object):
     def __init__(self, dbname, port=27017, host='127.0.0.1', basefs='/data/'):
 
         self.db = pymongo.MongoClient(host=host, port=port)[dbname]
+        self.struct_db = pymongo.MongoClient(host=host, port=port)["pdb"]
         self.fs_resolver = FilesystemResolver(basefs)
         connect(dbname, host=host, port=port)
         register_connection("pdb", name="pdb", host=host, port=port)
@@ -131,7 +133,7 @@ class BioMongoDB(object):
             go.load(False)
             _log.debug("GO loaded")
 
-    def copy_genome(self, name, newname=None, dst_db=None, ):
+    def copy_genome(self, name, newname=None, dst_db=None):
         """
         :param name: of the collection in the source db
         :param newname: of the collection
@@ -147,6 +149,8 @@ class BioMongoDB(object):
 
         if not dst_db:
             dst_db = self.db
+
+
         if not newname:
             newname = name
 
@@ -166,12 +170,20 @@ class BioMongoDB(object):
             protein["seq_collection_id"] = new_id
             protein["seq_collection_name"] = newname
             dst_db.proteins.save(protein)
+
         print("Copiando indices:")
         total = self.db.col_ont_idx.count({"seq_collection_name": name})
         for idx in tqdm(self.db.col_ont_idx.find({"seq_collection_name": name}), total=total):
             idx["seq_collection_id"] = new_id
             idx["seq_collection_name"] = newname
             dst_db.col_ont_idx.save(idx)
+
+        print("Copiando estructuras:")
+        total = self.struct_db.structures.count({"organism": name})
+        for struct in tqdm(self.struct_db.structures.find({"organism": name}), total=total):
+            dst_db.client.pdb.structure.save(struct)
+
+
 
     def delete_feature_type(self, organism, feature_type):
         self.db.proteins.update({"organism": organism, "features.type": feature_type},
@@ -370,7 +382,7 @@ class BioMongoDB(object):
             prot.save()
 
     def load_from_interpro(self, organism, interprot_gff):
-        for l in open(interprot_gff):
+        for l in tqdm(open(interprot_gff)):
             if l.startswith(">"):
                 break
             if l.startswith("##"):

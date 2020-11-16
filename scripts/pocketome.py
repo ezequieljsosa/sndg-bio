@@ -41,7 +41,7 @@ if __name__ == '__main__':
         for pdb in pbar:
             pbar.set_description(pdb)
             try:
-                pocket_data = pdb + ".json"
+                pocket_data = pdb.replace(".pdb","") + ".json"
                 if not os.path.exists(pocket_data):
                     fpo = FPocket(pdb)
                     result = fpo.hunt_pockets()

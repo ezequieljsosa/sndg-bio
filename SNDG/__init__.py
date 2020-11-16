@@ -4,7 +4,8 @@ import subprocess as sp
 import warnings
 from subprocess import CalledProcessError
 import sys
-import time
+import shutil
+import fileinput
 
 from Bio import BiopythonWarning, BiopythonExperimentalWarning, BiopythonParserWarning
 
@@ -14,7 +15,7 @@ warnings.simplefilter('ignore', BiopythonParserWarning)
 
 log_format = "%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s"
 
-__version__ = '0.1.27'
+__version__ = '0.1.57'
 
 _log = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def init_log(log_file_path=None, rootloglevel=logging.DEBUG):
 
 DOCKER_MAPPINGS = {
     "samtools": "biocontainers/samtools:v1.9-4-deb_cv1",
+    "bgzip": "biocontainers/htslib:v1.2.1_cv3",
     "bedtools": "biocontainers/bedtools:v2.27.1dfsg-4-deb_cv1",
     "bcftools": "biocontainers/bcftools:v1.9-1-deb_cv1",
     "spades": "staphb/spades:latest",
@@ -47,25 +49,38 @@ DOCKER_MAPPINGS = {
     "blast": "ncbi/blast:latest",
     "makeblastdb": "ncbi/blast:latest",
     "mafft": "biocontainers/mafft:v7.407-2-deb_cv1",
-    "diamond-aligner": "biocontainers/diamond-aligner:v0.9.24dfsg-1-deb_cv1"
+    "diamond-aligner": "biocontainers/diamond-aligner:v0.9.24dfsg-1-deb_cv1",
+    "gatk": "broadinstitute/gatk:4.1.8.0"
 }
 
 import shlex
 
 
+def _get_img(cmd):
+    parts = shlex.split(cmd)
+    img = [v for k, v in DOCKER_MAPPINGS.items() if k.startswith(parts[0])]
+    return img[0] if img else None
+
+
 def docker_wrap_command(cmd):
     if ";" in cmd:
         _log.warning("command containing ';', docker wrapping may fail")
-    parts = shlex.split(cmd)
-    img = [v for k, v in DOCKER_MAPPINGS.items() if k.startswith(parts[0])]
-    if not img:
-        raise NotImplemented(f"docker mapping for command {parts[0]} not found")
+    if "|" in cmd:
+        for cmd2 in cmd.split("|"):
+            img = _get_img(cmd2)
+            if img:
+                break
     else:
-        img = img[0]
+        img = _get_img(cmd)
+    if not img:
+        raise NotImplementedError(f"docker mapping for command {cmd} not found")
 
+    parts = shlex.split(cmd, posix=False)
     new_parts = []
     mappings = []
     for p in parts:
+        p = p[1:] if p[0] in ["'", '"'] else p
+        p = p[:-1] if p[-1] in ["'", '"'] else p
         np = p
 
         if p.startswith("./") or p.startswith("../") or p.startswith("/"):
@@ -112,12 +127,29 @@ def docker_wrap_command(cmd):
     mappings_str = " ".join([f"-v {x}:{x}" for x in set(final_mappings)])
 
     new_part = " ".join([x if " " not in x else f'"{x}"' for x in new_parts])
-    return f'docker run -u $(id -u):$(id -g) --rm -v $PWD:/out -w /out {mappings_str}  {img} {new_part}'
+    new_part = new_part.replace('"', '\\"')
+    return f'docker run -u $(id -u):$(id -g) --rm -v $PWD:/out -w /out {mappings_str}  {img} bash -c "{new_part}"'
 
 
-def execute(cmd_unformated, wd="./", retcodes=[0], stdout=sys.stdout, stderr=sys.stderr, docker_mode=False, **kargs):
-    cmd = cmd_unformated.format(**kargs)
+DEFAULT_SNDG_EXEC_MODE = "path_docker"
 
+
+def execute(cmd, retcodes=[0], stdout=sys.stdout, stderr=sys.stderr,
+            exec_mode=None):
+    cmd = cmd.strip()
+    exec_mode = exec_mode if exec_mode else os.environ.get("SNDG_EXEC_MODE", DEFAULT_SNDG_EXEC_MODE)
+    if (exec_mode == "print"):
+        print(cmd)
+        return 0
+    elif (exec_mode == "path_docker") and not cmd.startswith("docker"):
+        parts = shlex.split(cmd, posix=False)
+        if not shutil.which(parts[0]):
+            _log.debug(f"command not detected, wrapping in docker:{cmd}")
+            cmd = docker_wrap_command(cmd)
+
+    elif (exec_mode == "docker") and not cmd.startswith("docker"):
+        _log.debug(f"wrapping in docker:{cmd}")
+        cmd = docker_wrap_command(cmd)
     try:
         _log.debug(cmd)
         process = sp.Popen(cmd, shell=True, stdout=stdout, stderr=stderr)
@@ -148,6 +180,12 @@ class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str(self.__dict__)
+
 
 def grouper(iterable, n, fillvalue=None):
     from itertools import izip_longest
@@ -155,3 +193,20 @@ def grouper(iterable, n, fillvalue=None):
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
     return izip_longest(*args, fillvalue=fillvalue)
+
+
+def arg_file_iter(arg_input):
+    if arg_input == "-":
+        file_iter = fileinput.input(arg_input)
+    elif len(arg_input) > 1:
+        file_iter = arg_input
+    else:
+        with open(arg_input, "r") as file:
+            first_line = file.readline()
+        if os.path.exists(first_line):
+            with open(arg_input, "r") as file:
+                file_iter = [x.strip() for x in file.readlines()]
+        else:
+            file_iter = [arg_input]
+    return file_iter
+

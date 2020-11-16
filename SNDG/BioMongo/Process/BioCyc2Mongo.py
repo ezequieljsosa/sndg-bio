@@ -91,7 +91,7 @@ class BioCyc(object):
         '''
         self.collection = collection
 
-        if isinstance(db, basestring):
+        if isinstance(db, str):
             if not client:
                 client = MongoClient()
             self.db = client[db]

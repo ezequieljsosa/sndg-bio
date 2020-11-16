@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    BioMongoDB(args.db_name)
+    mdb = BioMongoDB(args.db_name)
 
     pdbUtils = PDBs(pdb_dir=args.pdbs)
 
@@ -160,8 +160,17 @@ if __name__ == "__main__":
                              db.structures.find({"seq_collection_name": "pdb", "pockets.0": {"$exists": 0}},
                                                 {"name": 1})}
     procesados = {x["name"]: 1 for x in db.structures.find({"seq_collection_name": "pdb"}, {"name": 1})}
-    pdbs = list(pdbUtils)
-    for (pdb, pdb_file) in tqdm(pdbs):
+    # pdbs = list(pdbUtils)
+    data = list(mdb.db.proteins.aggregate([{"$match":{"features.type":"SO:0001079"}},{"$project":{"features":1}},
+                                       {"$unwind":"$features"},{"$match":{"features.type":"SO:0001079"}},
+                                       {"$project":{"hit":"$features.aln.aln_hit.name"}}]))
+    pdbs = {x["hit"].split("_")[0]:1 for x in data}
+    for y in [x ["templates"][0]["aln_hit"]["name"].split("_")[0] for x in db.structures.find({"templates.0":{"$exists":1}},{"templates.aln_hit.name":1})]:
+        pdbs[y] = 1
+
+    pbar = tqdm(pdbs.keys())
+    for pdb in pbar:
+        pbar.set_description(pdb)
 
         if pdb in procesados:
             if pdb in procesados_sin_pocket:

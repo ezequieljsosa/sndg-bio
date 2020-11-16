@@ -18,6 +18,7 @@ from SNDG.BioMongo.Process.EC2Mongo import EC2Mongo
 from SNDG.BioMongo.Process.GO2Mongo import GO2Mongo
 from SNDG.BioMongo.Process.KeywordIndexer import KeywordIndexer
 from SNDG.BioMongo.Process.StructureIndexer import StructuromeIndexer
+from functools import reduce
 
 _log = logging.getLogger(__name__)
 

@@ -251,20 +251,20 @@ class Offtarget(object):
     DEFAULT_GUT_FILENAME = "gut_microbiota.fasta.gz"
     DEFAULT_HUMAN_FILENAME = "human_uniprot100.fa.gz"
 
-    offtarget_p = ["/data/databases/deg/degaa-p.dat",
-                   "/data/databases/human/gencode.v17.pc_translations.fa",
-                   "/data/databases/human/gut_microbiota.fasta"]
+    DEG_PROT_URL = {"p": "http://tubic.tju.edu.cn/deg_test/public/download/DEG10.aa.gz",
+                    "a": "http://tubic.tju.edu.cn/deg_test/public/download/DEG30.aa.gz",
+                    "e": "http://tubic.tju.edu.cn/deg_test/public/download/DEG20.aa.gz"
+                    }
+    DEG_FAA_NAMES = {
+        "a":"degaa-a.dat","p":"degaa-p.dat","e":"degaa-e.dat"
+    }
 
     @staticmethod
     def download_deg(dst="/data/databases/deg/"):
         for x in ["p", "e", "a"]:
-            filename = "deg-" + x + "-15.2"
-
-            download_file("http://tubic.tju.edu.cn/deg/download/" + filename + ".zip",
-                          dst + filename + ".zip", ovewrite=True)
-            execute("unzip -o  " + dst + filename + ".zip" + " -d " + dst)
-            os.remove(dst + filename + ".zip")
-            execute("makeblastdb -dbtype prot -in " + dst + "degaa-" + x + ".dat")
+            download_file(Offtarget.DEG_PROT_URL[x], f"{dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz", ovewrite=True)
+            execute(f"gunzip -f {dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz")
+            execute(f"makeblastdb -dbtype prot -in {dst}/{Offtarget.DEG_FAA_NAMES[x]}")
 
     @staticmethod
     def download_human_prots(dst="/data/databases/human/"):
@@ -340,14 +340,14 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='commands', description='valid subcommands', required=True, dest='command')
 
     gut_download = subparsers.add_parser('download', help='Download offtarget data')
-    gut_download.add_argument('-db', '--databases', choices=["all", "human", "gut_microbiote"], default="all")
-    gut_download.add_argument('-o', '--output', help="output_directory", default="/data/databases/human/")
+    gut_download.add_argument('-db', '--databases', choices=["all","deg", "human", "gut_microbiote"], default="all")
+    gut_download.add_argument('-o', '--output', help="output_directory", default="/data/databases/")
     gut_download.add_argument('--force', action="store_true")
 
     gut_microbiote_blast = subparsers.add_parser('gut_microbiote_blast',
                                                  help='Runs blastp against gut microbiote and counts organisms')
     gut_microbiote_blast.add_argument('input_faa')
-    gut_microbiote_blast.add_argument('-o', '--output', help="output_directory", required=True)
+    gut_microbiote_blast.add_argument('-o', '--output', help="output_directory", default="./")
     gut_microbiote_blast.add_argument('-db', '--database', help="gut microbiome fasta",
                                       default="/data/databases/human/gut_microbiota.fasta.gz")
     gut_microbiote_blast.add_argument('--cpus', default=multiprocessing.cpu_count())
@@ -356,11 +356,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     init_log()
-    # Offtargeting.download_deg()
-    # Offtargeting.download_human_prots()
+
     if args.command == "download":
         if args.databases in ["all", "gut_microbiote"]:
-            path = f'{args.output}{Offtarget.DEFAULT_GUT_FILENAME}'
+            path = f'{args.output}/gut_microbiote/{Offtarget.DEFAULT_GUT_FILENAME}'
             if args.force or not os.path.exists(path):
                 path = Offtarget.create_human_microbiome(dst=args.output)
             else:
@@ -369,7 +368,7 @@ if __name__ == "__main__":
             filename = os.path.basename(path)
             execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/{filename} -dbtype prot -in -")
         if args.databases in ["all", "human"]:
-            path = f'{args.output}{Offtarget.DEFAULT_HUMAN_FILENAME}'
+            path = f'{args.output}/human/{Offtarget.DEFAULT_HUMAN_FILENAME}'
             if args.force or not os.path.exists(path):
                 path = Offtarget.download_human_prots(dst=args.output)
             else:
@@ -377,7 +376,9 @@ if __name__ == "__main__":
 
             filename = os.path.basename(path)
             execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/{filename} -dbtype prot -in -")
-
+        if args.databases in ["all", "deg"]:
+            mkdir(f'{args.output}/deg/')
+            Offtarget.download_deg(f'{args.output}/deg/')
     elif args.command == "gut_microbiote_blast":
         blast_gut_path = f'{args.output}/gut_microbiome.blast.tbl'
         gut_result_path = f'{args.output}/gut_microbiome.tbl'

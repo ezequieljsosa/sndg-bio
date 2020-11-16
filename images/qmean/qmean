@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""
+
+"""
+import matplotlib
+
+matplotlib.use('Agg')
+
+from ost.io import LoadPDB
+from qmean import QMEANScorer
+
+
+class QMean:
+
+    def __init__(self, pdb_path):
+        self.pdb = LoadPDB(pdb_path)
+        self.scorer = QMEANScorer(self.pdb)
+
+    def assesment(self):
+        # scorer.classic_reference_set.data.rows
+        # scorer.classic_reference_set.data.col_names
+
+        result = {"components": {}}
+        for k, v in self.scorer.qmean4_components.items():
+            result["components"][k] = v
+        result["qmean"] = self.scorer.qmean4_score
+        result["zqmean"] = self.scorer.qmean4_z_score
+        result["residues"] = {}
+        for k, v in self.scorer.local_scores.items():
+            result["residues"][k] = v
+        return result
+
+    def export_graphics(self, outdir="./"):
+        self.scorer.LocalProfilePlot(f"{outdir}/local_profile.png")
+        self.scorer.QMEAN4ReferencePlot(f"{outdir}/qmean4_ref_plot.png")
+        self.scorer.QMEAN4SliderPlot(f"{outdir}/qmean4_sliders")
+
+
+#
+# # the assessed model is a view of our input structure that we
+# # can access as well. If we want to read out local scores from
+# # there, we first need to map them.
+# scorer.AssignModelBFactors()
+# model = scorer.model
+# for r in model.residues:
+#     print(r, r.atoms[0].b_factor)
+
+
+if __name__ == '__main__':
+    import os
+    from argparse import ArgumentParser, RawDescriptionHelpFormatter
+
+    parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument("-i", "--inputpdb", required=True, help="pdb file path")
+    parser.add_argument("-g", "--graphics", default=None, help="directory to save graphics")
+
+    args = parser.parse_args()
+
+    assert os.path.exists(args.inputpdb), f'"{args.inputpdb}" does not exist'
+
+    qmean_scorer = QMean(args.inputpdb)
+
+    assessment = qmean_scorer.assesment()
+    if args.graphics:
+        if not os.path.exists(args.graphics):
+            os.makedirs(args.graphics)
+        assert os.path.exists(args.graphics), f"could not create '{os.path.exists(args.graphics)}'"
+        assert os.path.isdir(args.graphics), f"'{args.graphics}' is not a directory"
+        qmean_scorer.export_graphics(args.graphics)
+
+    print(assessment)

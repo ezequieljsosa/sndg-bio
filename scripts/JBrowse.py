@@ -79,9 +79,9 @@ class JBrowse(object):
                                 raise Exception("Empty sequence")
                         bpio.write(SeqRecord(id=c["name"], seq=Seq(c["seq"])), h, "fasta")
 
-        execute('PERL5LIB={perl5lib}  {base}bin/prepare-refseqs.pl --fasta "{fasta}" --out "{out_dir}" --key "{name}" ',
-                perl5lib=self.path_PERL5LIB,
-                fasta=gff4jbrowse_fasta, base=self.jbrowse_dir, out_dir=self.organism_dir(organism), name="Sequence")
+        execute(
+            f'PERL5LIB={self.path_PERL5LIB}  {self.jbrowse_dir}bin/prepare-refseqs.pl --fasta "{gff4jbrowse_fasta}" --out "{self.organism_dir(organism)}" --key "Sequence" ',
+            )
 
         gff4jbrowse_file = "/tmp/jbrowse_g.gff"
         contigs = []
@@ -146,31 +146,31 @@ class JBrowse(object):
         with open(gff4jbrowse_file, "w") as h:
             GFF.write(contigs, h)
 
-        os.chdir(self.jbrowse_dir)
-        # CanvasFeatures / FeatureTrack
-        execute(
-            'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff}" --out "{out_dir}" --key "{name}" --trackLabel "{name}" --trackType FeatureTrack --className  feature',
-            gff=gff4jbrowse_file, out_dir=self.organism_dir(organism), name="Genes")
-
-        track_list_path = self.organism_dir(organism) + "/trackList.json"
-        with open(track_list_path) as handle:
-            txt = handle.read()
-
-        str_on_click = '''
-         "onClick"  : {
-              "label": "go to product",
-              "url": "function() { if(this.feature.get('type') == 'gene' ){  window.parent.location.href =  window.parent.location.href.split('genome/')[0] + '/protein/gene/' + this.feature.get('locus_tag') + '/'; }}"
-          }
-        '''
-        txt = txt.replace('"key" : "Genes"', '"key" : "Genes",' + str_on_click)
-        txt = txt.replace('"key":"Genes"', '"key" : "Genes",' + str_on_click)
-        with open(track_list_path, "w") as handle:
-            handle.write(txt)
-
-        if not os.path.exists(self.organism_dir(organism) + "/names/"):
-            os.makedirs(self.organism_dir(organism) + "/names/")
-        with open(self.organism_dir(organism) + "/names/root.json", "w") as handle:
-            handle.write('')
+        # os.chdir(self.jbrowse_dir)
+        # # CanvasFeatures / FeatureTrack
+        # execute(
+        #     f'PERL5LIB=/home/eze/perl5/lib/perl5 ./bin/flatfile-to-json.pl --gff "{gff4jbrowse_file}" --out "{self.organism_dir(organism)}" --key "Genes" --trackLabel "Genes" --trackType FeatureTrack --className  feature',
+        # )
+        #
+        # track_list_path = self.organism_dir(organism) + "/trackList.json"
+        # with open(track_list_path) as handle:
+        #     txt = handle.read()
+        #
+        # str_on_click = '''
+        #  "onClick"  : {
+        #       "label": "go to product",
+        #       "url": "function() { if(this.feature.get('type') == 'gene' ){  window.parent.location.href =  window.parent.location.href.split('genome/')[0] + '/protein/gene/' + this.feature.get('locus_tag') + '/'; }}"
+        #   }
+        # '''
+        # txt = txt.replace('"key" : "Genes"', '"key" : "Genes",' + str_on_click)
+        # txt = txt.replace('"key":"Genes"', '"key" : "Genes",' + str_on_click)
+        # with open(track_list_path, "w") as handle:
+        #     handle.write(txt)
+        #
+        # if not os.path.exists(self.organism_dir(organism) + "/names/"):
+        #     os.makedirs(self.organism_dir(organism) + "/names/")
+        # with open(self.organism_dir(organism) + "/names/root.json", "w") as handle:
+        #     handle.write('')
 
     #         sp.call('scp -r "' + self.organism_dir(organism) + '" 157.92.24.249:' + self.organism_dir(organism), shell=True)
     # --trackType CanvasFeatures
@@ -213,50 +213,24 @@ class JBrowse(object):
 
 
 if __name__ == "__main__":
-    init_log()
-    #     sqldb = BiaSql("bioseq",user="root",passwd="mito")
-    #     for i,x in enumerate(ExternalAssembly.select().where(ExternalAssembly.genome.is_null() )):
-    #         print ( "procesando: " +  str(i))
-    #         mdb = BioMongoDB("saureus")
-    #
-    #         if (not os.path.exists("/data/xomeq/jbrowse/data/" + x.assembly_accession + "/trackList.json") and
-    #             mdb.seq_col_exists(x.assembly_accession)):
-    #             jw = JBrowse(db=BioMongoDB("saureus").db)
-    #             jw.sequences = {x.id:x.seq for x in sqldb.sequences(x.assembly_accession + "_ncbi")}
-    #             jw.create_genome(x.assembly_accession)
+    import argparse
+    import SNDG
 
-    #     extra_features = defaultdict(lambda : [])
-    #     for gff in open("/data/ger/ncbi_IP4.gff3.whole").read().split("##gff-version 3")[1:]:
-    #         for r in GFF.parse(StringIO.StringIO(gff)):
-    #             for f in r.features:
-    #                 if f.type == "TATA":
-    #                     extra_features[r.id].append(f)
-    #                 elif f.type == "TSS":
-    #                     extra_features[r.id].append(f)
-    mdb = BioMongoDB("tdr")
+    init_log()
+    parser = argparse.ArgumentParser(description='Profile utils')
+    parser.add_argument('--db', default="tdr", help='database name. default tdr')
+    parser.add_argument('--name', required=True, help='organism name')
+    args = parser.parse_args()
+
+    SNDG.DEFAULT_SNDG_EXEC_MODE = "raw"
+    mdb = BioMongoDB(args.db)
     jw = JBrowse(db=mdb.db)
 
-    # http://localhost:8080/sndg/genome/Eco109B
-    # jw.create_genome("Eco109B")
-    # for genome in ["HIV-1","EcoliMG1655","SacCereS288C"]:
-    #     if not os.path.exists("/data/xomeq/jbrowse/data/"+ genome + "/xomeq" ):
-    #         try:
-    #             jw.create_genome(genome)
-    #         except Exception as ex:
-    #             _log.warn(ex)
-    # jw.sequences = {x.id:x.seq for x in bpio.parse("/data/projects/Staphylococcus/annotation/ncbi/GCF_000009645.1_ASM964v1_genomic.gb","gb")}
-    # for x in ["SaureusN315","Lepto-Bov1","Lepto-CLM-U50","Lepto-CLM-R50","Eco86A","Eco22A","Eco1CT136A","Eco188B"]:
-    #     sp.call('scp -r "' + jw.organism_dir(x) + '" 157.92.24.249:' + jw.organism_dir(x), shell=True)
-    # jw.create_genome(x) #gff4jbrowse_fasta="/data/organismos/ILEX_PARA/xomeq/jbrowse_g.fasta", create_fasta=False,extra_features=dict(extra_features)
+    jw.create_genome(args.name)
+    print("se crearon los archivos /tmp/jbrowse_g.gff y /tmp/jbrowse_g.fasta")
 
-    # jw.load_sequences("/data/organismos/ILEX_PARA/contigs/ncbi_IP4.fna",seq_format="fasta")
-    jw.create_genome("Ainsu")
-    #
     # jw.load_sequences("/data/organismos/Pext14-3B/annotation//GCF_000242115.1_Pext14-3B_1.0_genomic.gbff")
     # jw.create_genome("Pext14-3B")
-    #
-    # jw.load_sequences("/data/organismos/GCF_001624625.1/annotation/GCF_001624625.1_ASM162462v1_genomic.gb")
-    # jw.create_genome("GCF_001624625.1")
 
 #     for s in [ "15-6324_S3_L001","2003_S4_L001"]:
 #         vcf = "/data/projects/PiuriTB/analysis/variant_call_h37/" + s + "/variants.ann.vcf"

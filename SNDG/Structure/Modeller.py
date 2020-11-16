@@ -8,8 +8,7 @@ import os
 import sys
 import logging
 
-
-from modeller import alignment, model, environ,profile
+from modeller import alignment, model, environ, profile
 from modeller.automodel import assess, refine
 from modeller.automodel.automodel import automodel
 from modeller.parallel import local_slave, job
@@ -80,12 +79,25 @@ class Modeller(object):
         # https://salilab.org/modeller/downloads/20200513_pdb95.pir.gz
         # https://salilab.org/modeller/downloads/20200513_pdb95_profiles.tar.bz2 -> data/i8/1i8oA
 
-
         env = environ()
         # /mnt/data/data/databases/pdb/modpipe/data/i8/1i8oA
         prf = profile(env, file="./1i8oA-uniprot90.prf", profile_format="TEXT")
         aln = prf.to_alignment()
         aln.write(file='pepe.fasta', alignment_format='FASTA')
+
+    """
+    data = "./pdball.pir".read() 
+    from Bio.SeqRecord import SeqRecord 
+    from Bio.Seq import Seq 
+    with open("modeller.fasta","w") as h: 
+        for record in data.split("C; Produced by MODELLER"): 
+             record = [line.strip() for line in record.split("\n") if line.strip()] 
+             if record:             
+                 seqrecord = SeqRecord(id=record[0][1:].strip(), 
+                     name="",description=record[1].strip(), 
+                     seq=Seq( "".join(record[2:])  )) 
+                 bpio.write(seqrecord,h,"fasta") 
+    """
 
     def __init__(self, base_path, pdbs_dir):
         '''
@@ -146,8 +158,9 @@ class Modeller(object):
         #         pdb_end = str(int(template.id.split("_")[3]) -  alignment.aln_hit.start)
         pdb_end = "+" + str(len(str(template.seq).replace("-", "").replace(".", "")))
         #         pdb_end = "+" + str( len(aligned_residues)  )
-
-        targetheader = ">P1;%s\nsequence:%s::::::::"
+        start = int(alignment.aln_query.start) + 1
+        length = str(int(alignment.aln_query.end) - int(alignment.aln_query.start))
+        targetheader = f">P1;{query.id}\nsequence:{query.id}:{start}:A:+{length}:A::::\n"
         templateheader = ">P1;%s\nstructureX:%s:%s:%s:%s:%s::::"
 
         # targetrec = alignment["query"]
@@ -156,18 +169,26 @@ class Modeller(object):
         outfile = self._aln_file(model_id, query.id)
 
         with open(outfile, "w") as piralignment:
-            piralignment.write(targetheader % (query.id, query.id) + "\n")
+            piralignment.write(targetheader)
             piralignment.write(str(query.seq) + "*" + "\n")
             piralignment.write(templateheader % (pdb, pdb, pdb_start, pdb_chain, pdb_end, pdb_chain) + "\n")
             piralignment.write(str(template.seq) + "*" + "\n")
+
 
         return [pdb]
 
     def _create_models(self, env, base_models, model_id, query_id):
 
-        a = automodel(env, alnfile=self._aln_file(model_id, query_id),
-                      knowns=base_models, sequence=str(query_id),
-                      assess_methods=self._assess_methods)
+        class MyModel(automodel):
+            def special_patches(self, aln):
+                # Rename both chains and renumber the residues in each
+                start = int(aln[1].range[0].split(":")[0])
+                self.rename_segments(segment_ids=['A'], renumber_residues=start)
+                # self.chains[0].name = 'A'
+
+        a = MyModel(env, alnfile=self._aln_file(model_id, query_id),
+                    knowns=base_models, sequence=str(query_id),
+                    assess_methods=self._assess_methods)
         a.starting_model = 1
         a.ending_model = self.model_count
         a.md_level = self._refinement
@@ -183,6 +204,7 @@ class Modeller(object):
             a.use_parallel_job(j)
 
         model = a.make()
+
         if "OverflowError" in str(a.outputs[0]["failure"].__class__):
             raise ModellerOverflowError(a.outputs[0]["failure"], base_models)
         _log.debug("{model_count} models for {orf} with {base_models} where generated ".format(
@@ -203,10 +225,11 @@ class Modeller(object):
         try:
             env = environ()
             env.io.atom_files_directory = self.pdbs_dir
-            os.chdir(self.model_directory(model_id, query.id))
+
             #             #align_models = self._create_aligment( env, base_models)
             align_models = self.aln2pir(model_id, alignment, query, template)
-            #
+
+            os.chdir(self.model_directory(model_id, query.id))
             self._create_models(env, align_models, model_id, query.id)
             #
 
@@ -239,11 +262,6 @@ class Modeller(object):
     def _create_directory_structure(self, model_id, query_id):
         if not os.path.exists(self.model_directory(model_id, query_id)):
             os.makedirs(self.model_directory(model_id, query_id))
-
-
-
-
-
 
 
 if __name__ == '__main__':

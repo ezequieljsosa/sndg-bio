@@ -255,7 +255,7 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
     hmm_result = None
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
-        pdbs_path = "/data/databases/pdb/processed/seqs_from_pdb.fasta"
+        pdbs_path = "/data/databases/pdb/pdbseqres.txt"
         if not os.path.exists(blast_result) or os.path.getsize(blast_result) < 10:
             cmd = "blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query %s -db %s -num_threads %i -outfmt 5 -out %s"
             subprocess.call(cmd % (protein_fasta, pdbs_path, cpu, blast_result), shell=True)
@@ -269,7 +269,7 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
 
 
 def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
-    process_pdb = Protein.objects(
+    process_pdb = not Protein.objects(
         __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not (Protein.objects(__raw__={
         "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count())
@@ -299,21 +299,21 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, proce
 
 def update_proteins(annotation_dir, proteome, seq_col_name, tax_id,
                     identity=0.9, cpus=multiprocessing.cpu_count(), db_init=None):
-    print seq_col_name
-    if db_init:
-        from SNDG.Sequence.ProteinAnnotator import PABase
-        PABase.sqldb.initialize(db_init)
-    mkdir(annotation_dir)
-    out = annotation_dir + "/species_blast.tbl"
 
-    tax = Tax.select().where(Tax.ncbi_taxon_id == tax_id).get()
-    species_tax = None
-    for tax in Tax.parents(tax):
-        if tax.node_rank == "genus":
-            species_tax = tax
-            break
-    tax_data = "/data/xomeq/tax/"
-    species_fasta = tax_data + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
+    # if db_init:
+    #     from SNDG.Sequence.ProteinAnnotator import PABase
+    #     PABase.sqldb.initialize(db_init)
+    # mkdir(annotation_dir)
+    # out = annotation_dir + "/species_blast.tbl"
+    #
+    # tax = Tax.select().where(Tax.ncbi_taxon_id == tax_id).get()
+    # species_tax = None
+    # for tax in Tax.parents(tax):
+    #     if tax.node_rank == "genus":
+    #         species_tax = tax
+    #         break
+    # tax_data = "/data/xomeq/tax/"
+    # species_fasta = tax_data + str(int(species_tax.ncbi_taxon_id)) + ".fasta"
 
     if not os.path.exists(out):
 
@@ -513,12 +513,14 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
                                {"$set": {"search." + offtarget_name: value_fn(r)}})
 
 
+
+
 def import_kegg_annotation(db, genome_name, kegg_annotation):
     current_pathways = {}
     pw_kos = defaultdict(lambda: [])
     for ko_code, genes in tqdm(kegg_annotation.ko_gene.items()):
         if "ko:" + ko_code not in kegg_annotation.ko_dict:
-            print ko_code
+
             continue
         ko = kegg_annotation.ko_dict["ko:" + ko_code]
         if not ko:

@@ -237,6 +237,9 @@ class BioDocFactory(object):
         if "GO" in feature.qualifiers:
             gos = gos + [x.lower() for x in feature.qualifiers["GO"] if
                          "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
+        if "GO_terms" in feature.qualifiers:
+            gos = gos + [x.lower() for x in feature.qualifiers["GO_terms"] if
+                     "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
         if "Ontology_term" in feature.qualifiers:
             gos = [x.lower() for x in feature.qualifiers["Ontology_term"] if
                    "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]

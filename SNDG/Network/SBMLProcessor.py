@@ -2,6 +2,11 @@
 Created on Jan 9, 2015
 
 @author: eze
+
+To install
+sudo apt install libsbml5-dev
+pip install python-libsbml
+
 '''
 
 import os
@@ -151,7 +156,7 @@ class SBMLProcessor(object):
 
         if cc:
             g = self.graph.subgraph(
-                sorted([(x, len(x)) for x in nx.connected_components(self.graph)], key=lambda y: y[1])[0][0])
+                sorted([(x, len(x)) for x in nx.connected_components(self.graph.to_undirected())], key=lambda y: y[1])[0][0])
         else:
             g = self.graph
 
@@ -214,9 +219,34 @@ print(consuption)
 """
 
 if __name__ == "__main__":
+    import argparse
+    import os
+    import sys
+
+    parser = argparse.ArgumentParser(description='SBML utils')
+    parser.add_argument('-i', '--sbml', help="sbml", required=True)
+    parser.add_argument('-f', '--filter', help="List of compounds to be filtered. One per line",
+                        default="ubiquitous_compounds.txt")
+    parser.add_argument('-o', '--output_dir', help="output dir", default="./")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    assert os.path.exists(args.output_dir), f'{args.output_dir} could not be created'
+
     sbml = SBMLProcessor()
-    sbml.sbml_file_path = "./bartonella_SBML"
-    sbml.init()
-    sbml.create_filter("./allfilters_con_c.dat")
-    sbml.process_sbml()
-    sbml.toSIF("fede_sif.txt")
+    sbml.sbml_file_path = args.sbml
+    sbml.filter_filename = args.filter
+    if os.path.exists(f"{args.output_dir}/network.gpickle"):
+        sbml.graph = nx.read_gpickle(f"{args.output_dir}/network.gpickle")
+    else:
+        sbml.init()
+        if not os.path.exists(args.filter):
+            sbml.create_filter(args.output_dir)
+            print("filter fille was just created, check it and re run the command with: ")
+            print(f" -i '{args.sbml}' -o '{args.output_dir}' -f '{args.filter}'")
+            sys.exit(0)
+        sbml.process_sbml()
+        nx.write_gpickle(sbml.graph, args.output_dir + "/network.gpickle")
+    sbml.toSIF(f"{args.output_dir}/network.sif",cc=False)

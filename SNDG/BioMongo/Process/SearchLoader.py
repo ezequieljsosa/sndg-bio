@@ -10,7 +10,7 @@ from bson.objectid import ObjectId
 from tqdm import tqdm
 
 import Bio.SearchIO as bpsio
-from SNDG.WebServices.Offtargeting import Offtargeting
+from SNDG.WebServices.Offtarget import Offtarget
 from SNDG import mkdir
 from SNDG.BioMongo.Model.Alignment import SimpleAlignment, AlnLine
 from SNDG.BioMongo.Model.Feature import Feature, Location
@@ -33,7 +33,7 @@ class SearchLoader():
         proteins = tmp_dir + "proteins.fasta"
         if not os.path.exists(proteins):
             BioMongoDB.protein_fasta(proteins,organism)
-        results = Offtargeting.offtargets(proteins,tmp_dir,offtarget_databases)
+        results = Offtarget.offtargets(proteins,tmp_dir,offtarget_databases)
         for i,name in enumerate(offtarget_names):
             load_blast_features( organism, results[i], name,
                                  min_identity=0.4, min_query_coverage=0.4, min_hit_coverage=0.4)

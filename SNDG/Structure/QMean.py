@@ -132,14 +132,14 @@ eebebbbbbbeeebbeeebeebbbebeebbbbbbbebbbbbbbbebbbbbbebeeeeebbbbbbbbbbbbeeeebbbbbb
 
 
 if __name__ == '__main__':
-    from SNDG import init_log
+    from SNDG import init_log,arg_file_iter
 
     init_log()
 
     parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument("-acc", "--accpro", default="/opt/sspro4/bin/predict_acc.sh")
     parser.add_argument("-psi", "--psipred", default="/opt/psipred/runpsipred")
-    parser.add_argument("-i", "--inputpdb", required=True)
+    parser.add_argument("-i", "--inputpdb", default="-",)
     parser.add_argument("-o", "--outdir", default="./")
     parser.add_argument( "--cpus", default=multiprocessing.cpu_count())
 

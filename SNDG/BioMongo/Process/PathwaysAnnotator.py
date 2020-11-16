@@ -11,7 +11,7 @@ from _collections import defaultdict
 import networkx as nx
 from tqdm import tqdm
 import json
-
+from functools import reduce
 from mongoengine.errors import DoesNotExist, MultipleObjectsReturned
 from networkx.algorithms.centrality.betweenness import betweenness_centrality
 from networkx.algorithms.components.connected import connected_components
@@ -181,16 +181,16 @@ class PathwaysAnnotator(object):
             self.sbmlprocessor.init()
 
         self.sbmlprocessor.process_sbml()
-        with open(self.work_dir + 'pathways.dat', 'w') as f:
+        with open(self.work_dir + 'pathways.dat', 'wb') as f:
             pickle.dump(self.sbmlprocessor.pathways, f)
-        with open(self.work_dir + 'genes.dat', 'w') as f:
+        with open(self.work_dir + 'genes.dat', 'wb') as f:
             pickle.dump(self.sbmlprocessor.genes, f)
         nx.write_gpickle(self.sbmlprocessor.graph, self.work_dir + "/met.gpickle")
 
     def load_data(self):
-        with open(self.work_dir + '/pathways.dat', 'r') as f:
+        with open(self.work_dir + '/pathways.dat', 'rb') as f:
             self.sbmlprocessor.pathways = pickle.load(f)
-        with open(self.work_dir + '/genes.dat', 'r') as f:
+        with open(self.work_dir + '/genes.dat', 'rb') as f:
             self.sbmlprocessor.genes = pickle.load(f)
             self.gene_reaction = defaultdict(lambda: [])
             for reaction, genes in self.sbmlprocessor.genes.items():

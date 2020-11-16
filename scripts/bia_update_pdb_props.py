@@ -19,6 +19,7 @@ import sys
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import pandas as pd
+from Bio.PDB.PDBExceptions import PDBConstructionException
 from tqdm import tqdm
 import Bio.SearchIO as bpsio
 
@@ -34,6 +35,7 @@ from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
 from SNDG.Structure.CompoundTypes import get_compound_type
 from SNDG.Structure.FPocket import FPocket
 from SNDG.Structure.PDBs import PDBs
+
 
 # from Bia.Programs.Cluster.CDHit import CDHit
 
@@ -58,7 +60,7 @@ def update_clusters():
                                                clust_end=clust_end))
         for pdb in set(cristals):
             try:
-                cristal_doc = ExperimentalStructure.objects(name=pdb).get()
+                cristal_doc = ExperimentalStructure.objects(name=pdb).no_cache().get()
                 cristal_doc.clusters = [x for x in cristal_doc.clusters if x.type != "PDB_Segments_95"]
                 if not cristal_doc.cluster(cluster_name):
                     cristal_doc.clusters.append(cluster)
@@ -91,7 +93,7 @@ def update_binding_residues(distances_tbl):
                 df_comp_dist_pdb_near = df_binding_dist_pdb[
                     (df_binding_dist_pdb.distance <= 3) & (comp_type == df_binding_dist_pdb.comptype)]
                 if len(df_comp_dist_pdb_near):
-                    strdoc = ExperimentalStructure.objects(name=pdb).get()
+                    strdoc = ExperimentalStructure.objects(name=pdb).no_cache().get()
                     rs_name = comp_type.lower() + "_binding"
                     if not strdoc.has_residue_set(rs_name):
                         residue_list = list(set([row.chain + "_" + str(row.prot_res) for i, row in
@@ -107,11 +109,21 @@ def update_binding_residues(distances_tbl):
 def free_cys_tyr(pdb_utils):
     parser = PDBParser(PERMISSIVE=1, QUIET=1)
     _log.debug("procesing free cys/tyr")
-    total = ExperimentalStructure.objects().count()
-    for strdoc in tqdm(ExperimentalStructure.objects().no_cache().timeout(False), total=total):
+    total = ExperimentalStructure.objects(residue_sets__name__ne = "free_tyr").count()
+    for strdoc in tqdm(ExperimentalStructure.objects(residue_sets__name__ne = "free_tyr").no_cache().timeout(False), total=total):
 
         if not (strdoc.residue_set("free_cys") or strdoc.residue_set("free_tyr")):
-            bp_pdb = list(parser.get_structure(strdoc.name, pdb_utils.pdb_path(strdoc.name)  ))[0]
+            if not os.path.exists(pdb_utils.pdb_path(strdoc.name)):
+                pdb_utils.update_pdb(strdoc.name)
+            if not os.path.exists(pdb_utils.pdb_path(strdoc.name)):
+                continue
+            try:
+                bp_pdb = list(parser.get_structure(strdoc.name, pdb_utils.pdb_path(strdoc.name)  ))[0]
+            except PDBConstructionException:
+                continue
+            except TypeError:
+                continue
+
             free = {"CYS": [], "TYR": []}
             codes = {"CYS": "SG", "TYR": "OH"}
             for x in bp_pdb.get_residues():
@@ -207,12 +219,17 @@ REMARK 350 AND CHAINS: J, K, L
                 strdoc.save()
             except IndexError:
                 _log.debug("no se puede parsear %s" % strdoc.name)
+            except FileNotFoundError :
+                _log.debug(f"{strdoc.name} could not be found")
 
 
 def important_pfam(seqs_from_pdb_hmm):
-    for query in bpsio.parse(seqs_from_pdb_hmm, 'hmmer3-text'):
+    for query in tqdm(bpsio.parse(seqs_from_pdb_hmm, 'hmmer3-text')):
         try:
             pdb, chain, start, end = query.id.split("_")  # @UnusedVariable
+            if ExperimentalStructure.objects(name=pdb,residue_sets__name="important_pfam").count():
+                continue
+
             strdoc = ExperimentalStructure.objects(name=pdb).get()
 
             if not strdoc.residue_set("important_pfam"):
@@ -295,13 +312,18 @@ def main(argv=None):  # IGNORE:C0111
 
 
     pdbUtils = PDBs(pdb_dir=args.pdbs)
+    print("Update Quaternary")
     update_quaternary(pdbUtils)
-
+    print("Update CSA")
     update_csa(args.csa)
-    update_binding_residues(args.distances)
-    important_pfam(args.hmm)
+    print("Update CYS/TYR")
     free_cys_tyr(pdbUtils)
 
+
+    print("Update Importan Pfam")
+    important_pfam(args.hmm)
+    print("Update Binding residues")
+    update_binding_residues(args.distances)
     _log.info("update pdb properties finished!!")
 
 

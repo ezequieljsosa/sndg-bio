@@ -111,6 +111,7 @@ class ResidueSet(DynamicEmbeddedDocument):
 
         self._instance = None
 
+
     def __and__(self, other):
         assert other != None, "cant & with None"
         return ResidueSet(name=self.name + "&" + other.name,
@@ -127,7 +128,7 @@ class ResidueSet(DynamicEmbeddedDocument):
         return self.__repr__()
 
     def __len__(self):
-        return len(self.residues)
+        return len(self._data["residues"])
 
     def residue_numbers(self):
         return [int(x.split("_")[1]) for x in self.residues]

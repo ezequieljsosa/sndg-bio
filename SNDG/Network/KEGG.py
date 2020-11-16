@@ -61,9 +61,8 @@ class Kegg(object):
     def update_files(base_dir="/data/databases/kegg/"):
         for db in ["pathway","ko","cpd","brite"]:
             with open(base_dir + db + ".txt","w") as h:
-                print db
                 data = REST.kegg_list(db).read()
-                print len(data)
+
                 h.write(data)
         # wget http://www.kegg.jp/kegg-bin/download_htext?htext=br08901.keg&format=json&filedir=
         # wget http://www.kegg.jp/kegg-bin/download_htext?htext=br08001.keg&format=json&filedir=
@@ -75,7 +74,7 @@ class Kegg(object):
             kgmlpath = base_dir + "ko/" + pw + ".kgml"
             if not os.path.exists(kgmlpath):
                 with open(kgmlpath, "w") as h:
-                    print pw
+
                     try:
                         data = REST.kegg_get(pw, option="kgml").read()
                         h.write(data)

@@ -130,7 +130,7 @@ class Hmmer(object):
         _log.debug("Running: " + command)
         try:
             subprocess.call(command, stderr=subprocess.STDOUT, shell=True, executable='/bin/bash')
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             _log.fatal("nCmd error:" + e.output)
             raise
         _log.debug("Command: " + command + "---- Executed correctly")

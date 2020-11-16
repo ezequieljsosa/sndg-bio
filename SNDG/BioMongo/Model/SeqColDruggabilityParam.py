@@ -9,7 +9,7 @@ class SeqColDruggabilityParamTypes():
     values = [number, value]
 
 
-class SeqColDruggabilityParam(EmbeddedDocument):
+class   SeqColDruggabilityParam(EmbeddedDocument):
     '''
     '''
 
@@ -42,7 +42,7 @@ class SeqColDruggabilityParam(EmbeddedDocument):
     meta = {'allow_inheritance': True, 'strict': False}
     name = StringField(required=True)
     description = StringField(default="")
-    type = StringField(default="value", choices=map(lambda x: x, SeqColDruggabilityParamTypes.values))
+    type = StringField(default="value", choices=["number","value"])
     target = StringField(default="protein")
     uploader = StringField(default="")
     options = ListField(DynamicField())

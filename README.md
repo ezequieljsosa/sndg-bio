@@ -11,7 +11,7 @@ Bioinformatic tools
 ## Instalation
 ### From source
 
-```shell
+```console
 git clone https://github.com/ezequieljsosa/sndg-bio.git
 cd sndg-bio
 virtual-env -p python3.7 env
@@ -26,10 +26,10 @@ echo source $(pwd)/env/bin/activate >> ${HOME}/.bashrc
 
 ### Best bidirectional hits
 Runs BBH algorithm using diamond-aligner
-```shell
+```console
+# Help python3 -m "SNDG.Sequence.BBH" -h
 python3 -m "SNDG.Sequence.BBH" -f1 proteome1.faa -f2 proteome2.faa > bbhs.txt
 ```
-# Help_ python3 -m "SNDG.Sequence.BBH" -h
 
 
 

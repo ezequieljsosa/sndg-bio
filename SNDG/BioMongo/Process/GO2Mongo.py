@@ -39,7 +39,7 @@ class GO2Mongo(object):
         self.graph_file = '/data/databases/' + ontology_name + '/' + ontology_name + '.gpickle'
         self.go_dag = None
 
-        if isinstance(db, basestring):
+        if isinstance(db, str):
             if not client:
                 client = MongoClient()
             self.db = client[db]
