@@ -292,7 +292,7 @@ class Offtarget(object):
 
     @staticmethod
     def count_organism_from_microbiome_blast(tbl_blast_result_path, microbiome_fasta, identity_threshold=0.4,
-                                             out_tbl=None):
+                                             out_tbl=None,gene_id_column="id"):
         prot_org_map = {}
         with (gzip.open(microbiome_fasta, "rt") if microbiome_fasta.endswith(".gz") else open(microbiome_fasta)) as h:
             for line in h:
@@ -318,13 +318,14 @@ class Offtarget(object):
             query_orgs[query] = set(hits)
         if out_tbl:
             with open(out_tbl, "w") as h:
+                h.write("\t".join([gene_id_column,"gut_microbiote_count","gut_microbiote_norm","gut_microbiote_organisms"]) + "\n")
                 for query, hits in query_orgs.items():
-                    h.write("\t".join([query, str(len(hits)), ";".join(hits)]) + "\n")
+                    h.write("\t".join([query, str(len(hits)), len(hits) * 1.0 / len(prot_org_map) , ";".join(hits)]) + "\n")
         return query_orgs
 
     @staticmethod
     def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count()):
-        cmd = f"blastp -evalue 1e-5 -max_hsps 1 -outfmt 6  -db {offtarget_db} -query {proteome} -out {dst_resutls} -num_threads {cpus}|awk '$3>50'"
+        cmd = f"blastp -evalue 1e-5 -max_hsps 1 -outfmt 6  -db {offtarget_db} -query {proteome} -num_threads {cpus}|awk '$3>50' > {dst_resutls}"
         execute(cmd)
         return dst_resutls
 
