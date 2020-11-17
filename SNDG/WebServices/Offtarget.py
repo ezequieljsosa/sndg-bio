@@ -320,7 +320,7 @@ class Offtarget(object):
             with open(out_tbl, "w") as h:
                 h.write("\t".join([gene_id_column,"gut_microbiote_count","gut_microbiote_norm","gut_microbiote_organisms"]) + "\n")
                 for query, hits in query_orgs.items():
-                    h.write("\t".join([query, str(len(hits)), len(hits) * 1.0 / len(prot_org_map) , ";".join(hits)]) + "\n")
+                    h.write("\t".join([query, str(len(hits)), str(len(hits) * 1.0 / len(prot_org_map)) , ";".join(hits)]) + "\n")
         return query_orgs
 
     @staticmethod
