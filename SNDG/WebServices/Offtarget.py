@@ -369,7 +369,7 @@ if __name__ == "__main__":
             execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/human/{filename} -dbtype prot -in -")
         if args.databases in ["all", "human"]:
             path = f'{args.output}/human/'
-            if args.force or not os.path.exists(path):
+            if args.force or not os.path.exists(path + Offtarget.DEFAULT_HUMAN_FILENAME):
                 path = Offtarget.download_human_prots(dst=path)
             else:
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
