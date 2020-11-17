@@ -256,7 +256,7 @@ class Offtarget(object):
                     "e": "http://tubic.tju.edu.cn/deg_test/public/download/DEG20.aa.gz"
                     }
     DEG_FAA_NAMES = {
-        "a":"degaa-a.dat","p":"degaa-p.dat","e":"degaa-e.dat"
+        "a": "degaa-a.dat", "p": "degaa-p.dat", "e": "degaa-e.dat"
     }
 
     @staticmethod
@@ -292,8 +292,9 @@ class Offtarget(object):
 
     @staticmethod
     def count_organism_from_microbiome_blast(tbl_blast_result_path, microbiome_fasta, identity_threshold=0.4,
-                                             out_tbl=None,gene_id_column="id"):
+                                             out_tbl=None, gene_id_column="id"):
         prot_org_map = {}
+        organisms = []
         with (gzip.open(microbiome_fasta, "rt") if microbiome_fasta.endswith(".gz") else open(microbiome_fasta)) as h:
             for line in h:
                 if line.startswith(">"):
@@ -304,9 +305,9 @@ class Offtarget(object):
                         err = "fasta does not have the organism name at the fasta header."
                         err += "example: >HMPREF1002_RS00015 alpha/beta hydrolase [Porphyromonas sp. 31_2]"
                         raise LookupError(err)
-
+                    organisms.append(org)
                     prot_org_map[seqid] = org
-
+        organisms_count = len(set(organisms))
         query_orgs = defaultdict(lambda: [])
         with open(tbl_blast_result_path) as h:
             for l in list(h)[1:]:
@@ -318,9 +319,11 @@ class Offtarget(object):
             query_orgs[query] = set(hits)
         if out_tbl:
             with open(out_tbl, "w") as h:
-                h.write("\t".join([gene_id_column,"gut_microbiote_count","gut_microbiote_norm","gut_microbiote_organisms"]) + "\n")
+                h.write("\t".join(
+                    [gene_id_column, "gut_microbiote_count", "gut_microbiote_norm", "gut_microbiote_organisms"]) + "\n")
                 for query, hits in query_orgs.items():
-                    h.write("\t".join([query, str(len(hits)), str(len(hits) * 1.0 / len(prot_org_map)) , ";".join(hits)]) + "\n")
+                    h.write("\t".join(
+                        [query, str(len(hits)), str(len(hits) * 1.0 / organisms_count), ";".join(hits)]) + "\n")
         return query_orgs
 
     @staticmethod
@@ -341,7 +344,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='commands', description='valid subcommands', required=True, dest='command')
 
     gut_download = subparsers.add_parser('download', help='Download offtarget data')
-    gut_download.add_argument('-db', '--databases', choices=["all","deg", "human", "gut_microbiote"], default="all")
+    gut_download.add_argument('-db', '--databases', choices=["all", "deg", "human", "gut_microbiote"], default="all")
     gut_download.add_argument('-o', '--output', help="output_directory", default="/data/databases/")
     gut_download.add_argument('--force', action="store_true")
 
@@ -367,7 +370,8 @@ if __name__ == "__main__":
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
 
             filename = os.path.basename(path)
-            execute(f"zcat {path} | makeblastdb -title gut_microbiote -out  {args.output}/human/{filename} -dbtype prot -in -")
+            execute(
+                f"zcat {path} | makeblastdb -title gut_microbiote -out  {args.output}/human/{filename} -dbtype prot -in -")
         if args.databases in ["all", "human"]:
             path = f'{args.output}/human/'
             if args.force or not os.path.exists(path + Offtarget.DEFAULT_HUMAN_FILENAME):
@@ -376,7 +380,8 @@ if __name__ == "__main__":
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
 
             filename = os.path.basename(path)
-            execute(f"zcat {path}{Offtarget.DEFAULT_HUMAN_FILENAME} | makeblastdb -title human -out {path}{Offtarget.DEFAULT_HUMAN_FILENAME} -dbtype prot -in -")
+            execute(
+                f"zcat {path}{Offtarget.DEFAULT_HUMAN_FILENAME} | makeblastdb -title human -out {path}{Offtarget.DEFAULT_HUMAN_FILENAME} -dbtype prot -in -")
         if args.databases in ["all", "deg"]:
             mkdir(f'{args.output}/deg/')
             Offtarget.download_deg(f'{args.output}/deg/')
