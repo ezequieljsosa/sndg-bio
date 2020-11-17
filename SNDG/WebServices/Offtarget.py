@@ -375,7 +375,7 @@ if __name__ == "__main__":
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
 
             filename = os.path.basename(path)
-            execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/{filename} -dbtype prot -in -")
+            execute(f"zcat {path}{Offtarget.DEFAULT_HUMAN_FILENAME} | makeblastdb -title {filename} -out  {path}{Offtarget.DEFAULT_HUMAN_FILENAME} -dbtype prot -in -")
         if args.databases in ["all", "deg"]:
             mkdir(f'{args.output}/deg/')
             Offtarget.download_deg(f'{args.output}/deg/')
