@@ -361,16 +361,16 @@ if __name__ == "__main__":
         if args.databases in ["all", "gut_microbiote"]:
             path = f'{args.output}/gut_microbiote/{Offtarget.DEFAULT_GUT_FILENAME}'
             if args.force or not os.path.exists(path):
-                path = Offtarget.create_human_microbiome(dst=args.output)
+                path = Offtarget.create_human_microbiome(dst=path)
             else:
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
 
             filename = os.path.basename(path)
-            execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/{filename} -dbtype prot -in -")
+            execute(f"zcat {path} | makeblastdb -title {filename} -out  {args.output}/human/{filename} -dbtype prot -in -")
         if args.databases in ["all", "human"]:
             path = f'{args.output}/human/{Offtarget.DEFAULT_HUMAN_FILENAME}'
             if args.force or not os.path.exists(path):
-                path = Offtarget.download_human_prots(dst=args.output)
+                path = Offtarget.download_human_prots(dst=path)
             else:
                 sys.stderr.write(f'{path} already exists, overwrite using --force')
 
