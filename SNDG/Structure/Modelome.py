@@ -11,10 +11,11 @@ from collections import defaultdict
 import pandas as pd
 
 from tqdm import tqdm
-
+import requests
 import Bio.SearchIO as bpsio
 from SNDG import Struct
 from SNDG import mkdir
+from SNDG.WebServices import download_file
 
 from SNDG.Structure.Modeller import Modeller, ModellerOverflowError
 
@@ -188,47 +189,55 @@ class Modelome(object):
         output_dir = params["output_dir"]
 
         aln_file = aln_file.strip()
-        if os.path.getsize(aln_file) < 100:
-            return [{"errors": f'\n{aln_file} empty file'}]
-        hsps = []
         try:
-            hsps = [hsp
-                    for query_result in bpsio.parse(aln_file.strip(), "blast-xml")
-                    for hit in query_result
-                    for hsp in hit]
-        except ValueError:
-            sys.stderr.write(f"error reading alignments in {aln_file}")
+            if os.path.getsize(aln_file) < 100:
+                return [{"errors": f'\n{aln_file} empty file'}]
+            hsps = []
+            try:
+                hsps = [hsp
+                        for query_result in bpsio.parse(aln_file.strip(), "blast-xml")
+                        for hit in query_result
+                        for hsp in hit]
+            except ValueError:
+                sys.stderr.write(f"error reading alignments in {aln_file}")
 
-        hsps = hsps[:templates2use]
-        if hsps:
-            seq_id = hsps[0].query.id
-            # pdb_chains = [x.split("_") for x in set([hsp.hit.id[3:7] + "_" + hsp.hit.id[-1] for hsp in hsps])]
-            pdb_chains = [[hsp.hit.id[3:7], hsp.hit.id[-1]] for hsp in hsps]
-            updated = False
-            for pdb, _ in pdb_chains:
-                pdb_utils.update_pdb(pdb)
-                updated =  os.path.exists(pdb_utils.pdb_path(pdb))
-                break
+            hsps = hsps[:templates2use]
+            if hsps:
+                seq_id = hsps[0].query.id
+                # pdb_chains = [x.split("_") for x in set([hsp.hit.id[3:7] + "_" + hsp.hit.id[-1] for hsp in hsps])]
+                pdb_chains = [[hsp.hit.id[3:7], hsp.hit.id[-1]] for hsp in hsps]
+                updated = True
+                for pdb, _ in pdb_chains:
+                    if not os.path.exists(pdb_utils.pdb_path(pdb)):
+                        mkdir(pdb_utils.pdb_path_base(pdb))
+                        download_file(f"https://files.rcsb.org/download/{pdb.upper()}.pdb.gz",
+                                      pdb_utils.pdb_path_gzipped(pdb), ovewrite=True)
+                        pdb_utils.update_pdb(pdb)
+                        updated = os.path.exists(pdb_utils.pdb_path(pdb))
 
-            if not updated:
-                sys.stderr.write(f'{pdb} could not be updated...\n')
-                return
-            pdb_utils.extract_chains(pdb_chains, tmp_dir)
-            models_results = []
-            for hsp in hsps:
-                try:
-                    models_result = Modelome.model_hsps(seq_id, os.path.abspath(output_dir), [hsp], refinement=REFINEMENT,
-                                                models_to_generate=MODELS_TO_GENERATE,
-                                                assessments=ASSESMENTS, entries={},
-                                                tmp_dir=tmp_dir, max_models=1)
-                except ModellerOverflowError as e:
-                    sys.stderr.write(f"error processing {seq_id}: {str(e)}")
-                    continue
-                models_results.append(models_result)
-            return models_results
+                if not updated:
+                    sys.stderr.write(f'{pdb} could not be updated...\n')
+                    return
+                pdb_utils.extract_chains(pdb_chains, tmp_dir)
+                models_results = []
+                for hsp in hsps:
+                    try:
+                        models_result = Modelome.model_hsps(seq_id, os.path.abspath(output_dir), [hsp],
+                                                            refinement=REFINEMENT,
+                                                            models_to_generate=MODELS_TO_GENERATE,
+                                                            assessments=ASSESMENTS, entries={},
+                                                            tmp_dir=tmp_dir, max_models=1)
+                    except ModellerOverflowError as e:
+                        sys.stderr.write(f"error processing {seq_id}: {str(e)}")
+                        continue
+                    models_results.append(models_result)
+                return models_results
 
-        else:
-            return [{"errors": f'\nno aligments for {aln_file}\n'}]
+            else:
+                return [{"errors": f'\nno aligments for {aln_file}\n'}]
+        except:
+            sys.stderr.write(f'error processing {aln_file}')
+            raise
 
 
 if __name__ == "__main__":
@@ -257,20 +266,21 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     pdbs_dir = args.pdbs_dir + ("/" if args.pdbs_dir[-1] != "/" else "")
-    mkdir (f'{pdbs_dir}/divided')
+    mkdir(f'{pdbs_dir}/divided')
     pdb_utils = PDBs(pdbs_dir)
+
     # pbar = tqdm(args.alns)
     sys.stderr.write(str(args))
     sys.stderr.write(f'reading alignment file\n')
     alns = [{"aln_file": x, "templates2use": args.templates_to_use,
              "output_dir": args.output_dir, "tmp_dir": args.tmp_dir} for x in args.alns]
     mkdir(args.output_dir)
-    assert os.path.exists(args.output_dir),f'"{args.output_dir}" could not be created'
+    assert os.path.exists(args.output_dir), f'"{args.output_dir}" could not be created'
 
     sys.stderr.write(f'processing alignment files\n')
     for result in process_map(Modelome.process_file,
-                              alns,  max_workers=args.cpus, chunksize=1):
-        #,description="alignment files to process"
+                              alns, max_workers=args.cpus, chunksize=1):
+        # ,description="alignment files to process"
         print(result)
 
         # pbar.set_description(f"processing: {aln_file}")

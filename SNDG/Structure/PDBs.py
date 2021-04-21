@@ -183,7 +183,8 @@ class PDBs(object):
 
     def records_from_pdb(self, pdb, pdb_file_path, standard_aa=True, selected_chain=None):
         records = []
-        struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)
+        struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(pdb, pdb_file_path)[0]
+
         for chain in struct.get_chains():
             if (not selected_chain) or (selected_chain == chain.id):
                 residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]

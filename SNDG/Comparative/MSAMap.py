@@ -11,7 +11,8 @@ class MSAMap():
 
     @staticmethod
     def from_msa(msa_file_or_path):
-        seqs = {x.id: x for x in bpio.parse(fileinput.input(msa_file_or_path), "fasta")}
+        # seqs = {x.id: x for x in bpio.parse(fileinput.input(msa_file_or_path), "fasta")}
+        seqs = {x.id: x for x in bpio.parse(msa_file_or_path, "fasta")}
         msa = MSAMap(seqs)
         msa.init()
         return msa

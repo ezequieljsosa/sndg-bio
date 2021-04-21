@@ -147,7 +147,8 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 if len(protDoc.seq) > 30000:
                     raise Exception("No existen proteinas tan largas...")
                 if protDoc.seq.count("*") > 1:
-                    raise Exception("Too many stop codons!")
+                    print (f"{cds_f.qualifiers['locus_tag'][0]}: Too many stop codons!")
+                    continue
                 protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)
