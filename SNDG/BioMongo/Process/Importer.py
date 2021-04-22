@@ -149,6 +149,9 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 if protDoc.seq.count("*") > 1:
                     print (f"{cds_f.qualifiers['locus_tag'][0]}: Too many stop codons!")
                     continue
+                if protDoc.seq.count("+") > 1:
+                    print (f"{cds_f.qualifiers['locus_tag'][0]}: + signs found...!")
+                    continue
                 protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)
