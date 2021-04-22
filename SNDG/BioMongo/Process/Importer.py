@@ -165,7 +165,7 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
     if prots:
         Protein.objects.insert(prots)
 
-    _common_annotations(name, tmp_dir, cpu=cpus)
+    # _common_annotations(name, tmp_dir, cpu=cpus)
     return seqCol
 
 
