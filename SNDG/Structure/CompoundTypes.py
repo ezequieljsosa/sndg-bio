@@ -1,9 +1,10 @@
+import os
 main_compound_types = ['DRUG','LIPID', 'METAL', 'NUCLEOTIDE', 'SUGAR']
 COMPOUND_TYPE = [
                     "?",  "MODIFIED", "SOLVENT", "ORGANIC",  "COFACTOR", "RESIDUE"] + main_compound_types
 
 compound_type = {}
-with open('/data/databases/pdb/manually_curated/compound_type.csv') as handle:
+with open(  os.environ.get("COMPOUND_TYPES_PATH" ,'/data/databases/pdb/manually_curated/compound_type.csv')) as handle:
     compound_type = {x.replace('"',"").strip().split(",")[0]:x.replace('"',"").strip().split(",")[1] if x.replace('"',"").strip().split(",")[1] else "?" for x in handle.readlines()}
 
 
