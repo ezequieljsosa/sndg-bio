@@ -285,8 +285,8 @@ def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, pfam_d
 
 
 def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True,
-                        ,pfam_db="/data/databases/xfam/Pfam-A.hmm"
-                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
+                        pfam_db="/data/databases/xfam/Pfam-A.hmm",
+                            pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     protein_fasta = create_proteome(tmp_dir, collection_name)
 
     results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb,pfam_db,pdbs_path)
