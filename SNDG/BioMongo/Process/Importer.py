@@ -274,19 +274,22 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
     return {"blast_pdb": blast_result, "hmm_result": hmm_result}
 
 
-def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
+def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, pfam_db="/data/databases/xfam/Pfam-A.hmm"
+                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     process_pdb = not Protein.objects(
         __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not (Protein.objects(__raw__={
         "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count())
 
-    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp, process_pdb, process_hmm)
+    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp, process_pdb, process_hmm,pfam_db,pdbs_path)
 
 
-def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True):
+def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True,
+                        ,pfam_db="/data/databases/xfam/Pfam-A.hmm"
+                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     protein_fasta = create_proteome(tmp_dir, collection_name)
 
-    results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb)
+    results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb,pfam_db,pdbs_path)
 
     if process_pdb:
         blast_result = results["blast_pdb"]
