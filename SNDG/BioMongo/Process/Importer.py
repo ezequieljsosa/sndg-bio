@@ -254,12 +254,14 @@ def create_proteome(tmp_dir, collection_name):
     return protein_fasta
 
 
-def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, process_pdb=True):
+def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, process_pdb=True
+                            ,pfam_db="/data/databases/xfam/Pfam-A.hmm"
+                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     blast_result = None
     hmm_result = None
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
-        pdbs_path = "/data/databases/pdb/pdb_seqres.txt"
+        
         if not os.path.exists(blast_result) or os.path.getsize(blast_result) < 10:
             cmd = f"blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query {protein_fasta} -db {pdbs_path} -num_threads {cpu} -outfmt 5 -out {blast_result}"
             subprocess.call(cmd , shell=True)
@@ -267,7 +269,7 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
     if process_hmm:
         hmm_result = tmp_dir + "/domains.hmm"
         params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": str(cpu)}
-        Hmmer(protein_fasta, output_file=hmm_result, params=params).query()
+        Hmmer(protein_fasta,database=pfam_db, output_file=hmm_result, params=params).query()
 
     return {"blast_pdb": blast_result, "hmm_result": hmm_result}
 
