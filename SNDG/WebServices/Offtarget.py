@@ -264,7 +264,7 @@ class Offtarget(object):
         for x in ["p", "e", "a"]:
             download_file(Offtarget.DEG_PROT_URL[x], f"{dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz", ovewrite=True)
             execute(f"gunzip -f {dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz")
-            execute(f"makeblastdb -dbtype prot -in {dst}/{Offtarget.DEG_FAA_NAMES[x]}")
+            # execute(f"makeblastdb -dbtype prot -in {dst}/{Offtarget.DEG_FAA_NAMES[x]}")
 
     @staticmethod
     def download_human_prots(dst="/data/databases/human/"):
@@ -328,7 +328,7 @@ class Offtarget(object):
 
     @staticmethod
     def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count()):
-        cmd = f"diamond blastp --evalue 1e-5 --max_hsps 1 --outfmt 6  --db {offtarget_db} --query {proteome} --threads {cpus}|awk '$3>50' > {dst_resutls}"
+        cmd = f"diamond blastp --evalue 1e-5 --max-hsps 1 --outfmt 6  --db {offtarget_db} --query {proteome} --threads {cpus}|awk '$3>50' > {dst_resutls}"
         execute(cmd)
         return dst_resutls
 
