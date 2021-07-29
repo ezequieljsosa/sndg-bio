@@ -252,7 +252,7 @@ DOMAIN\t{domain}"""
             record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq))) # , alphabet=Alphabet.DNAAlphabet()
             for f in contig.features:
 
-                if f.type.lower() == "gene":
+                if f.type.lower() in ["gene","cds"]:
                     seqfeature = dbfeature2seqfeature(f)
                 elif f.type.lower() in ["rrna", "trna", "ncrna"]:
                     note = f.qualifiers["Note"] if "Note" in f.qualifiers else ""
@@ -265,7 +265,7 @@ DOMAIN\t{domain}"""
                             , "gene": note
                             , "alt name": desc
                             , "product": desc})
-                elif f.type.lower() in ["contig", "exon", "cdsvi", "CDS"]:
+                elif f.type.lower() in ["contig", "exon", "cdsvi"]:
                     seqfeature = None
                 else:
                     _log.warning("unknow feature " + f.type)
