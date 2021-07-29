@@ -296,6 +296,7 @@ DOMAIN\t{domain}"""
         with open(self.gb_file, "w") as h:
             with tqdm(contig_iterator) as pbar:
                 for contig in pbar:
+                    contig.annotations["molecule_type"] = "DNA"
                     pbar.set_description(contig.id)
                     if contig.features:
                         new_contig = process_contig(contig)
