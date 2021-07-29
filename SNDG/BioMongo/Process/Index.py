@@ -22,7 +22,8 @@ from functools import reduce
 
 _log = logging.getLogger(__name__)
 
-def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_idx=True, pathways=True,structure=False):
+def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_idx=True, pathways=True,structure=False
+                         ,go_obo="/data/databases/go/go.obo"):
 
     collection = SeqCollection.objects(name=genome).get()
 
@@ -35,7 +36,7 @@ def index_seq_collection(db, genome, ec=True, go=True, keywords=True, organism_i
         collection.save()
 
     if go:
-        go2mongo = GO2Mongo("/data/databases/go/go.obo", db)
+        go2mongo = GO2Mongo(go_obo, db)
         go2mongo.init()
         _log.debug("Building GO index...")
         go2mongo.pre_build_index(collection)
