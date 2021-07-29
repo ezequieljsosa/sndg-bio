@@ -328,7 +328,7 @@ class Offtarget(object):
 
     @staticmethod
     def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count()):
-        cmd = f"blastp -evalue 1e-5 -max_hsps 1 -outfmt 6  -db {offtarget_db} -query {proteome} -num_threads {cpus}|awk '$3>50' > {dst_resutls}"
+        cmd = f"diamond blastp --evalue 1e-5 --max_hsps 1 --outfmt 6  --db {offtarget_db} --query {proteome} --threads {cpus}|awk '$3>50' > {dst_resutls}"
         execute(cmd)
         return dst_resutls
 
