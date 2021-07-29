@@ -164,8 +164,8 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
         pdb_start = int(float(model_data["hstartres"]))
         pdb_end = int(float(model_data["hendres"]))
 
-        hit_start = int(float(model_data["hstart"]))
-        hit_end = int(float(model_data["hend"]))
+        hit_start =  0 # int(float(model_data["hstart"]))
+        hit_end = - 1 # int(float(model_data["hend"]))
 
         template_name = model_data["template"]
 
