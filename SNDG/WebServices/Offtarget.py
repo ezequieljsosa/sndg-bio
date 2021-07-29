@@ -388,8 +388,8 @@ if __name__ == "__main__":
     elif args.command == "gut_microbiote_blast":
         blast_gut_path = f'{args.output}/gut_microbiome.blast.tbl'
         gut_result_path = f'{args.output}/gut_microbiome.tbl'
-        if not os.path.exists(args.database + ".phr"):
-            raise FileNotFoundError(f"{args.database} index files could not be found. Run makeblastdb")
+        # if not os.path.exists(args.database + ".phr"):
+        #     raise FileNotFoundError(f"{args.database} index files could not be found. Run makeblastdb")
         if args.force or not os.path.exists(blast_gut_path):
             Offtarget.offtargets(args.input_faa, blast_gut_path, offtarget_db=args.database, cpus=args.cpus)
         else:
