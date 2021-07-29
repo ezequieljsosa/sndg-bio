@@ -249,7 +249,7 @@ DOMAIN\t{domain}"""
             return seqf
 
         def process_contig(contig):
-            record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq), alphabet=Alphabet.DNAAlphabet()))
+            record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq))) # , alphabet=Alphabet.DNAAlphabet()
             for f in contig.features:
 
                 if f.type.lower() == "gene":
