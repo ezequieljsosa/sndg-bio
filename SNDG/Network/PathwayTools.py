@@ -348,7 +348,7 @@ DOMAIN\t{domain}"""
         """
         for ftype, type_map in mapping.items():
             types = ftype.split(".")
-            assert f_in.type == types[0]
+            assert f_in.type == types[0],(ftype,f_in,f_out)
             f_in1 = f_in
             if len(types) > 1 and hasattr(f_in, "sub_features") and f_in.sub_features:
                 for subtype in types[1:]:
