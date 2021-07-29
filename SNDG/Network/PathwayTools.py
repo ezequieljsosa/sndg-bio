@@ -46,6 +46,25 @@ class PathwayTools:
         self.gb_file = workdir + "/pwtools.gb"
         self.go_dag = GODag(go_db, load_obsolete=True)
         self.default_mappings = {
+            "CDS": {
+                "type": "CDS",
+                "qualifiers": {
+                    "gene_symbol": "gene",
+                    "locus_tag": "locus_tag",
+                    "description": "product",
+                    "Note": "note",
+
+                    "EC": ("EC_number", lambda x: x.split(":")[1] if len(x.split(":")) > 1 else x),
+                    "EC_number": "EC_number",
+                    "x": "product_comment",
+                    "x": "gene_comment",
+                    "x": "pseudo",
+                    "x": "alt_name",
+                    "x": "db_xref",
+                    "GO": {"go_component": self.process_go_cc,
+                           "go_function": self.process_go_mf,
+                           "go_process": self.process_go_bp}
+                }},
             "gene.mRNA": {
                 "type": "CDS",
                 "qualifiers": {
