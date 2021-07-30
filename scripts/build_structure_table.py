@@ -38,7 +38,7 @@ from tqdm import tqdm
 
 
 def main(argv=None):  # IGNORE:C0111
-
+    from SNDG import mkdir
     if argv is None:
         argv = sys.argv
     else:
@@ -67,7 +67,7 @@ USAGE
                         help="set verbosity level [default: %(default)s]")
 
     parser.add_argument("-m", "--models_dir", required=True)
-    parser.add_argument("-a", "--alns_dir", required=True)
+    # parser.add_argument("-a", "--alns_dir", required=True)
     parser.add_argument("-p", "--props_output", default="./structures.csv")
     parser.add_argument("-o", "--pdbs_output", default="./structures")
 
@@ -76,13 +76,13 @@ USAGE
     args = parser.parse_args()
     alns = list(glob(f"{args.models_dir}/*/*/*.ali"))
     data = []
-    
+    mkdir(args.pdbs_output)
     pbar = tqdm(alns)
     for aln in pbar:
         pbar.set_description(aln)
         q, h = bpio.parse(aln, "pir")
-        hsp = [hit for hit in bpsio.read(f"{args.alns_dir}/{q.id.replace('P1;', '')}.xml", "blast-xml") if
-               hit.id.replace('P1;', '') == h.id.replace('P1;', '').replace("_", "")][0][0]
+        # hsp = [hit for hit in bpsio.read(f"{args.alns_dir}/{q.id.replace('P1;', '')}.xml", "blast-xml") if
+        #        hit.id.replace('P1;', '') == h.id.replace('P1;', '').replace("_", "")][0][0]
         pdbs = glob(aln.replace("seq.ali", "") + "*.pdb")
         if not pdbs:
             continue
@@ -102,8 +102,8 @@ USAGE
             "qend": int(q.description.split(":")[2]) + int(q.description.split(":")[4][1:]),
             "hstartres": int(h.description.split(":")[2]),
             "hendres": int(h.description.split(":")[2]) + int(h.description.split(":")[4][1:]),
-            "hstart": hsp.hit_start,
-            "hend": hsp.hit_end,
+            # "hstart": hsp.hit_start,
+            # "hend": hsp.hit_end,
             "qmean": qmean["qmean"],
             "zqmean": qmean["zqmean"],
 

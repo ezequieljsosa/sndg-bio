@@ -231,6 +231,11 @@ if __name__ == '__main__':
     update_pdb = subparsers.add_parser('update', help='List contents')
     update_pdb.add_argument('-i', '--pdbs_dir', help="pdbs_directory", default="/data/databases/pdb/")
 
+    # update_pdb = subparsers.add_parser('getpdb', help='List contents')
+    # update_pdb.add_argument('-i', '--pdb_code', help="4 letter code", required=True)
+    # update_pdb.add_argument('-o', '--ouput_file', help="output file")
+
+
     args = parser.parse_args()
     if args.command == "update":
         # remzemeber to configure ftp
@@ -239,6 +244,7 @@ if __name__ == '__main__':
         pdbs.update_pdb_dir()
         pdbs.download_pdb_seq_ses()
         sys.exit(0)
+
 
     # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
     # pdbs.download_pdb_seq_ses()
