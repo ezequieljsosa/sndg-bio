@@ -199,6 +199,8 @@ if __name__ == "__main__":
         pbar.set_description(pdb)
 
         if pdb in procesados:
+            if not args.review_pockets:
+                continue
             if pdb in procesados_sin_pocket:
                 q = ExperimentalStructure.objects(seq_collection_name="pdb", name=pdb).no_cache()
                 if q:
