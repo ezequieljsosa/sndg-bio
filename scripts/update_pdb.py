@@ -16,6 +16,7 @@ It defines classes_and_methods
 import logging
 import os
 import sys
+import subprocess as sp
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import traceback
@@ -100,6 +101,8 @@ def complete_pockets(pdb, strdoc, structure,pdbUtils):
 
 def procesar_pdb(pdb, pdbUtils):
     pdb_file = pdbUtils.pdb_path(pdb)
+    if not os.path.exists(pdb_file):
+        sp.run(f"wget -O {pdb_file} 'https://files.rcsb.org/download/{pdb}.pdb'",shell=True)
     if not os.path.exists(pdb_file):
         with open("/tmp/pdb_load_errors.txt", "a") as handle:
             handle.write(pdb + "|NOT FOUND: " + pdb_file + " \n")
