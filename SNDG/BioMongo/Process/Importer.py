@@ -264,7 +264,7 @@ def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, pro
         
         if not os.path.exists(blast_result) or os.path.getsize(blast_result) < 10:
             # cmd = f"blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query {protein_fasta} -db {pdbs_path} -num_threads {cpu} -outfmt 5 -out {blast_result}"
-            cmd = f"diamond blastp --query-cover 80 --max-hsps 1 --evalue 1e-5 --query {protein_fasta} --db {pdbs_path} --threads {cpu} --outfmt 5 --out {blast_result}"
+            cmd = f"diamond blastp --query-cover 80 --max-hsps 1 --evalue 1e-5 --query {protein_fasta} --db {pdbs_path}.dmnd  --threads {cpu} --outfmt 5 --out {blast_result}"
             subprocess.call(cmd , shell=True)
 
     if process_hmm:
@@ -294,6 +294,7 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, proce
 
     if process_pdb:
         blast_result = results["blast_pdb"]
+        assert os.path.exists(blast_result), f"'{blast_result}' does not exist! there was some error running blast"
         load_blast_pdb(collection_name, blast_result)
         if remove_tmp:
             if os.path.exists(blast_result):
@@ -301,7 +302,9 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, proce
 
     if process_hmm:
         hmm_result = results["hmm_result"]
+        assert os.path.exists(hmm_result), f"'{hmm_result}' does not exist! there was some error running hmmer"
         load_hmm(collection_name, hmm_result)
+
         if remove_tmp:
             if os.path.exists(hmm_result):
                 os.remove(hmm_result)
