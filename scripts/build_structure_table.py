@@ -88,10 +88,15 @@ USAGE
             continue
         pdb = pdbs[0]
         model = pdb.split("/")[-2]
-        sp.call(f"ln {pdb} {args.pdbs_output}/{model}.pdb",shell =True)
+        with open("process.log","w") as h2:
+            sp.call(f"ln {pdb} {args.pdbs_output}/{model}.pdb",shell =True,stderr=h2)
         with open(pdb + ".qmeans.json") as hqmean:
             xx = hqmean.read().replace("'", '"')
-            qmean = ast.literal_eval(xx)
+            try:
+                qmean = ast.literal_eval(xx)
+            except:
+                sys.stderr.write(f"error reading qmeam from {pdb}\n")
+                continue
         r = {
             "model":  q.id.replace("P1;", "") + "_" + h.id.replace("P1;", ""),
             "prot": q.id.replace("P1;", ""),

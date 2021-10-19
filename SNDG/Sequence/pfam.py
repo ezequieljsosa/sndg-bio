@@ -24,7 +24,7 @@ _log = logging.getLogger(__name__)
 
 class PFamProfile:
 
-    DEFAULT_TEMPLATE = "/data/databases/xfam/pfam_profiles/%s.hmm"
+    DEFAULT_TEMPLATE = os.environ.get('pfam_profiles',"/data/databases/xfam/pfam_profiles/%s.hmm")
 
     @classmethod
     def create_profile(cls, domain_id, hmm_path=None, template=DEFAULT_TEMPLATE):
