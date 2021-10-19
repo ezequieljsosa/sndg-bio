@@ -488,13 +488,12 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
                       choices=[], type="number", defaultOperation=">"):
     genome = db.sequence_collection.find_one({"name": genome_name})
     drug_prop = [x for x in genome["druggabilityParams"] if x["name"] == offtarget_name]
+    genome["druggabilityParams"] =  [x for x in genome["druggabilityParams"] if x["name"] != offtarget_name]
 
-    if drug_prop:
-        drug_prop = drug_prop[0]
-    else:
-        if not description:
-            description = offtarget_name
-        drug_prop = {
+  
+    if not description:
+        description = offtarget_name
+    drug_prop = {
             "target": "protein",
             "defaultGroupOperation": "max",
             "defaultValue": default_value,
@@ -507,8 +506,9 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
             "options": choices,
             "description": description
         }
-        genome["druggabilityParams"].append(drug_prop)
-        db.sequence_collection.save(genome)
+    genome["druggabilityParams"].append(drug_prop)
+    db.sequence_collection.save(genome)
+    
     if blast_output_type == "xml":
         for query in bpsio.parse(blast_output, "blast-xml"):
             value = no_hit_value
