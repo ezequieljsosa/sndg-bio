@@ -44,14 +44,8 @@ __updated__ = '2015-09-18'
 
 from tqdm import tqdm
 
-with open('/data/databases/pdb/manually_curated/compound_type.csv') as handle:
-    compound_type = {x.replace('"', "").strip().split(",")[0]: x.replace('"', "").strip().split(",")[1] if
-    x.replace('"', "").strip().split(",")[1] else "?" for x in handle.readlines()}
 
-
-def get_compound_type(residue):
-    return compound_type[residue.get_resname().strip()] if residue.get_resname().strip() in compound_type else "?"
-
+from SNDG.Structure.CompoundTypes import get_compound_type
 
 def main(argv=None):  # IGNORE:C0111
 
@@ -170,8 +164,8 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
         pdb_start = int(float(model_data["hstartres"]))
         pdb_end = int(float(model_data["hendres"]))
 
-        hit_start = int(float(model_data["hstart"]))
-        hit_end = int(float(model_data["hend"]))
+        hit_start =  0 # int(float(model_data["hstart"]))
+        hit_end = - 1 # int(float(model_data["hend"]))
 
         template_name = model_data["template"]
 
@@ -198,6 +192,12 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
                     strdoc.ligands.append(molecule)
 
     pockets_json = structs_dir + "/" + model_name + ".pdb.json"
+
+    if os.path.exists(pockets_json):
+        rss = StructureAnotator.pocket_residue_set(pockets_json,list(model.get_atoms()))
+        strdoc.pockets = rss
+
+    pockets_json = structs_dir + "/" + model_name + ".json"
 
     if os.path.exists(pockets_json):
         rss = StructureAnotator.pocket_residue_set(pockets_json,list(model.get_atoms()))

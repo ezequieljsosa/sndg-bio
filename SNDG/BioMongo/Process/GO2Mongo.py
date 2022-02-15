@@ -36,7 +36,7 @@ class GO2Mongo(object):
         self.obo_file = obo_file
         self.slim_file = slim_file
         self.graph = nx.DiGraph()
-        self.graph_file = '/data/databases/' + ontology_name + '/' + ontology_name + '.gpickle'
+        self.graph_file = obo_file + '.gpickle'
         self.go_dag = None
 
         if isinstance(db, str):

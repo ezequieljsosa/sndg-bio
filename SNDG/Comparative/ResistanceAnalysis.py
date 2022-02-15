@@ -14,6 +14,9 @@ class ResistanceAnalysis:
 
         self.result = []
 
+
+
+
     # TODO filtro marcadores filogeneticos
     # TODO guardar tabla final
     # TODO Probar variables independientes (CAC	GAG) o (GG	CA)
@@ -116,4 +119,4 @@ if __name__ == '__main__':
 
     ra = ResistanceAnalysis(args.db)
     data = ra.process_vcf(args.vcf)
-    print len(data)
+    print (len(data))

@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup,find_packages
 
 __version__ = "Undefined"
 for line in open('SNDG/__init__.py'):
@@ -7,7 +7,7 @@ for line in open('SNDG/__init__.py'):
 
 setup(
     name='sndg-bio',
-    packages=['SNDG', 'SNDG.Structure', 'SNDG.Comparative', 'SNDG.WebServices', 'SNDG.Network', 'SNDG.Sequence'],
+    packages=find_packages(),
     version=__version__,
     scripts=["scripts/structurome.py", "scripts/vcf2aln.py", "scripts/render_tree.py"],
     description="My bioinformatic scripts",

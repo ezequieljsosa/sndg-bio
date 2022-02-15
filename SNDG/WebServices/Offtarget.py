@@ -264,7 +264,7 @@ class Offtarget(object):
         for x in ["p", "e", "a"]:
             download_file(Offtarget.DEG_PROT_URL[x], f"{dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz", ovewrite=True)
             execute(f"gunzip -f {dst}/{Offtarget.DEG_FAA_NAMES[x]}.gz")
-            execute(f"makeblastdb -dbtype prot -in {dst}/{Offtarget.DEG_FAA_NAMES[x]}")
+            # execute(f"makeblastdb -dbtype prot -in {dst}/{Offtarget.DEG_FAA_NAMES[x]}")
 
     @staticmethod
     def download_human_prots(dst="/data/databases/human/"):
@@ -327,8 +327,8 @@ class Offtarget(object):
         return query_orgs
 
     @staticmethod
-    def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count()):
-        cmd = f"blastp -evalue 1e-5 -max_hsps 1 -outfmt 6  -db {offtarget_db} -query {proteome} -num_threads {cpus}|awk '$3>50' > {dst_resutls}"
+    def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count(),min_identity=50):
+        cmd = f"diamond blastp --evalue 1e-5 --max-hsps 1 --outfmt 6 --max-target-seqs 10000  --db {offtarget_db} --query {proteome} --threads {cpus}|awk '$3>{min_identity}' > {dst_resutls}"
         execute(cmd)
         return dst_resutls
 
@@ -388,8 +388,8 @@ if __name__ == "__main__":
     elif args.command == "gut_microbiote_blast":
         blast_gut_path = f'{args.output}/gut_microbiome.blast.tbl'
         gut_result_path = f'{args.output}/gut_microbiome.tbl'
-        if not os.path.exists(args.database + ".phr"):
-            raise FileNotFoundError(f"{args.database} index files could not be found. Run makeblastdb")
+        # if not os.path.exists(args.database + ".phr"):
+        #     raise FileNotFoundError(f"{args.database} index files could not be found. Run makeblastdb")
         if args.force or not os.path.exists(blast_gut_path):
             Offtarget.offtargets(args.input_faa, blast_gut_path, offtarget_db=args.database, cpus=args.cpus)
         else:

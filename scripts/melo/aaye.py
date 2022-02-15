@@ -38,9 +38,9 @@ organism = name
 org = "Acinetobacter baumannii AYE"
 ann_path = "/mnt/data/workspace/aaye/GCF_000069245.1_ASM6924v1_genomic.gbff"
 
-# from_ref_seq(name, ann_path,  cpus=3)
-# common_annotations(name, "./", cpu=4, remove_tmp=False)
-# mdb.protein_fasta("/data/organismos/" + name + "/annotation/proteins.faa", name)
+from_ref_seq(name, ann_path,  cpus=3)
+common_annotations(name, "./", cpu=4, remove_tmp=False)
+mdb.protein_fasta("/data/organismos/" + name + "/annotation/proteins.faa", name)
 # from SNDG.Annotation.EMapper import EMapper
 # em = EMapper()
 # em.read_file("proteins.")

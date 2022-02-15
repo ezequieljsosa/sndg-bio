@@ -147,7 +147,11 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 if len(protDoc.seq) > 30000:
                     raise Exception("No existen proteinas tan largas...")
                 if protDoc.seq.count("*") > 1:
-                    raise Exception("Too many stop codons!")
+                    print (f"{cds_f.qualifiers['locus_tag'][0]}: Too many stop codons!")
+                    continue
+                if protDoc.seq.count("+") > 1:
+                    print (f"{cds_f.qualifiers['locus_tag'][0]}: + signs found...!")
+                    continue
                 protDoc.gene_id = gene_ids[cds_f.qualifiers["locus_tag"][0]]
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)
@@ -164,7 +168,7 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
     if prots:
         Protein.objects.insert(prots)
 
-    _common_annotations(name, tmp_dir, cpu=cpus)
+    # _common_annotations(name, tmp_dir, cpu=cpus)
     return seqCol
 
 
@@ -250,40 +254,47 @@ def create_proteome(tmp_dir, collection_name):
     return protein_fasta
 
 
-def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, process_pdb=True):
+def _common_annotations_cmd(tmp_dir, protein_fasta, cpu=1, process_hmm=True, process_pdb=True
+                            ,pfam_db="/data/databases/xfam/Pfam-A.hmm"
+                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     blast_result = None
     hmm_result = None
     if process_pdb:
         blast_result = tmp_dir + "/pdb_blast.xml"
-        pdbs_path = "/data/databases/pdb/pdb_seqres.txt"
+        
         if not os.path.exists(blast_result) or os.path.getsize(blast_result) < 10:
-            cmd = f"blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query {protein_fasta} -db {pdbs_path} -num_threads {cpu} -outfmt 5 -out {blast_result}"
+            # cmd = f"blastp -qcov_hsp_perc 80 -max_hsps 1 -evalue 1e-5 -query {protein_fasta} -db {pdbs_path} -num_threads {cpu} -outfmt 5 -out {blast_result}"
+            cmd = f"diamond blastp --query-cover 80 --max-hsps 1 --evalue 1e-5 --query {protein_fasta} --db {pdbs_path}.dmnd  --threads {cpu} --outfmt 5 --out {blast_result}"
             subprocess.call(cmd , shell=True)
 
     if process_hmm:
         hmm_result = tmp_dir + "/domains.hmm"
         params = {"--acc": None, "--cut_tc": None, "--notextw": None, "--cpu": str(cpu)}
-        Hmmer(protein_fasta, output_file=hmm_result, params=params).query()
+        Hmmer(protein_fasta,database=pfam_db, output_file=hmm_result, params=params).query()
 
     return {"blast_pdb": blast_result, "hmm_result": hmm_result}
 
 
-def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False):
+def common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, pfam_db="/data/databases/xfam/Pfam-A.hmm"
+                            ,pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     process_pdb = not Protein.objects(
         __raw__={"organism": collection_name, "features.type": SO_TERMS["polypeptide_structural_motif"]}).count()
     process_hmm = not (Protein.objects(__raw__={
         "organism": collection_name, "features.type": SO_TERMS["polypeptide_domain"]}).count())
 
-    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp, process_pdb, process_hmm)
+    _common_annotations(collection_name, tmp_dir, cpu, remove_tmp, process_pdb, process_hmm,pfam_db,pdbs_path)
 
 
-def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True):
+def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, process_pdb=True, process_hmm=True,
+                        pfam_db="/data/databases/xfam/Pfam-A.hmm",
+                            pdbs_path = "/data/databases/pdb/pdb_seqres.txt"):
     protein_fasta = create_proteome(tmp_dir, collection_name)
 
-    results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb)
+    results = _common_annotations_cmd(tmp_dir, protein_fasta, cpu, process_hmm, process_pdb,pfam_db,pdbs_path)
 
     if process_pdb:
         blast_result = results["blast_pdb"]
+        assert os.path.exists(blast_result), f"'{blast_result}' does not exist! there was some error running blast"
         load_blast_pdb(collection_name, blast_result)
         if remove_tmp:
             if os.path.exists(blast_result):
@@ -291,7 +302,9 @@ def _common_annotations(collection_name, tmp_dir, cpu=1, remove_tmp=False, proce
 
     if process_hmm:
         hmm_result = results["hmm_result"]
+        assert os.path.exists(hmm_result), f"'{hmm_result}' does not exist! there was some error running hmmer"
         load_hmm(collection_name, hmm_result)
+
         if remove_tmp:
             if os.path.exists(hmm_result):
                 os.remove(hmm_result)
@@ -475,13 +488,12 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
                       choices=[], type="number", defaultOperation=">"):
     genome = db.sequence_collection.find_one({"name": genome_name})
     drug_prop = [x for x in genome["druggabilityParams"] if x["name"] == offtarget_name]
+    genome["druggabilityParams"] =  [x for x in genome["druggabilityParams"] if x["name"] != offtarget_name]
 
-    if drug_prop:
-        drug_prop = drug_prop[0]
-    else:
-        if not description:
-            description = offtarget_name
-        drug_prop = {
+  
+    if not description:
+        description = offtarget_name
+    drug_prop = {
             "target": "protein",
             "defaultGroupOperation": "max",
             "defaultValue": default_value,
@@ -494,8 +506,9 @@ def import_prop_blast(db, genome_name, offtarget_name, blast_output,
             "options": choices,
             "description": description
         }
-        genome["druggabilityParams"].append(drug_prop)
-        db.sequence_collection.save(genome)
+    genome["druggabilityParams"].append(drug_prop)
+    db.sequence_collection.save(genome)
+    
     if blast_output_type == "xml":
         for query in bpsio.parse(blast_output, "blast-xml"):
             value = no_hit_value

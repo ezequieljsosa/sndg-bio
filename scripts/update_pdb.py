@@ -16,6 +16,7 @@ It defines classes_and_methods
 import logging
 import os
 import sys
+import subprocess as sp
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import traceback
@@ -35,6 +36,30 @@ from SNDG.Structure.PDBs import PDBs
 
 init_log(rootloglevel=logging.INFO)
 _log = logging.getLogger(__name__)
+
+import signal
+from contextlib import contextmanager
+
+
+@contextmanager
+def timeout(time):
+    # Register a function to raise a TimeoutError on the signal.
+    signal.signal(signal.SIGALRM, raise_timeout)
+    # Schedule the signal to be sent after ``time``.
+    signal.alarm(time)
+
+    try:
+        yield
+    except TimeoutError:
+        pass
+    finally:
+        # Unregister the signal so it won't be triggered
+        # if the timeout is not reached.
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
+
+def raise_timeout(signum, frame):
+    raise TimeoutError
 
 
 
@@ -76,6 +101,8 @@ def complete_pockets(pdb, strdoc, structure,pdbUtils):
 
 def procesar_pdb(pdb, pdbUtils):
     pdb_file = pdbUtils.pdb_path(pdb)
+    if not os.path.exists(pdb_file):
+        sp.run(f"wget -O {pdb_file} 'https://files.rcsb.org/download/{pdb}.pdb'",shell=True)
     if not os.path.exists(pdb_file):
         with open("/tmp/pdb_load_errors.txt", "a") as handle:
             handle.write(pdb + "|NOT FOUND: " + pdb_file + " \n")
@@ -131,6 +158,8 @@ if __name__ == "__main__":
     parser.add_argument("-db", "--db_name", default='tdr')
     parser.add_argument( "--pdb_entries", default='/data/databases/pdb/entries.idx')
     parser.add_argument( "--pdbs", default='/data/databases/pdb/')
+    parser.add_argument( "--pdb_timeout", default=60,type=int)
+    parser.add_argument( "--review_pockets", action="store_true")
 
 
     args = parser.parse_args()
@@ -173,6 +202,8 @@ if __name__ == "__main__":
         pbar.set_description(pdb)
 
         if pdb in procesados:
+            if not args.review_pockets:
+                continue
             if pdb in procesados_sin_pocket:
                 q = ExperimentalStructure.objects(seq_collection_name="pdb", name=pdb).no_cache()
                 if q:
@@ -194,6 +225,7 @@ if __name__ == "__main__":
                         continue
 
         else:
-            procesar_pdb(pdb,pdbUtils)
+            with timeout(args.pdb_timeout):
+                procesar_pdb(pdb,pdbUtils)
 
     print ("OK!")

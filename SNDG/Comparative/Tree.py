@@ -33,7 +33,7 @@ def scipy2Newick(node, newick, parentdist, leaf_names):
         return newick
 
 
-from ete3 import Tree, TreeStyle, TextFace
+from ete3 import Tree, TreeStyle, TextFace,PhyloTree
 import vcf
 from _collections import defaultdict
 from tqdm import tqdm
@@ -63,20 +63,23 @@ class TreeUtils(object):
         self.csv_shared_snps = "/tmp/shared_count.txt"
         self.sample_variants = defaultdict(lambda: [])
         self.shared_snps = defaultdict(lambda: 0)
+        self.tree_class = Tree
 
     def load_tree(self):
-        self.tree = Tree(self.tree_path)
+
+        self.tree = self.tree_class(self.tree_path)
 
     def tree_style_with_data(self,data={},order=None,force_topology = False):
         """
         newick: text or file
         render_in: default %%inline for notebooks
+        data: {leaf -> col -> value}
         """
 
         ts = TreeStyle()
         if data:
             if not order:
-
+                # order = list(data.keys())
                 first = data.keys()
                 first = list(first)[0]
                 order = data[first].keys()
