@@ -24,7 +24,6 @@ from glob import glob
 from goatools.obo_parser import GODag
 
 import Bio.SeqIO as bpio
-from Bio import Alphabet
 from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio.SeqRecord import SeqRecord
@@ -190,7 +189,6 @@ SEQ-FILE	chrom3-contig2.fsa
                 genetic_elements.write("//" + "\n")
 
     def create_pseudo_scaffold(self, gbks_dir, outdir):
-        from Bio.Alphabet import generic_dna
         pos = 0
         features = []
 
@@ -207,7 +205,7 @@ SEQ-FILE	chrom3-contig2.fsa
             seq += "NNNNN" + str(c.seq)
 
         seqrecord = SeqRecord(id="pseudo", name="", description="", features=features,
-                              seq=Seq(seq, alphabet=generic_dna))
+                              seq=Seq(seq), annotations={"molecule_type": "DNA"})
 
         with open(outdir + "/genome.gbk", "w") as h:
             bpio.write(seqrecord, h, "gb")
@@ -249,7 +247,9 @@ DOMAIN\t{domain}"""
             return seqf
 
         def process_contig(contig):
-            record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq), alphabet=Alphabet.DNAAlphabet()))
+            record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq)),
+ annotations={"molecule_type": "DNA"}
+)
             for f in contig.features:
 
                 if f.type.lower() == "gene":

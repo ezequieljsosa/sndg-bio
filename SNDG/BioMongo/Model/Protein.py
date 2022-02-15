@@ -34,6 +34,8 @@ class Protein(Sequence):
     gene = ListField(StringField(), required=True)
     gene_id = ObjectIdField()
     seq_collection_id = ReferenceField(SeqCollection)
+    seq_collection_name = StringField(required=False)
+
     reactions = ListField(EmbeddedDocumentField(Reaction), default=[])
     reactome = ListField(DictField(), default=[])
     druggability = FloatField()
