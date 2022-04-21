@@ -1,5 +1,5 @@
 import fileinput
-from collections import defaultdict
+from collections import defaultdict,Counter
 
 import Bio.SeqIO as bpio
 import sys
@@ -25,7 +25,28 @@ class MSAMap():
 
     def aln_len(self):
         return len(self.seqs[list(self.seqs)[0]])
-
+    
+    def snp_sites(self,min_consensus=1,max_gap_proportion=0.5):
+        seqs2 =  {k:[] for k in self.seqs}
+                   
+        for msa_pos in range(self.aln_len()):
+            mol = []
+            for sample in self.samples():
+                mol.append(self.seqs[sample][msa_pos])
+            count = Counter(mol)
+            complete_info = True
+            if "-" in count and ((count["-"] / len(mol)) > max_gap_proportion) :
+                complete_info = False
+            most_common_count = count.most_common(1)[0][1]
+            #snp = len(set(mol)) > 1
+            consensus = most_common_count  / len(mol)
+            isconsensus = consensus < min_consensus
+            if complete_info and isconsensus:
+               for sample in self.samples():
+                   seqs2[sample].append( self.seqs[sample][msa_pos] )    
+        return [SeqRecord(id=k,description="",seq=Seq("".join(vec))) for k,vec in seqs2.items()]          
+            
+    
     def samples(self):
         return list(self.seqs.keys())
 
@@ -159,9 +180,19 @@ if __name__ == '__main__':
     import os
 
     parser = argparse.ArgumentParser(description='Mapping to variant calls pipeline.')
-    required = parser.add_argument_group('required arguments')
+    subparsers = parser.add_subparsers(help='commands', description='valid subcommands', dest='command', required=True)
+    
+    
+    
+    required = subparsers.add_parser('vcf')
     required.add_argument('-i', '--input_msa', action='store', default="-")
     required.add_argument('-r', '--ref_sequence', action='store', required=True)
+    required.add_argument('-o', '--output', default="-")
+
+    required = subparsers.add_parser('snp')
+    required.add_argument('-i', '--input_msa', action='store', default="-")
+    required.add_argument('-c', '--min_consensus', type=float, action='store', default=1)
+    required.add_argument('-g', '--max_gap_proportion', type=float, action='store', default=0.5)
     required.add_argument('-o', '--output', default="-")
 
     args = parser.parse_args()
@@ -173,8 +204,16 @@ if __name__ == '__main__':
     msa = MSAMap(seqs)
     msa.init()
 
-    if args.output == "-":
-        msa.vcf(args.ref_sequence, stdout=sys.stdout)
+    if args.command == "vcf":
+        if args.output == "-":
+            msa.vcf(args.ref_sequence, stdout=sys.stdout)
+        else:
+            with open(args.output, "w") as h:
+                msa.vcf(args.ref_sequence, stdout=h)
     else:
-        with open(args.output, "w") as h:
-            msa.vcf(args.ref_sequence, stdout=h)
+       seqs = msa.snp_sites(min_consensus=args.min_consensus,max_gap_proportion=args.max_gap_proportion)
+       if args.output == "-":
+            bpio.write(seqs,sys.stdout,"fasta")
+       else:
+            with open(args.output, "w") as h:
+                bpio.write(seqs,h,"fasta")
