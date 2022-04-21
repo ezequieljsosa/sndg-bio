@@ -254,8 +254,8 @@ class StructuromeIndexer(object):
             for pocket, aln_pocket in aligned_pockets:
                 ds_pocket = self.annotate_aln_pocket(cristal, pocket, aln_pocket, ds_struct)
                 self.annotate_with_pocket(ds_prot, ds_struct, ds_pocket)
-        else:
-            protein.features = [f for f in protein.features if f != feature]
+        # else:
+        #     protein.features = [f for f in protein.features if f != feature]
 
     def process_model(self, protein, model):
 

@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mdb = BioMongoDB(args.db_name)
+    mdb = BioMongoDB(args.db_name,host=args.db_host)
 
     pdbUtils = PDBs(pdb_dir=args.pdbs)
 
