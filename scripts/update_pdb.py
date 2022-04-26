@@ -191,7 +191,7 @@ if __name__ == "__main__":
                                                 {"name": 1})}
     procesados = {x["name"]: 1 for x in db.structures.find({"seq_collection_name": "pdb"}, {"name": 1})}
     # pdbs = list(pdbUtils)
-    org_filter = [{"$match":{"$organism":args.organism_name}}] if args.organism_name else []
+    org_filter = [{"$match":{"organism":args.organism_name}}] if args.organism_name else []
     data = list(mdb.db.proteins.aggregate( org_filter + [{"$match":{"features.type":"SO:0001079"}},{"$project":{"features":1}},
                                        {"$unwind":"$features"},{"$match":{"features.type":"SO:0001079"}},
                                        {"$project":{"hit":"$features.aln.aln_hit.name"}}]))
