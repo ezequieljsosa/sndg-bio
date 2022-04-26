@@ -213,6 +213,8 @@ class FPocket(object):
         if override or not  os.path.exists(self.dest_path()):
             cmd = "docker run -u $(id -u):$(id -g) -w /out -v '{pdb_dir}':/out --rm ezequieljsosa/fpocket {fpocket} -f '{pdb_file}'".format(
             fpocket=self.fpocket_binary, pdb_file=pdb_file, pdb_dir=pdb_dir)
+            with open("/tmp/tmppocket.txt","a") as h:
+                h.write(cmd + "'\n")
             self._execute(cmd)
         if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
             if os.path.exists(self.dest_path()):
