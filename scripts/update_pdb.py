@@ -160,6 +160,7 @@ if __name__ == "__main__":
     parser.add_argument( "--pdbs", default='/data/databases/pdb/')
     parser.add_argument( "--pdb_timeout", default=60,type=int)
     parser.add_argument( "--review_pockets", action="store_true")
+    parser.add_argument("--organism_name", default=None)
 
 
     args = parser.parse_args()
@@ -190,7 +191,8 @@ if __name__ == "__main__":
                                                 {"name": 1})}
     procesados = {x["name"]: 1 for x in db.structures.find({"seq_collection_name": "pdb"}, {"name": 1})}
     # pdbs = list(pdbUtils)
-    data = list(mdb.db.proteins.aggregate([{"$match":{"features.type":"SO:0001079"}},{"$project":{"features":1}},
+    org_filter = [{"$match":{"$organism":args.organism_name}}] if args.organism_name else []
+    data = list(mdb.db.proteins.aggregate( org_filter + [{"$match":{"features.type":"SO:0001079"}},{"$project":{"features":1}},
                                        {"$unwind":"$features"},{"$match":{"features.type":"SO:0001079"}},
                                        {"$project":{"hit":"$features.aln.aln_hit.name"}}]))
     pdbs = {x["hit"].split("_")[0]:1 for x in data}
