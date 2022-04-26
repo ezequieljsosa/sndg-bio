@@ -91,6 +91,7 @@ def complete_pockets(pdb, strdoc, structure,pdbUtils):
     mkdir(os.path.dirname(pockets_json))
 
     if not os.path.exists(pockets_json) or os.path.getsize(pockets_json) < 10:
+        print(pdb)
         r = FPocket(pdb_file).hunt_pockets()
         r.save(pockets_json)
         r.delete_dir()
