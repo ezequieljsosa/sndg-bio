@@ -6,74 +6,93 @@ import shutil
 from SNDG import execute, mkdir
 import Bio.SeqIO as bpio
 import multiprocessing
+from itertools import groupby
+from SNDG.Sequence import smart_parse
+from collections import  defaultdict
 
-class Assembly:
-    SPADES_DOCKER_IMAGE = 'ezequieljsosa/spades'
+class BlastHit:
+
+    def __init__(self, qseqid,qstart,qend,sseqid,sstart,send,pident,length,qcovhsp,slen):
+        self.qseqid = qseqid
+        self.qstart = qstart
+        self.qend = qend
+        self.sseqid = sseqid
+        self.sstart = sstart
+        self.send = send
+        self.pident = pident
+        self.length = length
+        self.qcovhsp = qcovhsp
+        self.slen = slen
+        self.genes = []
+
+    def addgene(self,gene):
+        self.genes.append(gene)
+
+
+
+
+
+
+
+
+
+
+class AssemblyFixer:
 
     @staticmethod
-    def assemble_pe(r1: str, r2: str, out: str, name: str , ss: str = None, trusted_contigs: str = None,
-                    untrusted_contigs: str = None, cov_cutoff: int = 5,tmp_dir:str="/tmp/",cpus=multiprocessing.cpu_count()):
-        """
+    def fromFile(file_path):
+         return AssemblyFixer(bpio.to_dict(smart_parse(file_path)))
 
-        :param out: output dir
-        :param trusted_contigs: trusted contigs path
-        :param untrusted_contigs: untrusted contigs path
-        :param cov_cutoff:
+    def __init__(self, assembly):
+        self.assembly = assembly
+
+
+    def whole_protein_hint(self,trusted_protein):
+        """
+        The protein is splited between different contigs, but we trust it is on the assembly
         :return:
         """
-        if tmp_dir == "/tmp/":
-            tmp_dir = tmp_dir + name
+
+    def primers_hint(self,trusted_protein):
+        """
+        we know that the region amplifies, and it is
+        :return:
+        """
+
+    def scaffold_hint(self,hits,gene_order):
+        """
+        join the contigs using scaffold/reference hits
+        """
+        # sort hits
 
 
-        workdir1 = tmp_dir
-        workdir2 = os.path.dirname(r1)
-        assert workdir2 == os.path.dirname(r2), "r1 and r2 must be in the same directory"
-        mkdir(out)
+    def gene_order_hits(self,hits,gene_order,context=100):
+        # sort hits
+        hits_order = []
+        contig_genes = defaultdict(list)
+        for gene_data in gene_order:
+            for hit in hits:
+                if gene_data.id  == hit.qseqid:
+                    hits_order.append(hit.sseqid)
+                    hit.addgene(gene_data)
 
-        mappings = f" -v {workdir1}:/out "
-        in_dir = "/out/"
-        if workdir1 != workdir2:
-            mappings = mappings + f" -v {workdir2}:/in "
-            in_dir = "/in/"
+        hits_order_no_repeated = [x[0] for x in groupby(hits_order,key=lambda y:y.contig)]
+        first = hits_order_no_repeated[0]
+        gene_data = first.first_gene()
+        seqs = [first.get_begining(gene_data)]
 
-        template = """docker run  -u $(id -u):$(id -g) --rm -w /out {mappings} {image} spades.py \
-                        {libs} {tcont} {utcont} -t {cpus} --isolate --cov-cutoff {cov_cutoff} -o /out """
-        libs = ""
+        for hit in hits_order_no_repeated[1:-1]:
+            if hit.coverage > 80:
+                gene_data = hit.first_gene()
+                hit.sorted_contig(gene_data)
 
-        i = 1
-        r1_img = in_dir + r1.split(workdir2)[1]
-        r2_img = in_dir + r2.split(workdir2)[1]
-        libs += f' --pe{i}-1 "{r1_img}" --pe{i}-2 "{r2_img}" '
-        if ss:
-            ss_img = in_dir + ss.split(workdir2)[1]
-            libs += f' --pe{i}-s "{ss_img}" '
-
-        tcont = " --trusted-contigs " + trusted_contigs if trusted_contigs else ""
-        utcont = " --untrusted-contigs " + untrusted_contigs if untrusted_contigs else ""
-        cmd = template.format( libs=libs, tcont=tcont, utcont=utcont, cov_cutoff=cov_cutoff, out=out,
-            mappings=mappings, image=Assembly.SPADES_DOCKER_IMAGE,cpus=cpus)
-        print(cmd)
-        # execute(cmd)
-        # with open(f"{out}/scaffolds.fasta","w") as h:
-        #     for r in bpio.parse(f"{tmp_dir}/scaffolds.fasta","fasta"):
-        #         data = r.id.split("_") #"NODE_3_length_237403_cov_243.207"
-        #         r.id = "|".join( [name + "_" + data[1],data[3],data[5].split(".")[0]] )
-        #
-        #         bpio.write(r,h,"fasta")
-        # shutil.rmtree(f'"{tmp_dir}/{name}"')
-
-    @staticmethod
-    def quast(glob_exp, out, ref=None):
-        execute("quast " + glob_exp + " -o " + out + ((" -R  " + ref) if ref else ""))
-
-    def improve_assembly(self):
-        pass
-
+        gene_data = hits_order_no_repeated[-1].last_gene()
+        seqs.append( first.get_end(gene_data) )
 
 if __name__ == '__main__':
     import argparse
     from tqdm import tqdm
-    assembly = Assembly()
+    assembly = AssemblyFixer()
 
     parser = argparse.ArgumentParser(description='Assembly pipeline.')
     required = parser.add_argument_group('required arguments')
