@@ -43,8 +43,8 @@ class FeatureTypeQualifierLabeler:
         self.default_label = default_label
 
     def feature_label(self, feature):
-        if feature.type in self.type_qualifier_map:
-            qualifiers = self.type_qualifier_map[feature.type]
+        if feature.type in self.type_qualifiers_map:
+            qualifiers = self.type_qualifiers_map[feature.type]
             for qualifier in qualifiers:
                 if qualifier in feature.qualifiers and feature.qualifiers[qualifier][0].strip():
                     qualifier_value = feature.qualifiers[qualifier][0].strip()
