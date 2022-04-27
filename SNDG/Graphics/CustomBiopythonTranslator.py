@@ -52,6 +52,17 @@ class FeatureTypeQualifierLabeler:
         if self.default_label:
             return self.default_label
 
+class FeatureQualifierValueLabeler:
+    def __init__(self, qualifier, qualifier_label_map):
+        self.qualifier = qualifier
+        self.qualifier_label_map = qualifier_label_map
+
+    def feature_label(self, feature):
+        if self.qualifier in feature.qualifiers and feature.qualifiers[self.qualifier][0].strip():
+            qualifier_value = feature.qualifiers[self.qualifier][0].strip()
+            if qualifier_value in self.qualifier_label_map:
+                return self.qualifier_label_map[qualifier_value]
+
 
 class CustomBiopythonTranslator(BiopythonTranslator):
 
