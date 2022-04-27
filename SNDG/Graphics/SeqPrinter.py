@@ -13,7 +13,7 @@ class SeqPrinter:
         self.gfeatures = []
 
     def start(self):
-        return self._start
+        return self._start if self._start >=0 else 0
 
     def end(self):
         if self._end:
