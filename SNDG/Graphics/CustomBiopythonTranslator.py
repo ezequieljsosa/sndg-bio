@@ -55,10 +55,15 @@ class FeatureTypeQualifierLabeler:
 
 class CustomBiopythonTranslator(BiopythonTranslator):
 
-    def __init__(self):
+
+    def __init__(self, *args, **kwargs):
+        super(BiopythonTranslator, self).__init__(*args, **kwargs)
         self.feature_filters = []
         self.feature_colourers = []
         self.feature_labelers = []
+
+
+
 
     def add_filter(self, feature_filter):
         self.feature_filters.append(feature_filter)
