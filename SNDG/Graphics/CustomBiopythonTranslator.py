@@ -74,7 +74,7 @@ class CustomBiopythonTranslator(BiopythonTranslator):
         cbt = CustomBiopythonTranslator()
         cbt.add_filter(FeatureTypeFilter(["CDS", "GAP", "REGION"]))
         cbt.add_colourer(FeatureTypeColourer({"CDS": "red", "GAP": "black", "REGION": "purple"}, default_color="grey"))
-        cbt.add_labeler(FeatureQualifierColourer({"CDS": ["gene", "locus_tag"], "REGION": ["name"]}))
+        cbt.add_labeler(FeatureTypeQualifierLabeler({"CDS": ["gene", "locus_tag"], "REGION": ["name"]}))
         return cbt
 
     def compute_feature_color(self, feature):
