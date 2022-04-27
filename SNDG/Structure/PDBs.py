@@ -120,7 +120,7 @@ class PDBs(object):
         return self.pdb_path(pdb) + ".gz"
 
     def pdb_pockets_path(self, pdb):
-        return self.pockets_dir + "/" + pdb[1:3] + "/pdb" + pdb + self.pdb_extention + ".json"
+        return self.pockets_dir + "/" + pdb[1:3] + "/" + pdb +  ".json"
 
     def download_pdb_seq_ses(self):
         download_file(self.url_pdb_seq_res, self.pdb_seq_res_path, ovewrite=True)
