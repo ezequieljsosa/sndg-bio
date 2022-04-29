@@ -2,6 +2,8 @@
 
 https://github.com/tseemann/prokka
 """
+from Bio.SeqFeature import SeqFeature, FeatureLocation
+
 from SNDG import docker_wrap_command, DOCKER_MAPPINGS, execute
 import fileinput
 from SNDG.Sequence import smart_parse
@@ -36,18 +38,25 @@ class GenebankUtils:
                             f.qualifiers["pseudo"] = ["true"]
                         else:
                             f.qualifiers["translation"] = [seq]
-        bpio.write(contigs,hw_gb,"gb")
+        bpio.write(contigs, hw_gb, "gb")
 
-    # def proteins(self, h_or_str_gb, h_or_str_faa, otype="prot"):
-    #     if isinstance(h_or_str_gb, str):
-    #         h_gb = smart_parse(h_or_str_gb)
-    #     else:
-    #         h_gb = h_or_str_gb
-    #
-    #     if isinstance(h_or_str_faa, str):
-    #         h_faa = open(h_or_str_faa, "w")
-    #     else:
-    #         h_faa = h_or_str_faa
+    def lt(self, feature):
+        return feature.qualifiers.get("locus_tag", [""])[0]
+
+    def region_from_lts(self, lts, contig, region_name, rtype="region", strand_lts=None):
+
+        region = []
+        strand = None
+
+        for f in contig.features:
+            if self.lt(f) in lts:
+                region.append(f)
+                if self.lt(f) in strand_lts:
+                    strand = f.location.strand
+
+        locations = [x.location.start for x in region] + [x.location.end for x in region]
+        return SeqFeature(type=rtype, location=FeatureLocation(
+            start=min(locations), end=max(locations), strand=strand), qualifiers={"name": [region_name]})
 
     def proteins(self, sequences, otype="prot"):
 
@@ -57,10 +66,11 @@ class GenebankUtils:
             for feature in contig.features:
                 if feature.type in ["CDS", "RNA", "mat_peptide"]:
                     seq = None
-                    description = feature.qualifiers["product"][0] if "product" else (
+                    location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
+                    description = location + " " + feature.qualifiers["product"][0] if "product" else (
                         feature.qualifiers["note"][0] if "note" in feature.qualifiers else "")
 
-                    locus_tag = feature.qualifiers["locus_tag"][0]
+                    locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
                     gene = feature.qualifiers["gene"][0] if "gene" in feature.qualifiers else ""
 
                     if feature.type == "mat_peptide":
@@ -78,7 +88,6 @@ class GenebankUtils:
                         yield record
                     else:
                         assert "pseudo" in feature.qualifiers
-
 
         # finally:
         #     if isinstance(h_or_str_faa, str):
@@ -117,24 +126,20 @@ if __name__ == '__main__':
         if args.input_bgk != "-":
             gbk_h = smart_parse(args.input_bgk)
         else:
-            gbk_h = bpio.parse(fileinput.input(args.input_bgk),"gb")
+            gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
 
         if isinstance(args.output_fna, str):
             h_faa = open(args.output_fna, "w")
         else:
             h_faa = args.output_fna
         try:
-            for seq in utils.proteins(gbk_h,otype=args.otype):
-                bpio.write(seq,h_faa,"fasta")
+            for seq in utils.proteins(gbk_h, otype=args.otype):
+                bpio.write(seq, h_faa, "fasta")
         finally:
             try:
                 h_faa.close()
             except:
                 pass
-
-
-
-
 
     if args.command == "fix":
         utils.fixgb(fileinput.input(args.input_bgk), args.output_gb)
