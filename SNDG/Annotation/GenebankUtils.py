@@ -55,8 +55,10 @@ class GenebankUtils:
                     strand = f.location.strand
 
         locations = [x.location.start for x in region] + [x.location.end for x in region]
-        return SeqFeature(type=rtype, location=FeatureLocation(
-            start=min(locations), end=max(locations), strand=strand), qualifiers={"name": [region_name]})
+        if locations:
+            return SeqFeature(type=rtype, location=FeatureLocation(
+                start=min(locations), end=max(locations), strand=strand), qualifiers={"name": [region_name]})
+        return None
 
     def proteins(self, sequences, otype="prot"):
 
