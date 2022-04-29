@@ -28,7 +28,7 @@ class FeatureQualifierColourer:
         self.default_color = default_color
 
     def feature_color(self, feature):
-        if self.qualifier in feature:
+        if self.qualifier in feature.qualifiers:
             qual_value = feature.qualifiers[self.qualifier][0]
             if qual_value in self.color_map:
                 return self.color_map[qual_value]

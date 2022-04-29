@@ -43,7 +43,7 @@ class GenebankUtils:
     def lt(self, feature):
         return feature.qualifiers.get("locus_tag", [""])[0]
 
-    def region_from_lts(self, lts, contig, region_name, rtype="region", strand_lts=None):
+    def region_from_lts(self, lts, contig, region_name, rtype="REGION", strand_lts=None):
 
         region = []
         strand = None
