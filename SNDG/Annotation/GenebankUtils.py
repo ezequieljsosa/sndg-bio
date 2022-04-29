@@ -51,7 +51,7 @@ class GenebankUtils:
         for f in contig.features:
             if self.lt(f) in lts:
                 region.append(f)
-                if self.lt(f) in strand_lts:
+                if strand_lts and (self.lt(f) in strand_lts):
                     strand = f.location.strand
 
         locations = [x.location.start for x in region] + [x.location.end for x in region]
