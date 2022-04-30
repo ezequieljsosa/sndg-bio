@@ -312,69 +312,69 @@ SEQ-FILE	chrom3-contig2.fsa
                                 raise
 
 
-def execute(self, pwtools_path="pathway-tools", proxy="PROXY=proxy.fcen.uba.ar:8080"):
-    """
-     :param pwtools_path: complete path to pathway-tools binary. by default assumes that it is in the PATH
-    """
-    cmd = self.cmd_pwtools(pwtools_path, proxy)
-    execute(cmd)
+    def execute(self, pwtools_path="pathway-tools", proxy="PROXY=proxy.fcen.uba.ar:8080"):
+        """
+         :param pwtools_path: complete path to pathway-tools binary. by default assumes that it is in the PATH
+        """
+        cmd = self.cmd_pwtools(pwtools_path, proxy)
+        execute(cmd)
 
 
-def cmd_pwtools(self, pwtools_path, proxy):
-    return proxy + ' ' + pwtools_path + ' -no-cel-overview -no-web-cel-overview  -patho ' + self.workdir
+    def cmd_pwtools(self, pwtools_path, proxy):
+        return proxy + ' ' + pwtools_path + ' -no-cel-overview -no-web-cel-overview  -patho ' + self.workdir
 
 
-def copy_qualifiers(self, mapping, f_in, f_out):
-    for k, v in mapping.items():
-        if k in f_in.qualifiers:
-            if isinstance(v, dict):
-                for key, fn in v.items():
-                    value = [y for y in [fn(x) for x in f_in.qualifiers[k]] if y]
-                    if value:
-                        f_out.qualifiers[key] = value
+    def copy_qualifiers(self, mapping, f_in, f_out):
+        for k, v in mapping.items():
+            if k in f_in.qualifiers:
+                if isinstance(v, dict):
+                    for key, fn in v.items():
+                        value = [y for y in [fn(x) for x in f_in.qualifiers[k]] if y]
+                        if value:
+                            f_out.qualifiers[key] = value
 
-            elif isinstance(v, tuple):
-                dst = v[0]
-                value = [y for y in [v[1](x) for x in f_in.qualifiers[k]] if y]
-                if value:
-                    f_out.qualifiers[dst] = value
-            else:
-                dst = v
-                if f_in.qualifiers and (k in f_in.qualifiers):
-                    value = [x for x in f_in.qualifiers[k]]
+                elif isinstance(v, tuple):
+                    dst = v[0]
+                    value = [y for y in [v[1](x) for x in f_in.qualifiers[k]] if y]
                     if value:
                         f_out.qualifiers[dst] = value
+                else:
+                    dst = v
+                    if f_in.qualifiers and (k in f_in.qualifiers):
+                        value = [x for x in f_in.qualifiers[k]]
+                        if value:
+                            f_out.qualifiers[dst] = value
 
 
-def map_atributes(self, mapping, f_in, f_out):
-    """
-    "gene.mRna" : {
-        "type" : "CDS",
-        "qualifiers": {
-            "gene_symbol" : "gene",
-            "locus tag": "locus_tag",
-            "x" : "db xref",
-            "GO" : ("go_component", process_go_cc ),
-    """
-    for ftype, type_map in mapping.items():
-        types = ftype.split(".")
-        if f_in.type != types[0]:
-            continue  # ,(ftype,f_in,f_out)
-        f_in1 = f_in
-        if len(types) > 1 and hasattr(f_in, "sub_features") and f_in.sub_features:
-            for subtype in types[1:]:
-                f_in1 = [x for x in f_in1.sub_features if x.type == subtype]
-                if f_in1:
-                    f_in1 = f_in1[0]
-                else:
-                    print (f_in)
-                    continue
-        if f_in1:
-            for k, v in type_map.items():
-                if k == "qualifiers":
-                    self.copy_qualifiers(v, f_in1, f_out)
-                else:
-                    setattr(f_out, k, getattr(f_in, v) if v.startswith("$") else v)
+    def map_atributes(self, mapping, f_in, f_out):
+        """
+        "gene.mRna" : {
+            "type" : "CDS",
+            "qualifiers": {
+                "gene_symbol" : "gene",
+                "locus tag": "locus_tag",
+                "x" : "db xref",
+                "GO" : ("go_component", process_go_cc ),
+        """
+        for ftype, type_map in mapping.items():
+            types = ftype.split(".")
+            if f_in.type != types[0]:
+                continue  # ,(ftype,f_in,f_out)
+            f_in1 = f_in
+            if len(types) > 1 and hasattr(f_in, "sub_features") and f_in.sub_features:
+                for subtype in types[1:]:
+                    f_in1 = [x for x in f_in1.sub_features if x.type == subtype]
+                    if f_in1:
+                        f_in1 = f_in1[0]
+                    else:
+                        print (f_in)
+                        continue
+            if f_in1:
+                for k, v in type_map.items():
+                    if k == "qualifiers":
+                        self.copy_qualifiers(v, f_in1, f_out)
+                    else:
+                        setattr(f_out, k, getattr(f_in, v) if v.startswith("$") else v)
 
 
 if __name__ == "__main__":
