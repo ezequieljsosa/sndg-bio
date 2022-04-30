@@ -30,6 +30,7 @@ class FeatureQualifierColourer:
     def feature_color(self, feature):
         if self.qualifier in feature.qualifiers:
             qual_value = feature.qualifiers[self.qualifier][0]
+
             if qual_value in self.color_map:
                 return self.color_map[qual_value]
             elif self.default_color:
@@ -98,6 +99,7 @@ class CustomBiopythonTranslator(BiopythonTranslator):
             color = colourer.feature_color(feature)
             if color:
                 return color
+        return "white"
 
     def compute_feature_label(self, feature):
         for labeler in self.feature_labelers:

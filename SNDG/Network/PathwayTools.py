@@ -29,7 +29,7 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio.SeqRecord import SeqRecord
 from SNDG import execute, mkdir
 # from Bio.Alphabet import NucleotideAlphabet
-from SNDG.BioMongo.Model.SeqCollection import SeqCollection
+
 
 _log = logging.getLogger(__name__)
 
