@@ -240,76 +240,76 @@ SEQ-FILE	chrom3-contig2.fsa
         genetic_elements.write("//" + "\n")
 
 
-def create_organism_params(self, name, organism, tax, domain):
-    """
-    :param name: Name of the collection in pwtools
-    :param organism: Description of the organism
-    :param tax: taxid
-    :param domain: "TAX-2" (Bacteria), "TAX-2759" (Eukaryota), and "TAX-2157" (Archaea).
-    :return:
-    """
-    template = """ID\t{name}
-NAME\t{organism}
-STORAGE\tFile
-NCBI-TAXON-ID\t{tax}
-DOMAIN\t{domain}"""
-    with open(self.workdir + "organism-params.dat", "w")  as h:
-        h.write(template.format(name=name, organism=organism, tax=tax, domain=domain))
+    def create_organism_params(self, name, organism, tax, domain):
+        """
+        :param name: Name of the collection in pwtools
+        :param organism: Description of the organism
+        :param tax: taxid
+        :param domain: "TAX-2" (Bacteria), "TAX-2759" (Eukaryota), and "TAX-2157" (Archaea).
+        :return:
+        """
+        template = """ID\t{name}
+    NAME\t{organism}
+    STORAGE\tFile
+    NCBI-TAXON-ID\t{tax}
+    DOMAIN\t{domain}"""
+        with open(self.workdir + "organism-params.dat", "w")  as h:
+            h.write(template.format(name=name, organism=organism, tax=tax, domain=domain))
 
 
-def create_genebank(self, contig_iterator, mappings=None):
-    if not mappings:
-        mappings = self.default_mappings
+    def create_genebank(self, contig_iterator, mappings=None):
+        if not mappings:
+            mappings = self.default_mappings
 
-    def dbfeature2seqfeature(org_feature):
-        seqf = SeqFeature(
-            FeatureLocation(org_feature.location.start, org_feature.location.end, org_feature.location.strand),
-            org_feature.type, id=org_feature.id)
+        def dbfeature2seqfeature(org_feature):
+            seqf = SeqFeature(
+                FeatureLocation(org_feature.location.start, org_feature.location.end, org_feature.location.strand),
+                org_feature.type, id=org_feature.id)
 
-        self.map_atributes(mappings, org_feature, seqf)
+            self.map_atributes(mappings, org_feature, seqf)
 
-        return seqf
+            return seqf
 
-    def process_contig(contig):
+        def process_contig(contig):
 
-        record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq)), annotations={"molecule_type": "DNA"})
-        for f in contig.features:
+            record = SeqRecord(id=contig.id, seq=Seq(str(contig.seq)), annotations={"molecule_type": "DNA"})
+            for f in contig.features:
 
-            if f.type.lower() in ["gene", "cds"]:
-                seqfeature = dbfeature2seqfeature(f)
-            elif f.type.lower() in ["rrna", "trna", "ncrna"]:
-                note = f.qualifiers["Note"] if "Note" in f.qualifiers else ""
-                desc = f.qualifiers["description"] if "description" in f.qualifiers else ""
-                seqfeature = SeqFeature(f.location,
-                                        f.type.replace("ncrna", "misc_RNA"),
-                                        id=f.id, qualifiers={"locus_tag": f.id,
-                                                             "note": note
-                        , "description": desc
-                        , "gene": note
-                        , "alt name": desc
-                        , "product": desc})
-            elif f.type.lower() in ["contig", "exon", "cdsvi"]:
-                seqfeature = None
-            else:
-                _log.warning("unknow feature " + f.type)
-                seqfeature = None
-            if seqfeature:
-                record.features.append(seqfeature)
-        return record
+                if f.type.lower() in ["gene", "cds"]:
+                    seqfeature = dbfeature2seqfeature(f)
+                elif f.type.lower() in ["rrna", "trna", "ncrna"]:
+                    note = f.qualifiers["Note"] if "Note" in f.qualifiers else ""
+                    desc = f.qualifiers["description"] if "description" in f.qualifiers else ""
+                    seqfeature = SeqFeature(f.location,
+                                            f.type.replace("ncrna", "misc_RNA"),
+                                            id=f.id, qualifiers={"locus_tag": f.id,
+                                                                 "note": note
+                            , "description": desc
+                            , "gene": note
+                            , "alt name": desc
+                            , "product": desc})
+                elif f.type.lower() in ["contig", "exon", "cdsvi"]:
+                    seqfeature = None
+                else:
+                    _log.warning("unknow feature " + f.type)
+                    seqfeature = None
+                if seqfeature:
+                    record.features.append(seqfeature)
+            return record
 
-    with open(self.gb_file, "w") as h:
-        with tqdm(contig_iterator) as pbar:
-            for contig in pbar:
+        with open(self.gb_file, "w") as h:
+            with tqdm(contig_iterator) as pbar:
+                for contig in pbar:
 
-                pbar.set_description(contig.id)
-                if contig.features:
-                    new_contig = process_contig(contig)
-                    new_contig.annotations["molecule_type"] = "DNA"
-                    if new_contig.features:
-                        try:
-                            bpio.write(new_contig, h, "gb")
-                        except:
-                            raise
+                    pbar.set_description(contig.id)
+                    if contig.features:
+                        new_contig = process_contig(contig)
+                        new_contig.annotations["molecule_type"] = "DNA"
+                        if new_contig.features:
+                            try:
+                                bpio.write(new_contig, h, "gb")
+                            except:
+                                raise
 
 
 def execute(self, pwtools_path="pathway-tools", proxy="PROXY=proxy.fcen.uba.ar:8080"):
