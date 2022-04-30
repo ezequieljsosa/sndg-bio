@@ -386,7 +386,7 @@ if __name__ == "__main__":
     """
     from SNDG import init_log
     from SNDG.Sequence import smart_parse
-    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+
 
     init_log()
 
@@ -419,6 +419,7 @@ if __name__ == "__main__":
                      smart_parse(args.sequences)}
 
     if args.annotation_type == "mongo":
+        from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
         mdb = BioMongoDB(args.mongodb)
 
         assert mdb.seq_col_exists(args.annotation)
