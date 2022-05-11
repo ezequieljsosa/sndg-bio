@@ -46,7 +46,8 @@ class MSAMap():
                for sample in self.samples():
                    resultPosMap[sample].append(len(self.seqs[sample][:msa_pos].replace("-","")))
                    seqs2[sample].append( self.seqs[sample][msa_pos] )    
-        return [SeqRecord(id=k,description="",seq=Seq("".join(vec))) for k,vec in seqs2.items()]          
+        return [SeqRecord(id=k,description=",".join(resultPosMap[sample])
+                          ,seq=Seq("".join(vec))) for k,vec in seqs2.items()]
             
     
     def samples(self):
