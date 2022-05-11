@@ -44,7 +44,7 @@ class MSAMap():
             isconsensus = consensus < min_consensus
             if complete_info and isconsensus:
                for sample in self.samples():
-                   resultPosMap[sample].append(len(self.seqs[sample][:msa_pos].replace("-","")))
+                   resultPosMap[sample].append(len((str(self.seqs[sample][:msa_pos].seq)).replace("-","")))
                    seqs2[sample].append( self.seqs[sample][msa_pos] )    
         return [SeqRecord(id=k,description=",".join(resultPosMap[sample])
                           ,seq=Seq("".join(vec))) for k,vec in seqs2.items()]
