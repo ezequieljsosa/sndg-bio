@@ -26,8 +26,9 @@ class MSAMap():
     def aln_len(self):
         return len(self.seqs[list(self.seqs)[0]])
     
-    def snp_sites(self,min_consensus=1,max_gap_proportion=0.5):
+    def snp_sites(self,min_consensus=1,max_gap_proportion=0.5,addPositions=True):
         seqs2 =  {k:[] for k in self.seqs}
+        resultPosMap = {sample:[]  for sample in self.samples() }
                    
         for msa_pos in range(self.aln_len()):
             mol = []
@@ -43,6 +44,7 @@ class MSAMap():
             isconsensus = consensus < min_consensus
             if complete_info and isconsensus:
                for sample in self.samples():
+                   resultPosMap[sample].append(len(self.seqs[sample][:msa_pos].replace("-","")))
                    seqs2[sample].append( self.seqs[sample][msa_pos] )    
         return [SeqRecord(id=k,description="",seq=Seq("".join(vec))) for k,vec in seqs2.items()]          
             
