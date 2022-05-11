@@ -113,7 +113,7 @@ class MSAMap():
 
     def vcf(self, ref_sequence, stdout=sys.stdout):
         assert ref_sequence in self.samples(), f'{ref_sequence} does not exists'
-        samples = ref_sequence + sorted(set(self.samples()) - set([ref_sequence]))
+        samples = [ref_sequence] + sorted(set(self.samples()) - set([ref_sequence]))
 
         header = ("\t".join("#CHROM  POS     ID      REF     ALT     QUAL    FILTER  INFO    FORMAT".split()) +
                   "\t" + "\t".join(samples))

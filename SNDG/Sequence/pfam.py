@@ -67,6 +67,10 @@ class PFamProfile:
         self.abundance = abundance
 
     def _bitscore_pos(self, pos_aa_dict):
+        # Buscando ,resulta que yo a su vez le robe esto a lean, y eso esta anotado en un papel que vaya Dios a saber donde esta. Pero mirandolo fijo y buscando en pfam me acuerdo de lo siguiente. En algun momento con marce, lean queria determinar un corte para los bitscore de una posicion, a partir del cual, detectaba todos los residuos de CSA. Para eso tenia que calcular el bitscore de una columna del HMM, y lo que te da el .hmm es el logaritmo natural negativo de la probabilidad para cada AA (All probability parameters are all stored as negative natural log probabilities with five digits of precision [...] ). No se puede hacer un promedio, asi que lo que hace con math.Exp(-m) es obtener la probabildiad. Con esto nos queda ProbAA * log2(  ProbAA / abundanciaAA  ), donde abundanciaAA es el % de abundancia del AA en uniprot, sacado de (
+        # Sacado de uniprot http://www.ebi.ac.uk/uniprot/TrEMBLstats Release 2016_04 of 13-Apr-2016 (5.  AMINO ACID COMPOSITION  5.1  Composition in percent for the complete database)
+        # )  . El log2(  ProbAA / abundanciaAA  ) es el bitscore de hmmer: A HMMER bit score is the log of the ratio of the sequence’s probability according to the profile (the homology hypothesis) over the null model probability (the nonhomology hypothesis). Entonces haces la multiplicacion de la probabilidad por el bitscore de cada AA y si lo haces por cada AA, eso es la suma de los bitscore de la posicion
+        # http://eddylab.org/software/hmmer/Userguide.pdf
         return sum(
             [math.exp(-x) * math.log(math.exp(-x) / (self.abundance[aa] / 100), 2) for aa, x in pos_aa_dict.items()])
 
