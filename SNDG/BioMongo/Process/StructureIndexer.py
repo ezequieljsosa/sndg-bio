@@ -243,6 +243,7 @@ class StructuromeIndexer(object):
         if not aln_residue_set:
             import traceback
             from Bio import pairwise2
+            from Bio.SeqUtils import seq1
             from Bio.SubsMat import MatrixInfo as matlist
             try:
                 chain_obj = cristal.chain(chain)
