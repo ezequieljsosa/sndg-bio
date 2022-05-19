@@ -241,15 +241,19 @@ class StructuromeIndexer(object):
 
         aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
         if not aln_residue_set:
+            import traceback
             from Bio import pairwise2
             from Bio.SubsMat import MatrixInfo as matlist
-            chain_obj = cristal.chain(chain)
-            mols = chain_obj.residues[self.aln_hit.start + offset:]
-            seq_pdb = "".join([seq1(mol.compound).lower() for mol in mols])
-            alignment = pairwise2.align.localds(feature.aln_query.aln,seq_pdb,matlist.blosum62)[0]
-            feature.aln_query.aln =alignment [0]
-            feature.aln_hit.aln =  alignment [1]
-            aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+            try:
+                chain_obj = cristal.chain(chain)
+                mols = chain_obj.residues[self.aln_hit.start + offset:]
+                seq_pdb = "".join([seq1(mol.compound).lower() for mol in mols])
+                alignment = pairwise2.align.localds(feature.aln_query.aln,seq_pdb,matlist.blosum62)[0]
+                feature.aln_query.aln =alignment [0]
+                feature.aln_hit.aln =  alignment [1]
+                aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+            except:
+                traceback.print_exc()
             assert aln_residue_set,feature._data
 
         if aln_residue_set:
