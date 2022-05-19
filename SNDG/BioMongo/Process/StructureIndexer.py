@@ -240,6 +240,18 @@ class StructuromeIndexer(object):
             offset = 0
 
         aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+        if not aln_residue_set:
+            from Bio import pairwise2
+            from Bio.SubsMat import MatrixInfo as matlist
+            chain = structure.chain(chain_name)
+            mols = chain.residues[self.aln_hit.start + offset:]
+            seq_pdb = "".join([seq1(mol.compound).lower() for mol in mols])
+            alignment = pairwise2.align.localds(feature.aln_query.aln,seq_pdb,matlist.blosum62)[0]
+            feature.aln_query.aln =alignment [0]
+            feature.aln_hit.aln =  alignment [1]
+            aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+            assert aln_residue_set,feature._data
+
         if aln_residue_set:
             ds_prot = protein.search
             ds_struct = StructureDruggabilitySearch(structure=feature.aln.aln_hit.name, druggability=0)
