@@ -160,6 +160,7 @@ class Molecule(EmbeddedDocument):
     compound_type = StringField(max_length=15)  # , choices=COMPOUND_TYPE )
     compound = StringField(max_length=3)
     resid = IntField(required=True)
+    meta = {'strict': False}
 #     sasas = MapField(FloatField())
 
 
