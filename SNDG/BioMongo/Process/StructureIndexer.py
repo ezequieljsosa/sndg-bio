@@ -241,6 +241,7 @@ class StructuromeIndexer(object):
 
         aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
         if not aln_residue_set:
+            print("birdddman!!!")
             import traceback
             from Bio import pairwise2
             from Bio.SeqUtils import seq1
