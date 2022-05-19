@@ -249,7 +249,7 @@ class StructuromeIndexer(object):
             try:
                 chain_obj = cristal.chain(chain)
                 mols = chain_obj.residues[feature.aln.aln_hit.start + offset:]
-                seq_pdb = "".join([seq1(mol.compound).lower() for mol in mols])
+                seq_pdb = "".join([seq1(mol.compound).upper() for mol in mols])
                 alignment = pairwise2.align.localds(feature.aln.aln_query.seq,seq_pdb,matrix,-2,-1)[0]
                 feature.aln.aln_query.seq =alignment [0]
                 feature.aln.aln_hit.seq =  alignment [1]
