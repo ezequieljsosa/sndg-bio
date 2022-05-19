@@ -245,11 +245,12 @@ class StructuromeIndexer(object):
             from Bio import pairwise2
             from Bio.SeqUtils import seq1
             from Bio.SubsMat import MatrixInfo as matlist
+            matrix = matlist.blosum62
             try:
                 chain_obj = cristal.chain(chain)
                 mols = chain_obj.residues[feature.aln.aln_hit.start + offset:]
                 seq_pdb = "".join([seq1(mol.compound).lower() for mol in mols])
-                alignment = pairwise2.align.localds(feature.aln.aln_query.seq,seq_pdb,matlist.blosum62,-2,-1)[0]
+                alignment = pairwise2.align.localds(feature.aln.aln_query.seq,seq_pdb,matrix,-2,-1)[0]
                 feature.aln.aln_query.seq =alignment [0]
                 feature.aln.aln_hit.seq =  alignment [1]
                 aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
