@@ -133,7 +133,7 @@ class StructuromeIndexer(object):
         for exp_struct in protein.cristals():
             cristals.append(exp_struct)
             protein.search.structure_type = "experimental"
-        return cristals, models
+        return set(cristals), set(models)
 
     def annotate_aln_pocket(self, cristal, pocket, aln_pocket, ds_struct):
         ds_pocket = self.create_ds_pocket(pocket.name)
@@ -241,7 +241,6 @@ class StructuromeIndexer(object):
 
         aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
         if not aln_residue_set:
-            print("birdddman!!!")
             import traceback
             from Bio import pairwise2
             from Bio.SeqUtils import seq1
@@ -267,11 +266,16 @@ class StructuromeIndexer(object):
 
             aligned_pockets = [(p, p & aln_residue_set) for p in cristal.pockets if p & aln_residue_set]
 
+            print("Aligned Pockets")
+            print(aligned_pockets)
+
             self.annotate_cristal(cristal, ds_struct, aln_residue_set, ds_prot)
             self.annotate_protein_with_cristal(protein, ds_struct)
 
             for pocket, aln_pocket in aligned_pockets:
                 ds_pocket = self.annotate_aln_pocket(cristal, pocket, aln_pocket, ds_struct)
+                print("Aligned Pocket: ")
+                print(ds_pocket._data)
                 self.annotate_with_pocket(ds_prot, ds_struct, ds_pocket)
         # else:
         #     protein.features = [f for f in protein.features if f != feature]
