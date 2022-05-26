@@ -158,8 +158,8 @@ class StructuromeIndexer(object):
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            # ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
-            ds_pocket[binding_name] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
+
             # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
@@ -208,13 +208,13 @@ class StructuromeIndexer(object):
         ds_prot.pocket_with_csa = ds_prot.pocket_with_csa | ds_pocket.csa
         ds_prot.pocket_with_domain_extended = ds_prot.pocket_with_domain_extended | ds_pocket.domain_extended
 
-        ds_struct.pocket_with_free_tyr = ds_struct.pocket_with_free_tyr | ds_pocket.free_tyr
-        ds_struct.pocket_with_free_cys = ds_struct.pocket_with_free_cys | ds_pocket.free_cys
-        ds_struct.pocket_with_tyr = ds_struct.pocket_with_tyr | ds_pocket.tyr
-        ds_struct.pocket_with_cys = ds_struct.pocket_with_cys | ds_pocket.cys
-        ds_struct.pocket_with_pfam_imp_residue = ds_struct.pocket_with_pfam_imp_residue | ds_pocket.important_pfam
-        ds_struct.pocket_with_csa = ds_struct.pocket_with_csa | ds_pocket.csa
-        ds_struct.pocket_with_domain_extended = ds_struct.pocket_with_domain_extended | ds_pocket.domain_extended
+        # ds_struct.pocket_with_free_tyr = ds_struct.pocket_with_free_tyr | ds_pocket.free_tyr
+        # ds_struct.pocket_with_free_cys = ds_struct.pocket_with_free_cys | ds_pocket.free_cys
+        # ds_struct.pocket_with_tyr = ds_struct.pocket_with_tyr | ds_pocket.tyr
+        # ds_struct.pocket_with_cys = ds_struct.pocket_with_cys | ds_pocket.cys
+        # ds_struct.pocket_with_pfam_imp_residue = ds_struct.pocket_with_pfam_imp_residue | ds_pocket.important_pfam
+        # ds_struct.pocket_with_csa = ds_struct.pocket_with_csa | ds_pocket.csa
+        # ds_struct.pocket_with_domain_extended = ds_struct.pocket_with_domain_extended | ds_pocket.domain_extended
 
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
@@ -222,6 +222,7 @@ class StructuromeIndexer(object):
             ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[binding_name]
             ds_struct["pocket_with_" + binding_name] = ds_struct["pocket_with_" + binding_name] | ds_pocket[
                 binding_name]
+            print([binding_name,ds_prot["pocket_with_" + binding_name]])
 
         if ds_prot.druggability < ds_pocket.druggability:
             ds_prot.druggability = ds_pocket.druggability
