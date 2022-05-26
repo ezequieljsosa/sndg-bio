@@ -163,6 +163,11 @@ class StructuromeIndexer(object):
                    "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
                   "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
 
+        # {'pocket': 'Pocket_6', 'pdb': '3toz', 'binding': 'drug_binding', 'residues': RS(drug_binding type=None, count: 142), 'pocket_aln': RS(Pocket_6&aln_3toz_E type=None, c
+        # ount: 24), 'intersect': RS(drug_binding&Pocket_6&aln_3toz_E type=None, count: 17), 'result': True}
+
+        if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
+            assert ds_pocket["drug"], ds_pocket
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
