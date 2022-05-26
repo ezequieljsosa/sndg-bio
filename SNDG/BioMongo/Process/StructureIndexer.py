@@ -159,6 +159,11 @@ class StructuromeIndexer(object):
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
             ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
+                   "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
+                  "intersect":cristal.residue_set(binding_name) & aln_pocket } )
+
+
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
 
@@ -266,16 +271,14 @@ class StructuromeIndexer(object):
 
             aligned_pockets = [(p, p & aln_residue_set) for p in cristal.pockets if p & aln_residue_set]
 
-            print("Aligned Pockets : " + cristal.name)
-            print(aligned_pockets)
+
 
             self.annotate_cristal(cristal, ds_struct, aln_residue_set, ds_prot)
             self.annotate_protein_with_cristal(protein, ds_struct)
 
             for pocket, aln_pocket in aligned_pockets:
                 ds_pocket = self.annotate_aln_pocket(cristal, pocket, aln_pocket, ds_struct)
-                print("Aligned Pocket: " + cristal.name)
-                print(ds_pocket._data)
+
                 self.annotate_with_pocket(ds_prot, ds_struct, ds_pocket)
         # else:
         #     protein.features = [f for f in protein.features if f != feature]
