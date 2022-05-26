@@ -168,6 +168,7 @@ class StructuromeIndexer(object):
 
         if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
             assert ds_pocket["drug"], ds_pocket
+            print ("tudo bom tudu legau")
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
