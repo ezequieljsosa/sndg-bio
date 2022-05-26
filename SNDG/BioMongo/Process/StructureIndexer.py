@@ -133,7 +133,7 @@ class StructuromeIndexer(object):
         for exp_struct in protein.cristals():
             cristals.append(exp_struct)
             protein.search.structure_type = "experimental"
-        return set(cristals), set(models)
+        return list(set(cristals)), list(set(models))
 
     def annotate_aln_pocket(self, cristal, pocket, aln_pocket, ds_struct):
         ds_pocket = self.create_ds_pocket(pocket.name)
