@@ -158,7 +158,8 @@ class StructuromeIndexer(object):
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            # ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            ds_pocket[binding_name] = bool(cristal.residue_set(binding_name) & aln_pocket)
             # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
