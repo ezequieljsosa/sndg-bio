@@ -161,7 +161,7 @@ class StructuromeIndexer(object):
             ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
             print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
                    "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
-                  "intersect":cristal.residue_set(binding_name) & aln_pocket } )
+                  "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
 
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
