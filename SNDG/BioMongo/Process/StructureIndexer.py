@@ -266,7 +266,7 @@ class StructuromeIndexer(object):
 
             aligned_pockets = [(p, p & aln_residue_set) for p in cristal.pockets if p & aln_residue_set]
 
-            print("Aligned Pockets")
+            print("Aligned Pockets : " + cristal.name)
             print(aligned_pockets)
 
             self.annotate_cristal(cristal, ds_struct, aln_residue_set, ds_prot)
@@ -274,7 +274,7 @@ class StructuromeIndexer(object):
 
             for pocket, aln_pocket in aligned_pockets:
                 ds_pocket = self.annotate_aln_pocket(cristal, pocket, aln_pocket, ds_struct)
-                print("Aligned Pocket: ")
+                print("Aligned Pocket: " + cristal.name)
                 print(ds_pocket._data)
                 self.annotate_with_pocket(ds_prot, ds_struct, ds_pocket)
         # else:
