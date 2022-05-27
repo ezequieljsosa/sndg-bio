@@ -155,12 +155,15 @@ class StructuromeIndexer(object):
         ds_pocket.volume = pocket.get_volume()
 
         # Aligned Props
+        con_droga = False
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
             ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
-
-            # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
+            if ds_pocket[comp_type_lower]:
+                print("Birdddman!!")
+                con_droga = True
+        # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
 
@@ -169,6 +172,7 @@ class StructuromeIndexer(object):
 
         if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
             # assert ds_pocket["drug"], ds_pocket._data
+            print(f'condroga: {con_droga}')
             print(ds_pocket._data)
             print ("tudo bom tudu legau")
 
