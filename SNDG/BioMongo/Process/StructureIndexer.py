@@ -164,7 +164,7 @@ class StructuromeIndexer(object):
             if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
                 print("Birdddman!!")
                 con_droga = True
-                print(ds_pocket)
+                print(ds_pocket._data)
         # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
