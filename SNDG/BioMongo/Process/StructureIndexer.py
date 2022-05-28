@@ -136,7 +136,7 @@ class StructuromeIndexer(object):
         return list(set(cristals)), list(set(models))
 
     def annotate_aln_pocket(self, cristal, pocket, aln_pocket, ds_struct):
-        print(f"{cristal.name} {pocket.name} {aln_pocket.count}----------------------------------------")
+        print(f"{cristal.name} {pocket.name} {len(aln_pocket)}----------------------------------------")
         ds_pocket = self.create_ds_pocket(pocket.name)
         ds_struct.pockets.append(ds_pocket)
 
