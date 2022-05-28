@@ -163,6 +163,7 @@ class StructuromeIndexer(object):
             if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
                 print("Birdddman!!")
                 con_droga = True
+                print(ds_pocket)
         # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
@@ -172,9 +173,10 @@ class StructuromeIndexer(object):
 
         if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
             # assert ds_pocket["drug"], ds_pocket._data
-            print(f'condroga: {con_droga}')
-            print(ds_pocket._data)
-            print ("tudo bom tudu legau")
+            # print(f'condroga: {con_droga}')
+            if con_droga:
+                print(ds_pocket._data)
+                print ("tudo bom tudu legau")
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
