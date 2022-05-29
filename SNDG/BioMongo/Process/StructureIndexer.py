@@ -330,17 +330,15 @@ class StructuromeIndexer(object):
             search_comp = comp_type_lower + "_binding"
             binding_name = search_comp + "_" + template_name
 
-            # pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
-            # if hasattr(ds_pocket, search_comp):
-            #     ds_pocket[search_comp] = ds_pocket[search_comp] | pocket_has_comp
-            # else:
-            #     ds_pocket[search_comp] = pocket_has_comp
+            print( model.name,pocket.name ,model.residue_set(binding_name) , pocket)
 
             pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
             if hasattr(ds_pocket, search_comp):
-                ds_pocket[binding_name] = ds_pocket[binding_name] | pocket_has_comp
+                ds_pocket[search_comp] = ds_pocket[search_comp] | pocket_has_comp
             else:
-                ds_pocket[binding_name] = pocket_has_comp
+                ds_pocket[search_comp] = pocket_has_comp
+
+
 
         has_csa = (bool(model.residue_set("csa_" + template_name) & pocket) and (pocket.druggability_score > 0.5))
         if hasattr(ds_pocket, "csa"):
