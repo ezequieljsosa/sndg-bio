@@ -330,7 +330,6 @@ class StructuromeIndexer(object):
             search_comp = comp_type_lower + "_binding"
             binding_name = search_comp + "_" + template_name
 
-            print( model.name,pocket.name ,model.residue_set(binding_name) , pocket)
 
             pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
             if hasattr(ds_pocket, search_comp):
