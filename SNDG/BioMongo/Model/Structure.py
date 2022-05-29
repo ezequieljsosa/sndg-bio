@@ -66,7 +66,7 @@ def structures(self):
 setattr(Protein, 'structures', structures)
 
 
-def residue_set_aln(self, structure, chain_name, offset=0):
+def residue_set_aln(self, structure, chain_name, offset=0,no_log=False):
     # TODO deberia tener menos parametros??
     rs = ResidueSet(name="aln_" + structure.name + "_" + chain_name)
     chain = structure.chain(chain_name)
@@ -87,7 +87,8 @@ def residue_set_aln(self, structure, chain_name, offset=0):
             residue = chain_name + "_" + str(mol.resid)
             rs.residues.append(residue)
         except Exception as ex:
-            _log.error("pdb %s mal alineado con residuos: %s" % (self.aln_hit.name, ex))
+            if not no_log:
+                _log.error("pdb %s mal alineado con residuos: %s" % (self.aln_hit.name, ex))
             return ResidueSet(name="aln_" + structure.name + "_" + chain_name)
 
     return rs

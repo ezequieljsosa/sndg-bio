@@ -264,7 +264,7 @@ class StructuromeIndexer(object):
             _, chain = feature.aln.aln_hit.name.split("_")[0:2]
             offset = 0
 
-        aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+        aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset,no_log=True)
         if not aln_residue_set:
             import traceback
             from Bio import pairwise2
