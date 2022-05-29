@@ -226,10 +226,10 @@ class StructuromeIndexer(object):
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[binding_name]
+            ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[comp_type_lower]
             ds_struct["pocket_with_" + binding_name] = ds_struct["pocket_with_" + binding_name] | ds_pocket[
                 binding_name]
-            print([binding_name,ds_pocket.pocket, ds_pocket[binding_name],ds_prot["pocket_with_" + binding_name]])
+            print([binding_name,ds_pocket.pocket, ds_pocket[binding_name],ds_prot["pocket_with_" + binding_name],ds_pocket.drug])
 
         if ds_prot.druggability < ds_pocket.druggability:
             ds_prot.druggability = ds_pocket.druggability
