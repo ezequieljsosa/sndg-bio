@@ -419,11 +419,13 @@ class StructuromeIndexer(object):
             except Exception as ex:
                 _log.warn(traceback.format_exc())
                 # traceback.print_exc()
+                raise
         for model in models:
             try:
                 self.process_model(protein, model)
             except Exception as ex:
                 _log.warn(traceback.format_exc())
+                raise
 
         protein.search.has_structure = len(protein.structures()) > 0
         if protein.search.has_structure:
