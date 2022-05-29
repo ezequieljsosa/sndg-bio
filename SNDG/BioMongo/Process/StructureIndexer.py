@@ -506,6 +506,10 @@ class StructuromeIndexer(object):
             prot_count = Protein.objects(__raw__=query).count()
         with tqdm(proteins, total=prot_count) as pbar:
             for protein in pbar:
+                if pbar.n < 840:
+                    continue
+                if protein.name == "lmo0841":
+                    continue
 
                 pbar.set_description(protein.name)
                 try:
@@ -528,6 +532,7 @@ class StructuromeIndexer(object):
                             protein.search[x[0]] = None
                     protein.save()
                 except Exception as ex:
+                    traceback.print_exc()
                     error_line = protein.name + "," + protein.organism + "," + str(protein.id) + "," + str(ex)
                     _log.warn(error_line)
                     with open(error_output, "a") as h:
