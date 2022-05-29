@@ -19,6 +19,10 @@ from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.Structure.CompoundTypes import compound_type, main_compound_types
 
+import traceback
+
+
+
 _log = logging.getLogger(__name__)
 
 
@@ -413,12 +417,13 @@ class StructuromeIndexer(object):
             try:
                 self.process_cristal(protein, cristal)
             except Exception as ex:
-                _log.warn(ex)
+                _log.warn(traceback.format_exc())
+                # traceback.print_exc()
         for model in models:
             try:
                 self.process_model(protein, model)
             except Exception as ex:
-                _log.warn(ex)
+                _log.warn(traceback.format_exc())
 
         protein.search.has_structure = len(protein.structures()) > 0
         if protein.search.has_structure:
