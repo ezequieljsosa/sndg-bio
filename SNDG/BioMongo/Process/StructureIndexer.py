@@ -136,7 +136,7 @@ class StructuromeIndexer(object):
         return list(set(cristals)), list(set(models))
 
     def annotate_aln_pocket(self, cristal, pocket, aln_pocket, ds_struct):
-        print(f"{cristal.name} {pocket.name} {len(aln_pocket)}----------------------------------------")
+        # print(f"{cristal.name} {pocket.name} {len(aln_pocket)}----------------------------------------")
         ds_pocket = self.create_ds_pocket(pocket.name)
         ds_struct.pockets.append(ds_pocket)
 
@@ -161,10 +161,10 @@ class StructuromeIndexer(object):
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
             ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
-            if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
-                print("Birdddman!!")
-                con_droga = True
-                print(ds_pocket._data)
+            # if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
+            #     print("Birdddman!!")
+            #     con_droga = True
+            #     print(ds_pocket._data)
         # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
@@ -172,12 +172,12 @@ class StructuromeIndexer(object):
         # {'pocket': 'Pocket_6', 'pdb': '3toz', 'binding': 'drug_binding', 'residues': RS(drug_binding type=None, count: 142),
         # 'pocket_aln': RS(Pocket_6&aln_3toz_E type=None, count: 24), 'intersect': RS(drug_binding&Pocket_6&aln_3toz_E type=None, count: 17), 'result': True}
 
-        if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
-            # assert ds_pocket["drug"], ds_pocket._data
-            # print(f'condroga: {con_droga}')
-            if con_droga:
-                print(ds_pocket._data)
-                print ("tudo bom tudu legau")
+        # if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
+        #     # assert ds_pocket["drug"], ds_pocket._data
+        #     # print(f'condroga: {con_droga}')
+        #     if con_droga:
+        #         print(ds_pocket._data)
+        #         print ("tudo bom tudu legau")
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
@@ -229,7 +229,7 @@ class StructuromeIndexer(object):
             ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[comp_type_lower]
             ds_struct["pocket_with_" + binding_name] = ds_struct["pocket_with_" + binding_name] | ds_pocket[
                 binding_name]
-            print([binding_name,ds_pocket.pocket, ds_pocket[binding_name],ds_prot["pocket_with_" + binding_name],ds_pocket.drug])
+
 
         if ds_prot.druggability < ds_pocket.druggability:
             ds_prot.druggability = ds_pocket.druggability
@@ -294,8 +294,7 @@ class StructuromeIndexer(object):
 
             for pocket, aln_pocket in aligned_pockets:
                 ds_pocket = self.annotate_aln_pocket(cristal, pocket, aln_pocket, ds_struct)
-                if ds_pocket.drug:
-                    print("eaeapepe")
+
                 self.annotate_with_pocket(ds_prot, ds_struct, ds_pocket)
         # else:
         #     protein.features = [f for f in protein.features if f != feature]
