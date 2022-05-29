@@ -86,11 +86,11 @@ class StructuromeIndexer(object):
         binding_name = comp_type_lower + "_binding"
         prop = (binding_name,
                 "If any of the proteins cristals or model templates, has at least one residue in contact (less than 3 Å ) with a " + comp_type_lower,
-                "structure", SeqColDruggabilityParamTypes.value, ["true", "false"], "avg", "equal", "true")
+                "structure", SeqColDruggabilityParamTypes.value, ["true", "false"], "true", "equal", "avg")
         search_params.append(prop)
         prop = ("pocket_with_" + binding_name,
                 "If any of the proteins cristals or model templates, has at least one pocket residue in contact (less than 3 Å ) with a" + comp_type_lower,
-                "pocket", SeqColDruggabilityParamTypes.value, ["true", "false"], "avg", "equal", "true")
+                "pocket", SeqColDruggabilityParamTypes.value, ["true", "false"], "true", "equal", "avg")
         search_params.append(prop)
 
     def __init__(self, seqcollection):
@@ -330,11 +330,18 @@ class StructuromeIndexer(object):
             search_comp = comp_type_lower + "_binding"
             binding_name = search_comp + "_" + template_name
 
+            # pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
+            # if hasattr(ds_pocket, search_comp):
+            #     ds_pocket[search_comp] = ds_pocket[search_comp] | pocket_has_comp
+            # else:
+            #     ds_pocket[search_comp] = pocket_has_comp
+
             pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
             if hasattr(ds_pocket, search_comp):
-                ds_pocket[search_comp] = ds_pocket[search_comp] | pocket_has_comp
+                ds_pocket[binding_name] = ds_pocket[binding_name] | pocket_has_comp
             else:
-                ds_pocket[search_comp] = pocket_has_comp
+                ds_pocket[binding_name] = pocket_has_comp
+
         has_csa = (bool(model.residue_set("csa_" + template_name) & pocket) and (pocket.druggability_score > 0.5))
         if hasattr(ds_pocket, "csa"):
             ds_pocket.csa = ds_pocket.csa | has_csa
@@ -506,8 +513,7 @@ class StructuromeIndexer(object):
             prot_count = Protein.objects(__raw__=query).count()
         with tqdm(proteins, total=prot_count) as pbar:
             for protein in pbar:
-                if pbar.n < 840:
-                    continue
+
                 if protein.name == "lmo0841":
                     continue
 
