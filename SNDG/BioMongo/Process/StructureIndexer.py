@@ -164,7 +164,7 @@ class StructuromeIndexer(object):
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            ds_pocket[binding_name] = bool(cristal.residue_set(binding_name) & aln_pocket)
             # if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
             #     print("Birdddman!!")
             #     con_droga = True
@@ -230,7 +230,7 @@ class StructuromeIndexer(object):
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[comp_type_lower]
+            ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[binding_name]
             ds_struct["pocket_with_" + binding_name] = ds_struct["pocket_with_" + binding_name] | ds_pocket[
                 binding_name]
 
