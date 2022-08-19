@@ -70,7 +70,7 @@ USAGE
 
     args = parser.parse_args()
 
-    BioMongoDB(args.db_genome)
+    BioMongoDB(args.db_genome,host=args.db_host)
     db = pymongo.MongoClient(args.db_host)[args.db_structure]
 
     sa = StructureAnotator(args.structs_dir + "/")

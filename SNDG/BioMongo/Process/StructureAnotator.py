@@ -100,7 +100,7 @@ class StructureAnotator(object):
 
             domain_id = "_".join([domain.identifier, str(domain.location.start), str(domain.location.end)])
             domain_rs = ResidueSet(name=domain_id, type="domain",
-                                   residues=[" _" + str(template.aln_pos_from_query_pos(i).q_resid)
+                                   residues=[model.chains[0].name + "_" + str(template.aln_pos_from_query_pos(i).q_resid)
                                              for i in range(domain.location.start, domain.location.end + 1)
                                              if i >= template.aln_query.start
                                              and i <= template.aln_query.end
@@ -134,7 +134,7 @@ class StructureAnotator(object):
                                 if (profile_pos in important):
                                     # assert profile_pos in important
                                     seq_pos = profile_seq_map[profile_pos]
-                                    important_rs.residues.append(" _" + str(seq_pos))
+                                    important_rs.residues.append(model.chains[0].name + "_" + str(seq_pos))
                         if important_rs:
                             model.residue_sets.append(important_rs)
 
@@ -230,7 +230,7 @@ class StructureAnotator(object):
 
                 aligned_csas = template.residue_set("csa").in_range(start_residue, end_residue) & aligned_segment
                 if len(aligned_csas):
-                    aln_query = [" _" + str(template_aln.aln_pos_from_h_resid(int(x.split("_")[1])).q_resid) for x in
+                    aln_query = [model.chains[0].name + "_" + str(template_aln.aln_pos_from_h_resid(int(x.split("_")[1])).q_resid) for x in
                                  aligned_csas.residues]
                     model.residue_sets.append(
                         ResidueSet(name="csa_" + pdb, residues=aln_query, type="catalitic_projected"))
@@ -241,7 +241,7 @@ class StructureAnotator(object):
                                                                                   end_residue) & aligned_segment
 
                     def query_residue(pdb_resid):
-                        return " _" + str(template_aln.aln_pos_from_h_resid(pdb_resid).q_resid)
+                        return model.chains[0].name + "_" + str(template_aln.aln_pos_from_h_resid(pdb_resid).q_resid)
 
                     aligned_binding_residues = [query_residue(pdb_resid) for pdb_resid in
                                                 aligned_binding.residue_numbers()]

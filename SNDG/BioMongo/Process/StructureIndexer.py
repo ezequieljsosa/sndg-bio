@@ -19,6 +19,10 @@ from SNDG.BioMongo.Process.StructureAnotator import StructureAnotator
 from SNDG.Sequence.so import SO_TERMS
 from SNDG.Structure.CompoundTypes import compound_type, main_compound_types
 
+import traceback
+
+
+
 _log = logging.getLogger(__name__)
 
 
@@ -82,11 +86,11 @@ class StructuromeIndexer(object):
         binding_name = comp_type_lower + "_binding"
         prop = (binding_name,
                 "If any of the proteins cristals or model templates, has at least one residue in contact (less than 3 Å ) with a " + comp_type_lower,
-                "structure", SeqColDruggabilityParamTypes.value, ["true", "false"], "avg", "equal", "true")
+                "structure", SeqColDruggabilityParamTypes.value, ["true", "false"], "true", "equal", "avg")
         search_params.append(prop)
         prop = ("pocket_with_" + binding_name,
                 "If any of the proteins cristals or model templates, has at least one pocket residue in contact (less than 3 Å ) with a" + comp_type_lower,
-                "pocket", SeqColDruggabilityParamTypes.value, ["true", "false"], "avg", "equal", "true")
+                "pocket", SeqColDruggabilityParamTypes.value, ["true", "false"], "true", "equal", "avg")
         search_params.append(prop)
 
     def __init__(self, seqcollection):
@@ -136,6 +140,7 @@ class StructuromeIndexer(object):
         return list(set(cristals)), list(set(models))
 
     def annotate_aln_pocket(self, cristal, pocket, aln_pocket, ds_struct):
+        # print(f"{cristal.name} {pocket.name} {len(aln_pocket)}----------------------------------------")
         ds_pocket = self.create_ds_pocket(pocket.name)
         ds_struct.pockets.append(ds_pocket)
 
@@ -155,22 +160,28 @@ class StructuromeIndexer(object):
         ds_pocket.volume = pocket.get_volume()
 
         # Aligned Props
+        con_droga = False
         for comp_type in main_compound_types:
             comp_type_lower = comp_type.lower()
             binding_name = comp_type_lower + "_binding"
-            ds_pocket[comp_type_lower] = bool(cristal.residue_set(binding_name) & aln_pocket)
-
-            # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
+            ds_pocket[binding_name] = bool(cristal.residue_set(binding_name) & aln_pocket)
+            # if ("drug" in comp_type_lower) and ds_pocket[comp_type_lower]:
+            #     print("Birdddman!!")
+            #     con_droga = True
+            #     print(ds_pocket._data)
+        # print({"pocket":pocket.name,"pdb":cristal.name,"binding":binding_name,
             #        "residues":cristal.residue_set(binding_name),"pocket_aln":aln_pocket,
             #       "intersect":cristal.residue_set(binding_name) & aln_pocket, "result":ds_pocket[comp_type_lower] } )
 
         # {'pocket': 'Pocket_6', 'pdb': '3toz', 'binding': 'drug_binding', 'residues': RS(drug_binding type=None, count: 142),
         # 'pocket_aln': RS(Pocket_6&aln_3toz_E type=None, count: 24), 'intersect': RS(drug_binding&Pocket_6&aln_3toz_E type=None, count: 17), 'result': True}
 
-        if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
-            # assert ds_pocket["drug"], ds_pocket._data
-            print(ds_pocket._data)
-            print ("tudo bom tudu legau")
+        # if (cristal.name == "3toz") and (pocket.name == "Pocket_6"):
+        #     # assert ds_pocket["drug"], ds_pocket._data
+        #     # print(f'condroga: {con_droga}')
+        #     if con_droga:
+        #         print(ds_pocket._data)
+        #         print ("tudo bom tudu legau")
 
         ds_pocket.csa = bool(cristal.residue_set("csa") & aln_pocket) and (ds_pocket.druggability > 0.5)
         return ds_pocket
@@ -222,7 +233,7 @@ class StructuromeIndexer(object):
             ds_prot["pocket_with_" + binding_name] = ds_prot["pocket_with_" + binding_name] | ds_pocket[binding_name]
             ds_struct["pocket_with_" + binding_name] = ds_struct["pocket_with_" + binding_name] | ds_pocket[
                 binding_name]
-            print([binding_name,ds_prot["pocket_with_" + binding_name]])
+
 
         if ds_prot.druggability < ds_pocket.druggability:
             ds_prot.druggability = ds_pocket.druggability
@@ -253,7 +264,7 @@ class StructuromeIndexer(object):
             _, chain = feature.aln.aln_hit.name.split("_")[0:2]
             offset = 0
 
-        aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset)
+        aln_residue_set = feature.aln.residue_set_aln(cristal, chain, offset=offset,no_log=True)
         if not aln_residue_set:
             import traceback
             from Bio import pairwise2
@@ -319,11 +330,15 @@ class StructuromeIndexer(object):
             search_comp = comp_type_lower + "_binding"
             binding_name = search_comp + "_" + template_name
 
+
             pocket_has_comp = bool(model.residue_set(binding_name) & pocket)
             if hasattr(ds_pocket, search_comp):
                 ds_pocket[search_comp] = ds_pocket[search_comp] | pocket_has_comp
             else:
                 ds_pocket[search_comp] = pocket_has_comp
+
+
+
         has_csa = (bool(model.residue_set("csa_" + template_name) & pocket) and (pocket.druggability_score > 0.5))
         if hasattr(ds_pocket, "csa"):
             ds_pocket.csa = ds_pocket.csa | has_csa
@@ -406,12 +421,15 @@ class StructuromeIndexer(object):
             try:
                 self.process_cristal(protein, cristal)
             except Exception as ex:
-                _log.warn(ex)
+                _log.warn(traceback.format_exc())
+                # traceback.print_exc()
+                raise
         for model in models:
             try:
                 self.process_model(protein, model)
             except Exception as ex:
-                _log.warn(ex)
+                _log.warn(traceback.format_exc())
+                raise
 
         protein.search.has_structure = len(protein.structures()) > 0
         if protein.search.has_structure:
@@ -493,6 +511,9 @@ class StructuromeIndexer(object):
         with tqdm(proteins, total=prot_count) as pbar:
             for protein in pbar:
 
+                if protein.name == "lmo0841":
+                    continue
+
                 pbar.set_description(protein.name)
                 try:
                     if not protein.search:
@@ -514,6 +535,7 @@ class StructuromeIndexer(object):
                             protein.search[x[0]] = None
                     protein.save()
                 except Exception as ex:
+                    traceback.print_exc()
                     error_line = protein.name + "," + protein.organism + "," + str(protein.id) + "," + str(ex)
                     _log.warn(error_line)
                     with open(error_output, "a") as h:
