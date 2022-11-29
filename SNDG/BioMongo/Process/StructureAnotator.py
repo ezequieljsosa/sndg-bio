@@ -211,7 +211,7 @@ class StructureAnotator(object):
                                                         main_compound_types]))]
 
         for template_aln in model.templates:
-            pdb, chain= template_aln.aln_hit.name.split("_")
+            pdb, chain= template_aln.aln_hit.name.split("_")[:2]
             segment_start = template_aln.aln_hit.start
             segment_end = template_aln.aln_hit.end
 
