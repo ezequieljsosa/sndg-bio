@@ -103,10 +103,10 @@ class StructuromeIndexer(object):
         self.collection = seqcollection
         self.user = "demo"
 
-        if os.path.exists(distances_path):
+        if os.path.exists(StructuromeIndexer.distances_path):
             columns = ["pdb", "chain", "domain", "res_id", "res", "res_atom_id", "ligand_id", "ligand_name",
                        "ligand_atom", "distance"]
-            df = pd.read_table(distances_path, sep="\t", index_col=False, names=columns)
+            df = pd.read_table(StructuromeIndexer.distances_path, sep="\t", index_col=False, names=columns)
             self.extended_domains = {x.split("_")[0]: 1 for x in df[(df.distance < 3) & (df.domain != "NoDn") & (
                 [compound_type[x] in ["DRUG", "COFACTOR"] for x in df.ligand_name])].domain}
         else:
