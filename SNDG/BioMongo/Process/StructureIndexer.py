@@ -27,6 +27,9 @@ _log = logging.getLogger(__name__)
 
 
 class StructuromeIndexer(object):
+    
+    distances_path = os.environ.get("DISTANCES_PATH" ,'/data/databases/pdb/processed/distances.tbl')
+    
     search_params = [
         ("has_structure", "Protein gas a 3d structure", "structure",
          SeqColDruggabilityParamTypes.value, ["true", "false"], "true", "equal", "avg"),
@@ -100,10 +103,10 @@ class StructuromeIndexer(object):
         self.collection = seqcollection
         self.user = "demo"
 
-        if os.path.exists("/data/databases/pdb/processed/distances.tbl"):
+        if os.path.exists(distances_path):
             columns = ["pdb", "chain", "domain", "res_id", "res", "res_atom_id", "ligand_id", "ligand_name",
                        "ligand_atom", "distance"]
-            df = pd.read_table("/data/databases/pdb/processed/distances.tbl", sep="\t", index_col=False, names=columns)
+            df = pd.read_table(distances_path, sep="\t", index_col=False, names=columns)
             self.extended_domains = {x.split("_")[0]: 1 for x in df[(df.distance < 3) & (df.domain != "NoDn") & (
                 [compound_type[x] in ["DRUG", "COFACTOR"] for x in df.ligand_name])].domain}
         else:
