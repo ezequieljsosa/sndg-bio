@@ -155,8 +155,11 @@ class GenebankUtils:
                         gene = gene + "_" + feature.qualifiers["product"][0]
                         locus_tag = locus_tag + "_" + feature.qualifiers.get("product", [""])[0].replace(" ", "_")
                     if otype == "prot":
-                        if feature.type == "CDS" and "pseudo" not in feature.qualifiers:
-                            seq = Seq(feature.qualifiers["translation"][0])
+                        if feature.type == "CDS" and "pseudo" not in feature.qualifiers :
+                            if "translation" in feature.qualifiers:
+                                seq = Seq(feature.qualifiers["translation"][0])
+                            else:
+                                seq = feature.extract(contig.seq).translate()
                         elif feature.type == "mat_peptide":
                             seq = feature.extract(contig.seq).translate()
                     else:
