@@ -4,15 +4,14 @@ https://github.com/tseemann/prokka
 """
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
+from SNDG import docker_wrap_command, DOCKER_MAPPINGS, execute
 import fileinput
+from SNDG.Sequence import smart_parse
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 import Bio.SeqIO as bpio
 import sys
-
-
-def lt(f):
-    return f.qualifiers.get("locus_tag", [""])[0]
+from tqdm import tqdm
 
 
 class GenebankUtils:
@@ -23,97 +22,23 @@ class GenebankUtils:
     def __init__(self):
         pass
 
-    def validategb(self, gbk_handle, handle_out):
+    def fixgb(self, h_gb, hw_gb):
+        contigs = list(bpio.parse(h_gb, "gb"))
         # for contig in contigs:
         #     features = []
         #     for f in contig:
         #         if f.type in ["CDS","mRNA"]
-        genome_protein_count = 0
-        for contig in gbk_handle:
-            contig_protein_count = 0
-            for f in contig.features:
-                if f.type == "mat_peptide":
-                    contig_protein_count += 1
-                    seq = str(f.extract(contig).seq.translate())
-                    if seq.count("*") > 1:
-                        handle_out.write(
-                            f"mat_peptide {contig.id}:{f.location.start}-{f.location.end} has more than one stop codon\n")
 
-                elif f.type == "CDS":
-                    contig_protein_count += 1
-                    if "locus_tag" not in f.qualifiers:
-                        handle_out.write(
-                            f"CDS {contig.id}:{f.location.start}-{f.location.end}  has no locus_tag\n")
-                    if "translation" not in f.qualifiers and not f.qualifiers.get("pseudo", []):
-                        handle_out.write(
-                            f"CDS {contig.id}:{f.location.start}-{f.location.end}  has no translation property\n")
-                    elif "translation" in f.qualifiers:
-                        seq = Seq(f.qualifiers["translation"][0])
-                        if seq.count("*") > 1:
-                            handle_out.write(
-                                f"CDS {contig.id}:{f.location.start}-{f.location.end}  has more than one stop codon\n")
-
-            genome_protein_count += contig_protein_count
-            handle_out.write(f"{contig.name} protein_count: {contig_protein_count}\n")
-
-        if not genome_protein_count:
-            handle_out.write('Genome has no proteins!!!\n')
-
-    def fixgb(self, h_gb, hw_gb, new_lt=None):
-        contigs = list(bpio.parse(h_gb, "gb"))
-        remove = []
-        genome_protein_count = 0
-        ltnum = 1
-        ltnum_matpep = 1
         for contig in contigs:
             for f in contig.features:
-                plasmid = False
-                if f.type == "source":
-                    if "plasmid" in f.qualifiers:
-                        plasmid = True
-                if f.type == "mat_peptide":
-                    genome_protein_count += 1
-                    curr_cds.qualifiers["polyprotein"] = ["true"]
-                    if "note" in f.qualifiers and (len(f.qualifiers["note"][0]) < 6 ):
-                        f.qualifiers["gene"] = f.qualifiers["note"][0]
-                    elif "product" in f.qualifiers and (len(f.qualifiers["product"][0].split()[0]) <= 6 ):
-                        f.qualifiers["gene"] = f.qualifiers["product"][0].split()[0]
-                    if not lt(f):
-                        f.qualifiers["locus_tag"] = [lt(curr_cds) + "_" + str(ltnum_matpep).zfill(3)]
-                        ltnum_matpep += 1
-                    if "translation" not in f.qualifiers:
-                        seq = str(f.extract(contig).seq.translate())
-                        f.qualifiers["translation"] = [seq]
-                        if seq.count("*") > 1:
-                            remove.append(f)
-
-                elif f.type == "CDS":
-                    if plasmid:
-                        f.qualifiers["plasmid"] = ["True"]
-                    genome_protein_count += 1
-                    curr_cds = f
-                    if "locus_tag" not in f.qualifiers:
-                        if not new_lt:
-                            sys.stderr.write(
-                                f"CDS {f.location.start}:{f.location.end} has more than one stop codon\n exiting...\n")
-                            sys.exit(1)
-                        else:
-                            f.qualifiers["locus_tag"] = [new_lt + "_" + str(ltnum).zfill(5)]
-                            ltnum += 1
+                if f.type == "CDS":
                     if "translation" not in f.qualifiers:
                         seq = str(f.extract(contig).seq.translate())
                         if seq.count("*") > 1:
                             f.qualifiers["pseudo"] = ["true"]
-                            sys.stderr.write()
                         else:
                             f.qualifiers["translation"] = [seq]
-
-        if genome_protein_count:
-            sys.stderr.write(f"Genome has f{genome_protein_count} proteins\n")
-            bpio.write(contigs, hw_gb, "gb")
-        else:
-            sys.stderr.write("Genome has no proteins!!!")
-        sys.stderr.write("Finished!")
+        bpio.write(contigs, hw_gb, "gb")
 
     def lt(self, feature):
         return feature.qualifiers.get("locus_tag", [""])[0]
@@ -152,7 +77,7 @@ class GenebankUtils:
 
                     if feature.type == "mat_peptide":
                         gene = gene + "_" + feature.qualifiers["product"][0]
-                        locus_tag = locus_tag + "_" + feature.qualifiers.get("product",[""])[0].replace(" ", "_")
+                        locus_tag = locus_tag + "_" + feature.qualifiers["product"][0].replace(" ", "_")
                     if otype == "prot":
                         if feature.type == "CDS" and "pseudo" not in feature.qualifiers:
                             seq = Seq(feature.qualifiers["translation"][0])
@@ -178,7 +103,7 @@ class GenebankUtils:
 if __name__ == '__main__':
     import argparse
     import os
-    from tqdm import tqdm
+    from SNDG.Sequence import smart_parse
 
     parser = argparse.ArgumentParser(description='Utils over genebank file')
 
@@ -186,24 +111,14 @@ if __name__ == '__main__':
     cmd = subparsers.add_parser('fix', help='fix genebank file to be imported')
     cmd.add_argument('input_bgk')
     cmd.add_argument('output_gb', nargs='?', default=sys.stdout)
-    cmd.add_argument('--new_lt',default=None,help="new locus tag. Use ONLY if no locus tag is present")
 
     cmd = subparsers.add_parser('genes', help='extracts the list of gene products from ')
     cmd.add_argument('input_bgk')
     cmd.add_argument('output_fna', nargs='?', default=sys.stdout)
     cmd.add_argument('-otype', help="output type", choices=["prot", "nucl"], default="prot")
 
-    cmd = subparsers.add_parser('validate', help='validates genebank file')
-    cmd.add_argument('input_bgk')
-
-
-
     args = parser.parse_args()
     utils = GenebankUtils()
-
-    if args.command == "validate":
-        gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
-        utils.validategb(gbk_h,sys.stderr)
 
     if args.command == "genes":
         if isinstance(args.input_bgk, str):
@@ -211,7 +126,7 @@ if __name__ == '__main__':
                 sys.stderr.write(f'{args.input_bgk} not found')
                 sys.exit(1)
         if args.input_bgk != "-":
-            gbk_h = bpio.parse(args.input_bgk, "gb")
+            gbk_h = smart_parse(args.input_bgk)
         else:
             gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
 
@@ -228,7 +143,5 @@ if __name__ == '__main__':
             except:
                 pass
 
-
-
     if args.command == "fix":
-        utils.fixgb(fileinput.input(args.input_bgk), args.output_gb,args.new_lt)
+        utils.fixgb(fileinput.input(args.input_bgk), args.output_gb)

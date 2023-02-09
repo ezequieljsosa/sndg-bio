@@ -52,8 +52,14 @@ from SNDG.BioMongo.Process.Index import build_statistics, index_seq_collection
 
 _log = logging.getLogger("Importer")
 
+def default_proteint_accept_feature(f):
+    if ((f.type == "CDS" and ("translation" in f.qualifiers))):
+        return True
+    if f.type == "mat_peptide":
+        return True
+    return False
 
-def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS)" and ("translation" in f.qualifiers))),
+def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS" and ("translation" in f.qualifiers))),
                   extract_annotation_feature=lambda f: f.type == "CDS",
                   extract_sequence=lambda c, f: f.qualifiers["translation"][
                       0] if "translation" in f.qualifiers else f.extract(c).seq.translate()):
