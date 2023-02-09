@@ -74,9 +74,9 @@ class GenebankUtils:
                 if f.type == "mat_peptide":
                     genome_protein_count += 1
                     curr_cds.qualifiers["polyprotein"] = ["true"]
-                    if "note" in f.qualifiers and (len(f.qualifiers["note"][0]) < 6 ):
+                    if "note" in f.qualifiers and (len(f.qualifiers["note"][0]) < 6):
                         f.qualifiers["gene"] = f.qualifiers["note"][0]
-                    elif "product" in f.qualifiers and (len(f.qualifiers["product"][0].split()[0]) <= 6 ):
+                    elif "product" in f.qualifiers and (len(f.qualifiers["product"][0].split()[0]) <= 6):
                         f.qualifiers["gene"] = f.qualifiers["product"][0].split()[0]
                     if not lt(f):
                         f.qualifiers["locus_tag"] = [lt(curr_cds) + "_" + str(ltnum_matpep).zfill(3)]
@@ -144,7 +144,8 @@ class GenebankUtils:
                 if feature.type in ["CDS", "RNA", "mat_peptide"]:
                     seq = None
                     location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
-                    description = location + " " + feature.qualifiers["product"][0] if "product" else (
+                    description = location + " " + feature.qualifiers["product"][
+                        0] if "product" in feature.qualifiers else (
                         feature.qualifiers["note"][0] if "note" in feature.qualifiers else "")
 
                     locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
@@ -152,7 +153,7 @@ class GenebankUtils:
 
                     if feature.type == "mat_peptide":
                         gene = gene + "_" + feature.qualifiers["product"][0]
-                        locus_tag = locus_tag + "_" + feature.qualifiers.get("product",[""])[0].replace(" ", "_")
+                        locus_tag = locus_tag + "_" + feature.qualifiers.get("product", [""])[0].replace(" ", "_")
                     if otype == "prot":
                         if feature.type == "CDS" and "pseudo" not in feature.qualifiers:
                             seq = Seq(feature.qualifiers["translation"][0])
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     cmd = subparsers.add_parser('fix', help='fix genebank file to be imported')
     cmd.add_argument('input_bgk')
     cmd.add_argument('output_gb', nargs='?', default=sys.stdout)
-    cmd.add_argument('--new_lt',default=None,help="new locus tag. Use ONLY if no locus tag is present")
+    cmd.add_argument('--new_lt', default=None, help="new locus tag. Use ONLY if no locus tag is present")
 
     cmd = subparsers.add_parser('genes', help='extracts the list of gene products from ')
     cmd.add_argument('input_bgk')
@@ -196,14 +197,12 @@ if __name__ == '__main__':
     cmd = subparsers.add_parser('validate', help='validates genebank file')
     cmd.add_argument('input_bgk')
 
-
-
     args = parser.parse_args()
     utils = GenebankUtils()
 
     if args.command == "validate":
         gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
-        utils.validategb(gbk_h,sys.stderr)
+        utils.validategb(gbk_h, sys.stderr)
 
     if args.command == "genes":
         if isinstance(args.input_bgk, str):
@@ -228,7 +227,5 @@ if __name__ == '__main__':
             except:
                 pass
 
-
-
     if args.command == "fix":
-        utils.fixgb(fileinput.input(args.input_bgk), args.output_gb,args.new_lt)
+        utils.fixgb(fileinput.input(args.input_bgk), args.output_gb, args.new_lt)
