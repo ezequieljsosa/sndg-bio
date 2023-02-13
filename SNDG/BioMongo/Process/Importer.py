@@ -171,6 +171,11 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
 
                 note = cds_f.qualifiers["Note"][0].split(" ")[0] if "Note" in cds_f.qualifiers else ""
                 ecs = ["ec:" + note] if re.match('^[0-9]+\.[0-9\-]+\.[0-9\-]+\.[0-9\-]$', note) else []
+                
+               
+                if "EC_number" in cds_f.qualifiers:
+                        ecs = ecs + [("" if  x.lower().startswith("ec:") else "ec:") + x.lower() for x in cds_f.qualifiers["EC_number"]]
+                
                 ontologies = list(set(ecs + gos))
                 protDoc.ontologies = ontologies
                 
