@@ -402,6 +402,9 @@ if __name__ == "__main__":
     parser.add_argument('-anntype', '--annotation_type', dest='annotation_type',
                         choices=["gff", "gb", "mongo"], default="gff")
     parser.add_argument('-db', '--mongodb', dest='mongodb', default=None)
+    parser.add_argument( '--mongohost', dest='mongohost', default="localhost")
+    parser.add_argument( '--mongoport', dest='mongoport', default="27019")
+    
     parser.add_argument('-go', '--go_db', dest='go_db', default="/data/databases/go/go.obo")
 
     parser.add_argument('-dn', '--domain', dest='domain', default="TAX-2",
@@ -420,7 +423,7 @@ if __name__ == "__main__":
 
     if args.annotation_type == "mongo":
         from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
-        mdb = BioMongoDB(args.mongodb)
+        mdb = BioMongoDB(args.mongodb,host=args.mongohost,port=args.mongoport)
 
         assert mdb.seq_col_exists(args.annotation)
         iterator = list(mdb.organism_iterator(args.annotation, contigmap))
