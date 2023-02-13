@@ -248,11 +248,7 @@ SEQ-FILE	chrom3-contig2.fsa
         :param domain: "TAX-2" (Bacteria), "TAX-2759" (Eukaryota), and "TAX-2157" (Archaea).
         :return:
         """
-        template = """ID\t{name}
-    NAME\t{organism}
-    STORAGE\tFile
-    NCBI-TAXON-ID\t{tax}
-    DOMAIN\t{domain}"""
+        template = """ID\t{name}\nNAME\t{organism}\nSTORAGE\tFile\nNCBI-TAXON-ID\t{tax}\nDOMAIN\t{domain}\n"""
         with open(self.workdir + "organism-params.dat", "w")  as h:
             h.write(template.format(name=name, organism=organism, tax=tax, domain=domain))
 
