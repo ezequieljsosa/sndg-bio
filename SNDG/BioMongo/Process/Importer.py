@@ -162,6 +162,19 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)
                 protDoc.seq_collection_id = seqCol
+                
+                gos = []
+                for qgo in ["Ontology_term","GO_component","GO_function","GO_process"]:
+                    if qgo in cds_f.qualifiers:
+                        gos = gos + [x.lower().split()[0] for x in cds_f.qualifiers[qgo] if
+                           "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
+
+                note = cds_f.qualifiers["Note"][0].split(" ")[0] if "Note" in cds_f.qualifiers else ""
+                ecs = ["ec:" + note] if re.match('^[0-9]+\.[0-9\-]+\.[0-9\-]+\.[0-9\-]$', note) else []
+                ontologies = list(set(ecs + gos))
+                protDoc.ontologies = ontologies
+                
+                
                 for f in protein.features:
                     protDoc.features.append(Feature(identifier=f.qualifiers["Ontology_term"][0], type=f.type,
                                                     location=Location(start=int(f.location.start),
