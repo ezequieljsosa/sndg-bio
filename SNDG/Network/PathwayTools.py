@@ -403,7 +403,7 @@ if __name__ == "__main__":
                         choices=["gff", "gb", "mongo"], default="gff")
     parser.add_argument('-db', '--mongodb', dest='mongodb', default=None)
     parser.add_argument( '--mongohost', dest='mongohost', default="localhost")
-    parser.add_argument( '--mongoport', dest='mongoport', default="27019")
+    parser.add_argument( '--mongoport', dest='mongoport', type=int, default="27019")
     
     parser.add_argument('-go', '--go_db', dest='go_db', default="/data/databases/go/go.obo")
 
