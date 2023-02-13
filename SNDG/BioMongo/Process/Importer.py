@@ -225,7 +225,7 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
             gos = []
             for qgo in ["Ontology_term","GO_component","GO_function","GO_process"]:
                 if qgo in cds_f.qualifiers:
-                    gos = [x.lower().split()[0] for x in cds_f.qualifiers[qgo] if
+                    gos = gos + [x.lower().split()[0] for x in cds_f.qualifiers[qgo] if
                        "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
 
             note = cds_f.qualifiers["Note"][0].split(" ")[0] if "Note" in cds_f.qualifiers else ""
