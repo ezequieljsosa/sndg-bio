@@ -29,6 +29,17 @@ _log = logging.getLogger(__name__)
 SIFTS_GO_TERMS = {"loop": "SO:0100012", "strand": "SO:0001111", "helix": "SO:0001114"}
 HOMOLOGOUS = ["InterPro", "UniProt", "SCOP", "CATH", "NCBI"]
 
+"""
+make para diamond
+In [14]: with open("/data/target/databases/pdb/pdb_seqres.txt","w") as h:
+    ...:     for x in tqdm(bpio.parse("/data/target/databases/pdb/pdb_seqres.txt.org","fasta")):
+    ...:         if "mol:protein" in x.description:
+    ...:             x.seq = Seq( "".join([y for y in str(x.seq) if y != "*" ]))
+    ...:             bpio.write(x,h,"fasta")
+diamond makedb -d /data/target/databases/pdb/pdb_seqres.txt --in /data/target/databases/pdb/pdb_seqres.txt
+
+"""
+
 
 # ftp://ftp.ebi.ac.uk/pub/databases/pdb/derived_data/index/entries.idx
 
