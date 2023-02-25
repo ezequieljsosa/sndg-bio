@@ -248,11 +248,7 @@ SEQ-FILE	chrom3-contig2.fsa
         :param domain: "TAX-2" (Bacteria), "TAX-2759" (Eukaryota), and "TAX-2157" (Archaea).
         :return:
         """
-        template = """ID\t{name}
-    NAME\t{organism}
-    STORAGE\tFile
-    NCBI-TAXON-ID\t{tax}
-    DOMAIN\t{domain}"""
+        template = """ID\t{name}\nNAME\t{organism}\nSTORAGE\tFile\nNCBI-TAXON-ID\t{tax}\nDOMAIN\t{domain}\n"""
         with open(self.workdir + "organism-params.dat", "w")  as h:
             h.write(template.format(name=name, organism=organism, tax=tax, domain=domain))
 
@@ -402,6 +398,9 @@ if __name__ == "__main__":
     parser.add_argument('-anntype', '--annotation_type', dest='annotation_type',
                         choices=["gff", "gb", "mongo"], default="gff")
     parser.add_argument('-db', '--mongodb', dest='mongodb', default=None)
+    parser.add_argument( '--mongohost', dest='mongohost', default="localhost")
+    parser.add_argument( '--mongoport', dest='mongoport', type=int, default="27019")
+    
     parser.add_argument('-go', '--go_db', dest='go_db', default="/data/databases/go/go.obo")
 
     parser.add_argument('-dn', '--domain', dest='domain', default="TAX-2",
@@ -420,7 +419,7 @@ if __name__ == "__main__":
 
     if args.annotation_type == "mongo":
         from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
-        mdb = BioMongoDB(args.mongodb)
+        mdb = BioMongoDB(args.mongodb,host=args.mongohost,port=args.mongoport)
 
         assert mdb.seq_col_exists(args.annotation)
         iterator = list(mdb.organism_iterator(args.annotation, contigmap))

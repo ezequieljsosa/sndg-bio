@@ -52,8 +52,14 @@ from SNDG.BioMongo.Process.Index import build_statistics, index_seq_collection
 
 _log = logging.getLogger("Importer")
 
+def default_proteint_accept_feature(f):
+    if ((f.type == "CDS" and ("translation" in f.qualifiers))):
+        return True
+    if f.type == "mat_peptide":
+        return True
+    return False
 
-def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS)" and ("translation" in f.qualifiers))),
+def _protein_iter(contigIterator, accept_feature=lambda f: ((f.type == "CDS" and ("translation" in f.qualifiers))),
                   extract_annotation_feature=lambda f: f.type == "CDS",
                   extract_sequence=lambda c, f: f.qualifiers["translation"][
                       0] if "translation" in f.qualifiers else f.extract(c).seq.translate()):
@@ -156,6 +162,24 @@ def from_ref_seq(name, ann_path, seqs=None, tax=None, tmp_dir=None,
                 protDoc.organism = name
                 protDoc.auth = str(BioMongoDB.demo_id)
                 protDoc.seq_collection_id = seqCol
+                
+                gos = []
+                for qgo in ["Ontology_term","GO_component","GO_function","GO_process"]:
+                    if qgo in cds_f.qualifiers:
+                        gos = gos + [x.lower().split()[0] for x in cds_f.qualifiers[qgo] if
+                           "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
+
+                note = cds_f.qualifiers["Note"][0].split(" ")[0] if "Note" in cds_f.qualifiers else ""
+                ecs = ["ec:" + note] if re.match('^[0-9]+\.[0-9\-]+\.[0-9\-]+\.[0-9\-]$', note) else []
+                
+               
+                if "EC_number" in cds_f.qualifiers:
+                        ecs = ecs + [("" if  x.lower().startswith("ec:") else "ec:") + x.lower() for x in cds_f.qualifiers["EC_number"]]
+                
+                ontologies = list(set(ecs + gos))
+                protDoc.ontologies = ontologies
+                
+                
                 for f in protein.features:
                     protDoc.features.append(Feature(identifier=f.qualifiers["Ontology_term"][0], type=f.type,
                                                     location=Location(start=int(f.location.start),
@@ -217,8 +241,9 @@ def from_TriTrypDB(name, gff, fasta, tax, tmp_dir=None):
             protDoc.description = protein_description
 
             gos = []
-            if "Ontology_term" in cds_f.qualifiers:
-                gos = [x.lower() for x in cds_f.qualifiers["Ontology_term"] if
+            for qgo in ["Ontology_term","GO_component","GO_function","GO_process"]:
+                if qgo in cds_f.qualifiers:
+                    gos = gos + [x.lower().split()[0] for x in cds_f.qualifiers[qgo] if
                        "GO:" in x and (x not in ["GO:0008150", "GO:0003674", "GO:0005575"])]
 
             note = cds_f.qualifiers["Note"][0].split(" ")[0] if "Note" in cds_f.qualifiers else ""

@@ -265,7 +265,8 @@ class OutputPocket(object):
                 if line[0:6].strip() == 'ATOM':
                     atom_num = line[6:11].strip()
                     self.atoms.append(atom_num)
-                    self.residues.append(line[22:26].strip() + line[16].strip())
+                    # Chain 21 - residue 22-26 - alt 16
+                    self.residues.append( line[21].strip()  + line[22:26].strip() + line[16].strip())
 
     def load_alpha(self):
         with open(self._vert_file_path()) as h:
