@@ -138,45 +138,44 @@ class GenebankUtils:
     def proteins(self, sequences, otype="prot"):
 
         for contig in sequences:
-            org = (" [" + contig.annotations["organism"].replace("[", "_").replace("]", "_") + "]"
-                   ) if "organism" in contig.annotations else ""
-            for feature in contig.features:
-                if feature.type in ["CDS", "RNA", "mat_peptide"]:
-                    seq = None
-                    location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
-                    description = location + " " + feature.qualifiers["product"][
-                        0] if "product" in feature.qualifiers else (
-                        feature.qualifiers["note"][0] if "note" in feature.qualifiers else "")
+            for protein in self.proteins_from_sequence(contig, otype):
+                yield protein
 
-                    locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
-                    gene = feature.qualifiers["gene"][0] if "gene" in feature.qualifiers else ""
-
-                    if feature.type == "mat_peptide":
-                        gene = gene + "_" + feature.qualifiers["product"][0]
-                        locus_tag = locus_tag + "_" + feature.qualifiers.get("product", [""])[0].replace(" ", "_")
-                    if otype == "prot":
-                        if feature.type == "CDS" and "pseudo" not in feature.qualifiers :
-                            if "translation" in feature.qualifiers:
-                                seq = Seq(feature.qualifiers["translation"][0])
-                            else:
-                                seq = feature.extract(contig.seq).translate()
-                        elif feature.type == "mat_peptide":
-                            seq = feature.extract(contig.seq).translate()
-                    else:
-                        seq = feature.extract(contig.seq)
-                    if seq:
-                        record = SeqRecord(id=locus_tag, name=gene, description=description + org, seq=seq)
-                        yield record
-                    else:
-                        assert "pseudo" in feature.qualifiers
-
-        # finally:
         #     if isinstance(h_or_str_faa, str):
         #         h_faa.close()
         #     try:
         #         h_gb.close()
         #     except:
         #         pass
+
+    def proteins_from_sequence(self, contig, otype="prot"):
+        org = (" [" + contig.annotations["organism"].replace("[", "_").replace("]", "_") + "]"
+               ) if "organism" in contig.annotations else ""
+        for feature in contig.features:
+            if feature.type in ["CDS", "RNA", "mat_peptide"]:
+                seq = None
+                location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
+                description = location + " " + feature.qualifiers["product"][0] if "product" else (
+                    feature.qualifiers["note"][0] if "note" in feature.qualifiers else "")
+
+                locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
+                gene = feature.qualifiers["gene"][0] if "gene" in feature.qualifiers else ""
+
+                if feature.type == "mat_peptide":
+                    gene = gene + "_" + feature.qualifiers["product"][0]
+                    locus_tag = locus_tag + "_" + feature.qualifiers["product"][0].replace(" ", "_")
+                if otype == "prot":
+                    if feature.type == "CDS" and "pseudo" not in feature.qualifiers:
+                        seq = Seq(feature.qualifiers["translation"][0])
+                    elif feature.type == "mat_peptide":
+                        seq = feature.extract(contig.seq).translate()
+                else:
+                    seq = feature.extract(contig.seq)
+                if seq:
+                    record = SeqRecord(id=locus_tag, name=gene, description=description + org, seq=seq)
+                    yield record
+                else:
+                    assert "pseudo" in feature.qualifiers
 
 
 if __name__ == '__main__':

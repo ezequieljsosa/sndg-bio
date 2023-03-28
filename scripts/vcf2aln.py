@@ -14,6 +14,7 @@ from tqdm import tqdm
 import warnings
 
 from Bio import BiopythonWarning, BiopythonParserWarning
+import pandas as pd
 
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', BiopythonParserWarning)
