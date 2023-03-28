@@ -384,6 +384,23 @@ def update_proteins(annotation_dir, proteome, seq_col_name, tax_id,
                     p.save()
 
 
+def load_pathways_new(genome_name,workdir,db="tdr",host="127.0.0.1",port=27017):
+    from SNDG.BioMongo.Process.BioMongoDB import BioMongoDB
+    from SNDG.BioMongo.Model.SeqCollection import SeqCollection
+    mdb = BioMongoDB(db, port=port,host=host)
+    from SNDG.BioMongo.Process.PathwaysAnnotator import PathwaysAnnotator
+    assert os.path.exists(workdir + "/met.gpickle",f"{workdir}/met.gpickle")
+    assert os.path.exists(workdir + "/pathways.dat",f"{workdir}/pathways.dat")
+    assert os.path.exists(workdir + "/genes.dat",f"{workdir}/genes.dat")
+    pa = PathwaysAnnotator(mdb.db,genome_name,workdir)
+    pa.load_data()
+    pa.init()
+    pa.annotate_genes()
+    pa._pathways_properties()
+    collection = SeqCollection.objects(name=genome_name).get()
+    collection.pathways = pa.pathways
+    collection.save()
+
 def load_pathways(genome_name, sbml_path, db, pathways_dir, prefered_biocyc=None,
                   gregexp="\(([\-\w\.]+)\)", gene_map=None, filter_file="allfilters_con_c.dat", sbml_desc=""):
     '''

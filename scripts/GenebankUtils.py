@@ -1,12 +1,9 @@
-"""
 
-https://github.com/tseemann/prokka
-"""
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
-from SNDG import docker_wrap_command, DOCKER_MAPPINGS, execute
+
 import fileinput
-from SNDG.Sequence import smart_parse
+
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 import Bio.SeqIO as bpio
@@ -24,10 +21,6 @@ class GenebankUtils:
 
     def fixgb(self, h_gb, hw_gb):
         contigs = list(bpio.parse(h_gb, "gb"))
-        # for contig in contigs:
-        #     features = []
-        #     for f in contig:
-        #         if f.type in ["CDS","mRNA"]
 
         for contig in contigs:
             for f in contig.features:
@@ -103,7 +96,6 @@ class GenebankUtils:
 if __name__ == '__main__':
     import argparse
     import os
-    from SNDG.Sequence import smart_parse
 
     parser = argparse.ArgumentParser(description='Utils over genebank file')
 
@@ -126,7 +118,7 @@ if __name__ == '__main__':
                 sys.stderr.write(f'{args.input_bgk} not found')
                 sys.exit(1)
         if args.input_bgk != "-":
-            gbk_h = smart_parse(args.input_bgk)
+            gbk_h = bpio.parse(args.input_bgk, "gb")
         else:
             gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
 
