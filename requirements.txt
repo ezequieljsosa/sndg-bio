@@ -2,7 +2,6 @@ tqdm
 bcbio-gff
 biopython
 goatools
-twine
-networkx
-python-libsbml
-#PyQt5 --> for ete3
+dna_features_viewer
+
+
