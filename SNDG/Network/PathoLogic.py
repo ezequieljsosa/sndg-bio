@@ -6,7 +6,17 @@ import networkx as nx
 import subprocess as sp
 from threading import Thread
 
-
+def execute(cmd):
+    sp.check_output(cmd,shell=True)
+    """
+    popen = sp.Popen(cmd, stdout=sp.PIPE, universal_newlines=True, shell=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise sp.CalledProcessError(return_code, cmd)
+    """
 class PathoLogic:
     DOCKERIMAGENAME = "ezequieljsosa/pathwaytools:2.4"
     DOCKERCONTAIERNAME = "pathwaytools"
@@ -21,23 +31,22 @@ class PathoLogic:
         self.filter_count = filter_count
 
     def run_server(self):
-        sp.check_output(
+        print("jhgjksdfghksdjlfhg")
+        execute(
             f'docker run --rm --name {PathoLogic.DOCKERCONTAIERNAME} -v {self.input_data_dir}:{self.input_data_dir} \
                     -w {self.input_data_dir} --volume {self.output_data_dir}:/opt/data/ptools-local/pgdbs \
-                    -p 5008:5008 {PathoLogic.DOCKERIMAGENAME} /opt/pathway-tools/pathway-tools -python -api',
-            shell=True)
+                    -p 5008:5008 {PathoLogic.DOCKERIMAGENAME} /opt/pathway-tools/pathway-tools -python -api')
+        print("aaaaaaajhgjksdfghksdjlfhg")
 
     def start(self):
-        sp.getoutput(f'docker start {PathoLogic.DOCKERCONTAIERNAME}', shell=True)
+        execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
 
     def stop(self):
-        sp.getoutput(f'docker start {PathoLogic.DOCKERCONTAIERNAME}', shell=True)
+        execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
 
     def run_pathologic(self):
-        sp.getoutput(f'docker exec -w {self.input_data_dir} {PathoLogic.DOCKERCONTAIERNAME} \
-                        /opt/pathway-tools/pathway-tools \
-                     -no-patch-download -no-cel-overview -no-web-cel-overview \
-                     -patho {self.input_data_dir}', shell=True)
+        execute(f'docker exec -w {self.input_data_dir} {PathoLogic.DOCKERCONTAIERNAME} /opt/pathway-tools/pathway-tools \
+                     -no-patch-download -no-cel-overview -no-web-cel-overview -patho {self.input_data_dir}')
 
     def process_pgdb(self):
         self.db = pythoncyc.select_organism(self.orgdbname)
@@ -95,6 +104,8 @@ class PathoLogic:
             pickle.dump(genes2, hg)
 
 
+
+
 if __name__ == "__main__":
     import argparse
     import os
@@ -113,21 +124,26 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    assert os.path.exists(args.pgdbs_data_dir, f'{args.pgdbs_data_dir} does no exist')
-    assert os.path.exists(args.input_data_dir, f'{args.input_data_dir} does no exist')
+    assert os.path.exists(args.pgdbs_data_dir), f'{args.pgdbs_data_dir} does no exist'
+    assert os.path.exists(args.input_data_dir), f'{args.input_data_dir} does no exist'
     if not os.path.exists(args.output_data_dir):
         os.makedirs(args.output_data_dir)
-    assert os.path.exists(args.output_data_dir, f'{args.output_data_dir} cant be created')
+    assert os.path.exists(args.output_data_dir), f'{args.output_data_dir} cant be created'
 
     pl = PathoLogic(args.orgdbname, args.pgdbs_data_dir, args.input_data_dir, args.output_data_dir, args.filter_count)
 
     pl.server_thread = Thread(target=pl.run_server)
-    sleep(args.wait_server_up)
-    pl.run_pathologic()
-    pl.stop()
-    pl.server_thread.join()
-    pl.server_thread = Thread(target=pl.run_server)
-    sleep(args.wait_server_up)
-    pl.process_pgdb()
-    pl.stop()
-    pl.server_thread.join()
+    pl.server_thread.start()
+    try:
+        sleep(args.wait_server_up)
+        pl.run_pathologic()
+        pl.stop()
+        pl.server_thread.join()
+        pl.server_thread = Thread(target=pl.run_server)
+        pl.server_thread.start()
+        sleep(args.wait_server_up)
+        pl.process_pgdb()
+        pl.stop()
+        pl.server_thread.join()
+    finally:
+        pl.stop()
