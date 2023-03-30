@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from glob import glob
 import os
 import subprocess as sp
@@ -39,9 +41,7 @@ if __name__ == '__main__':
     cmd.add_argument('phylo_vcf')
     cmd.add_argument('phylo_msa')
 
-    cmd = subparsers.add_parser('phylo_params', help='evaluates the best parameters for the phylogeny')
-    cmd.add_argument('phylo_vcf')
-    cmd.add_argument('phylo_msa')
+
 
     cmd = subparsers.add_parser('render_tree', help='evaluates the best parameters for the phylogeny')
     cmd.add_argument('tree_newick')
@@ -81,11 +81,3 @@ if __name__ == '__main__':
                             refseq=str(bpio.read(args.reference, "fasta").seq),
                             included_samples=samples)
 
-    if args.command == "phylo_params":
-        # staphb/iqtree
-        #cmd.add_argument('phylo_msa')
-        cmd = f'iqtree -s {args.phylo_msa} -m MF -redo'
-        sp.check_output(cmd,shell=True)
-
-    #cmd.add_argument('phylo_vcf')
-    #cmd.add_argument('phylo_msa')
