@@ -538,7 +538,7 @@ if __name__ == '__main__':
 
     cmd = subparsers.add_parser('aln', help='fasta aln')
     cmd.add_argument('vcf', default="-", help='joint vcf file')
-    cmd.add_argument('-ref', '--reference', required=False, help='fasta reference')
+    cmd.add_argument('reference', help='fasta reference')
     cmd.add_argument('--include', nargs='*', default=[])
 
     args = parser.parse_args()
