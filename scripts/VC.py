@@ -20,7 +20,7 @@ if __name__ == '__main__':
     cmd.add_argument('bam_folder')
     cmd.add_argument('vcfsraw_folder')
     cmd.add_argument('reference_file')
-    cmd.add_argument("--env", default=os.environ.get("GATK_ENV",""))
+    cmd.add_argument("--gatk_env", default=os.environ.get("GATK_ENV",""))
 
 
     #cmd.add_argument('--new_lt', default=None, help="new locus tag. Use ONLY if no locus tag is present")
@@ -29,13 +29,13 @@ if __name__ == '__main__':
     cmd.add_argument('vcfsraw_folder')
     cmd.add_argument('combined_raw_vcf')
     cmd.add_argument('reference_file')
-    cmd.add_argument("--env", default=os.environ.get("GATK_ENV",""))
+    cmd.add_argument("--gatk_env", default=os.environ.get("GATK_ENV",""))
 
     cmd = subparsers.add_parser('genotype_call', help='genotype call from raw vcf')
     cmd.add_argument('combined_raw_vcf')
     cmd.add_argument('combined_vcf')
     cmd.add_argument('reference_file')
-    cmd.add_argument("--env", default=os.environ.get("GATK_ENV",""))
+    cmd.add_argument("--gatk_env", default=os.environ.get("GATK_ENV",""))
 
     cmd = subparsers.add_parser('vcf_phylo', help='keeps only the variants useful for phylogeny and removes the rest')
     cmd.add_argument('combined_vcf')
@@ -54,6 +54,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.command == "haplotypecall":
+        if args.gatk_env:
+            sys.stderr.write(f"GATK env: {args.gatk_env}")
         with tqdm(glob(f'{args.bam_folder}/*.bam')) as pbar:
             for bam in pbar:
                 pbar.set_description(bam)
