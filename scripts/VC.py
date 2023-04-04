@@ -59,7 +59,7 @@ if __name__ == '__main__':
         with tqdm(glob(f'{args.bam_folder}/*.bam')) as pbar:
             for bam in pbar:
                 pbar.set_description(bam)
-                vcf = bam.replace(".bam",".gvcf.gz")
+                vcf = os.path.basename(bam).replace(".bam",".gvcf.gz")
                 cmd = f'''{args.gatk_env} gatk  HaplotypeCaller -ERC GVCF -R "{args.reference_file}" \
                           -ploidy 2 -I {bam} --output-mode EMIT_ALL_CONFIDENT_SITES \
                           -O "{args.vcfsraw_folder}/{vcf}" '''
