@@ -96,7 +96,8 @@ class GenebankUtils:
                         if not new_lt:
                             sys.stderr.write(
                                 f"CDS {f.location.start}:{f.location.end} has more than one stop codon\n exiting...\n")
-                            sys.exit(1)
+                            remove.append(f)
+                            # sys.exit(1)
                         else:
                             f.qualifiers["locus_tag"] = [new_lt + "_" + str(ltnum).zfill(5)]
                             ltnum += 1
@@ -104,7 +105,6 @@ class GenebankUtils:
                         seq = str(f.extract(contig).seq.translate())
                         if seq.count("*") > 1:
                             f.qualifiers["pseudo"] = ["true"]
-                            sys.stderr.write()
                         else:
                             f.qualifiers["translation"] = [seq]
 
@@ -147,6 +147,29 @@ class GenebankUtils:
         #         h_gb.close()
         #     except:
         #         pass
+
+    def contig4target(self, contig):
+
+        for feature in contig.features:
+            if feature.type in ["CDS", "RNA", "mat_peptide"]:
+                location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
+
+                locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
+                gene = feature.qualifiers["gene"][0] if "gene" in feature.qualifiers else ""
+
+                if feature.type == "mat_peptide":
+                    gene = gene + "_" + feature.qualifiers["product"][0]
+                    locus_tag = locus_tag + "_" + feature.qualifiers["product"][0].replace(" ", "_")
+                    feature.qualifiers["gene"] = [gene]
+                    feature.qualifiers["locus_tag"] = [locus_tag]
+                    feature.type = "CDS"
+
+                if ((feature.type == "CDS") and ("pseudo" not in feature.qualifiers) and (
+                        "translation" not in feature.qualifiers)) or (feature.type == "mat_peptide"):
+                    seq = str(feature.extract(contig.seq).translate())
+                    feature.qualifiers["translation"] = [seq]
+
+        return contig
 
     def proteins_from_sequence(self, contig, otype="prot"):
         org = (" [" + contig.annotations["organism"].replace("[", "_").replace("]", "_") + "]"
@@ -196,11 +219,23 @@ if __name__ == '__main__':
     cmd.add_argument('output_fna', nargs='?', default=sys.stdout)
     cmd.add_argument('-otype', help="output type", choices=["prot", "nucl"], default="prot")
 
+    cmd = subparsers.add_parser('4target', help='extracts the list of gene products from ')
+    cmd.add_argument('input_bgk')
+    cmd.add_argument('output_gbk', nargs='?', default=sys.stdout)
+
     cmd = subparsers.add_parser('validate', help='validates genebank file')
     cmd.add_argument('input_bgk')
 
     args = parser.parse_args()
     utils = GenebankUtils()
+
+    if args.command == "4target":
+        if args.input_bgk != "-":
+            h = open(args.input_bgk)
+        else:
+            h = sys.stdin
+        for contig in bpio.parse(h,"gb"):
+            bpio.write(utils.contig4target(contig), h, "fasta")
 
     if args.command == "validate":
         gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
@@ -230,4 +265,11 @@ if __name__ == '__main__':
                 pass
 
     if args.command == "fix":
-        utils.fixgb(fileinput.input(args.input_bgk), args.output_gb, args.new_lt)
+        try:
+            if args.input_bgk != "-":
+                h = open(args.input_bgk)
+            else:
+                h = sys.stdin
+            utils.fixgb(h, args.output_gb, args.new_lt)
+        finally:
+            h.close()
