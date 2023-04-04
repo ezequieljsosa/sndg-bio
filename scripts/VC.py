@@ -60,7 +60,7 @@ if __name__ == '__main__':
             for bam in pbar:
                 pbar.set_description(bam)
                 vcf = bam.replace(".bam",".gvcf.gz")
-                cmd = f'''{args.env} gatk  HaplotypeCaller -ERC GVCF -R "{args.reference_file}" \
+                cmd = f'''{args.gatk_env} gatk  HaplotypeCaller -ERC GVCF -R "{args.reference_file}" \
                           -ploidy 2 -I {bam} --output-mode EMIT_ALL_CONFIDENT_SITES \
                           -O "{args.vcfsraw_folder}/{vcf}" '''
                 sp.call(cmd,shell=True)
@@ -68,11 +68,11 @@ if __name__ == '__main__':
     if args.command == "combineraw":
         raw_vcfs = [f'"{x}"' for x in glob(f'{args.vcfsraw_folder}/*.gvcf.gz')]
         vcfs = " --variant".join(raw_vcfs)
-        cmd = f'''{args.env} gatk CombineGVCFs -R "{args.reference_file}" -O "{args.combined_raw_vcf}" --variant {vcfs}'''
+        cmd = f'''{args.gatk_env} gatk CombineGVCFs -R "{args.reference_file}" -O "{args.combined_raw_vcf}" --variant {vcfs}'''
         sp.call(cmd,shell=True)
 
     if args.command == "genotype_call":
-        cmd = f'''{args.env} gatk GenotypeGVCFs -R "{args.reference_file}" -ploidy 2 \
+        cmd = f'''{args.gatk_env} gatk GenotypeGVCFs -R "{args.reference_file}" -ploidy 2 \
                     -V "{args.combined_raw_vcf}" -O "{args.combined_vcf}"'''
         sp.call(cmd,shell=True)
 
