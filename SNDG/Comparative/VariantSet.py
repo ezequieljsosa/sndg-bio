@@ -12,13 +12,13 @@ from itertools import groupby
 import Bio.SeqIO as bpio
 import numpy as np
 import pandas as pd
-import vcf
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
 
 from SNDG import execute
-from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
+
 
 
 def validate_variant_fn(sample_data, min_depth=30):
@@ -340,6 +340,7 @@ df = gvcf.build_table()
             for sample, path in bams_dict.items():
                 bams_dict2[sample] = pysam.AlignmentFile(path, "rb")
             self.bam = bams_dict2
+        from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
         self.gvcf = VcfSnpeffIO.parse(path_gvcf)
         self.validate_variant_fn = validate_variant_fn
         self.default_value_fn = lambda variant, sample, alt, assigned_values: alt
