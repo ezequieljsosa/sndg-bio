@@ -534,8 +534,7 @@ if __name__ == '__main__':
     cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
 
     cmd = subparsers.add_parser('phylo', help='prepare vcf for phylogeny')
-    cmd.add_argument('-i', '--vcf', required=True, help='joint vcf file')
-    cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
+    cmd.add_argument('vcf', help='joint vcf file')
 
     cmd = subparsers.add_parser('aln', help='fasta aln')
     cmd.add_argument('-i', '--vcf', default="-", help='joint vcf file')

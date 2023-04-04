@@ -37,16 +37,6 @@ if __name__ == '__main__':
     cmd.add_argument('reference_file')
     cmd.add_argument("--gatk_env", default=os.environ.get("GATK_ENV",""))
 
-    cmd = subparsers.add_parser('vcf_phylo', help='keeps only the variants useful for phylogeny and removes the rest')
-    cmd.add_argument('combined_vcf')
-    cmd.add_argument('phylo_vcf')
-
-    cmd = subparsers.add_parser('msa_phylo', help='creates a fasta MSA from a VCF file')
-    cmd.add_argument('phylo_vcf')
-    cmd.add_argument('phylo_msa')
-
-
-
     cmd = subparsers.add_parser('render_tree', help='evaluates the best parameters for the phylogeny')
     cmd.add_argument('tree_newick')
     cmd.add_argument('tree_png')
@@ -75,15 +65,3 @@ if __name__ == '__main__':
         cmd = f'''{args.gatk_env} gatk GenotypeGVCFs -R "{args.reference_file}" -ploidy 2 \
                     -V "{args.combined_raw_vcf}" -O "{args.combined_vcf}"'''
         sp.call(cmd,shell=True)
-
-
-    if args.command == "vcf_phylo": #combined_vcf phylo_vcf
-        VariantSetUtils.phylo(args.vcf, sys.stdout)
-
-    if args.command == "msa_phylo":
-        #cmd.add_argument('phylo_vcf')
-        #cmd.add_argument('phylo_msa')
-        VariantSetUtils.aln(fileinput.input(args.vcf), sys.stdout,
-                            refseq=str(bpio.read(args.reference, "fasta").seq),
-                            included_samples=samples)
-
