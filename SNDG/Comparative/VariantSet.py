@@ -327,8 +327,8 @@ df = gvcf.build_table()
         execute(cmd)
         cmd = f"bcftools view /tmp/spaning_del.vcf | grep -v '^#' >> /tmp/no_spanning.vcf"
         execute(cmd)
-        cmd = f"bcftools sort /tmp/no_spanning.vcf  > {output}"
-        execute(cmd)
+        cmd = f"bcftools sort /tmp/no_spanning.vcf"
+        execute(cmd, stdout=output)
 
     def __init__(self, path_gvcf, reference=None, bams_dict=None):
         assert os.path.exists(path_gvcf), path_gvcf + " does not exists"
