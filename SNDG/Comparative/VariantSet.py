@@ -537,8 +537,8 @@ if __name__ == '__main__':
     cmd.add_argument('vcf', help='joint vcf file')
 
     cmd = subparsers.add_parser('aln', help='fasta aln')
-    cmd.add_argument('-i', '--vcf', default="-", help='joint vcf file')
-    cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
+    cmd.add_argument('vcf', default="-", help='joint vcf file')
+    cmd.add_argument('-ref', '--reference', required=False, help='fasta reference')
     cmd.add_argument('--include', nargs='*', default=[])
 
     args = parser.parse_args()
@@ -556,8 +556,10 @@ if __name__ == '__main__':
         if samples:
             sys.stderr.write(f'filtering {len(samples)} samples:{",".join(samples)}\n')
 
-        VariantSetUtils.aln(fileinput.input(args.vcf), sys.stdout,
-                            refseq=str(bpio.read(args.reference, "fasta").seq),
+        refseq = str(bpio.read(args.reference, "fasta").seq) if args.reference else None
+        with open(args.vcf) as h:
+            VariantSetUtils.aln(h, sys.stdout,
+                            refseq=refseq,
                             included_samples=samples)
 
     """
