@@ -321,7 +321,7 @@ df = gvcf.build_table()
     def phylo(vcf, output):
         cmd = f"""bcftools filter -i 'alt=\"*\"' {vcf}  | bcftools norm -m -any | \
          bcftools filter -e 'alt=\"*\"'  | bcftools filter -i 'FORMAT/AD[*:1]>15' | \
-         sed  's|0/1:|1/1|'  | sed  's|0\|1:|1/1|'  > /tmp/spaning_del.vcf"""
+         sed  's|0/1:|1/1:|'  | sed  's|0\|1:|1/1:|'  > /tmp/spaning_del.vcf"""
         execute(cmd)
         cmd = f"bcftools filter -e 'alt=\"*\"' {vcf}  > /tmp/no_spanning.vcf"
         execute(cmd)
