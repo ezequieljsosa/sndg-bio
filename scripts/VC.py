@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     if args.command == "combineraw":
         raw_vcfs = [f'"{x}"' for x in glob(f'{args.vcfsraw_folder}/*.gvcf.gz')]
-        vcfs = " --variant".join(raw_vcfs)
+        vcfs = " --variant ".join(raw_vcfs)
         cmd = f'''{args.gatk_env} gatk CombineGVCFs -R "{args.reference_file}" -O "{args.combined_raw_vcf}" --variant {vcfs}'''
         sp.call(cmd,shell=True)
 
