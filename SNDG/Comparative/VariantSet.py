@@ -12,13 +12,13 @@ from itertools import groupby
 import Bio.SeqIO as bpio
 import numpy as np
 import pandas as pd
-import vcf
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from tqdm import tqdm
 
 from SNDG import execute
-from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
+
 
 
 def validate_variant_fn(sample_data, min_depth=30):
@@ -321,14 +321,14 @@ df = gvcf.build_table()
     def phylo(vcf, output):
         cmd = f"""bcftools filter -i 'alt=\"*\"' {vcf}  | bcftools norm -m -any | \
          bcftools filter -e 'alt=\"*\"'  | bcftools filter -i 'FORMAT/AD[*:1]>15' | \
-         sed  's|0/1:|1/1|'  | sed  's|0\|1:|1/1|'  > /tmp/spaning_del.vcf"""
+         sed  's|0/1:|1/1:|'  | sed  's|0\|1:|1/1:|'  > /tmp/spaning_del.vcf"""
         execute(cmd)
         cmd = f"bcftools filter -e 'alt=\"*\"' {vcf}  > /tmp/no_spanning.vcf"
         execute(cmd)
         cmd = f"bcftools view /tmp/spaning_del.vcf | grep -v '^#' >> /tmp/no_spanning.vcf"
         execute(cmd)
-        cmd = f"bcftools sort /tmp/no_spanning.vcf  > {output}"
-        execute(cmd)
+        cmd = f"bcftools sort /tmp/no_spanning.vcf"
+        execute(cmd, stdout=output)
 
     def __init__(self, path_gvcf, reference=None, bams_dict=None):
         assert os.path.exists(path_gvcf), path_gvcf + " does not exists"
@@ -340,6 +340,7 @@ df = gvcf.build_table()
             for sample, path in bams_dict.items():
                 bams_dict2[sample] = pysam.AlignmentFile(path, "rb")
             self.bam = bams_dict2
+        from SNDG.Comparative.VcfSnpeffIO import VcfSnpeffIO
         self.gvcf = VcfSnpeffIO.parse(path_gvcf)
         self.validate_variant_fn = validate_variant_fn
         self.default_value_fn = lambda variant, sample, alt, assigned_values: alt
@@ -533,12 +534,11 @@ if __name__ == '__main__':
     cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
 
     cmd = subparsers.add_parser('phylo', help='prepare vcf for phylogeny')
-    cmd.add_argument('-i', '--vcf', required=True, help='joint vcf file')
-    cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
+    cmd.add_argument('vcf', help='joint vcf file')
 
     cmd = subparsers.add_parser('aln', help='fasta aln')
-    cmd.add_argument('-i', '--vcf', default="-", help='joint vcf file')
-    cmd.add_argument('-ref', '--reference', required=True, help='fasta reference')
+    cmd.add_argument('vcf', default="-", help='joint vcf file')
+    cmd.add_argument('reference', help='fasta reference')
     cmd.add_argument('--include', nargs='*', default=[])
 
     args = parser.parse_args()
@@ -556,8 +556,10 @@ if __name__ == '__main__':
         if samples:
             sys.stderr.write(f'filtering {len(samples)} samples:{",".join(samples)}\n')
 
-        VariantSetUtils.aln(fileinput.input(args.vcf), sys.stdout,
-                            refseq=str(bpio.read(args.reference, "fasta").seq),
+        refseq = str(bpio.read(args.reference, "fasta").seq) if args.reference else None
+        with open(args.vcf) as h:
+            VariantSetUtils.aln(h, sys.stdout,
+                            refseq=refseq,
                             included_samples=samples)
 
     """
