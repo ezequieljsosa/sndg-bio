@@ -149,26 +149,33 @@ class GenebankUtils:
         #         pass
 
     def contig4target(self, contig):
-
+        ant_cds = None
+        polyprots = []
         for feature in contig.features:
             if feature.type in ["CDS", "RNA", "mat_peptide"]:
                 location = f'{contig.id}:{feature.location.start}-{feature.location.end}'
 
                 locus_tag = feature.qualifiers.get("locus_tag", [location + "_" + feature.type])[0]
                 gene = feature.qualifiers["gene"][0] if "gene" in feature.qualifiers else ""
+                if (feature.type == "CDS"):
+                    ant_cds = feature
 
                 if feature.type == "mat_peptide":
+                    ant_cds.qualifiers["polyprotein"] = ["true"]
                     gene = gene + "_" + feature.qualifiers["product"][0]
                     locus_tag = locus_tag + "_" + feature.qualifiers["product"][0].replace(" ", "_")
                     feature.qualifiers["gene"] = [gene]
                     feature.qualifiers["locus_tag"] = [locus_tag]
+                    polyprots += ant_cds.qualifiers["locus_tag"]
+                    feature.qualifiers["from_polyprotein"] = ant_cds.qualifiers["locus_tag"]
                     feature.type = "CDS"
 
                 if ((feature.type == "CDS") and ("pseudo" not in feature.qualifiers) and (
                         "translation" not in feature.qualifiers)) or (feature.type == "mat_peptide"):
+
                     seq = str(feature.extract(contig.seq).translate())
                     feature.qualifiers["translation"] = [seq]
-
+            contig.features = [f for f in contig.features if f.qualifiers.get("locus_tag",[""])[0] not in polyprots]
         return contig
 
     def proteins_from_sequence(self, contig, otype="prot"):
@@ -235,7 +242,7 @@ if __name__ == '__main__':
         else:
             h = sys.stdin
         for contig in bpio.parse(h,"gb"):
-            bpio.write(utils.contig4target(contig), h, "fasta")
+            bpio.write(utils.contig4target(contig), sys.stdout, "gb")
 
     if args.command == "validate":
         gbk_h = bpio.parse(fileinput.input(args.input_bgk), "gb")
