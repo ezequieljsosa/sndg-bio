@@ -11,18 +11,55 @@ os.environ['QT_QPA_PLATFORM'] = 'offscreen'
 import argparse
 import pandas as pd
 
-
-
 from ete3 import Tree, TreeStyle, TextFace, PhyloTree
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tree", required=True, help="tree")
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--tree", required=True, help="tree in newick format")
     parser.add_argument("--image", required=True, help="output image")
     parser.add_argument("--metadata", action=None, help="metadata csv. first column must be the node name")
     parser.add_argument("--order", default=None, help="coma separated order of the metadata columns in the image")
+
+    parser.add_argument("--outgroup", required=False, help="name of the node or list of nodes separated by coma "
+                                                           "to select a common ancestor (internal node)")
+    parser.add_argument("--remove", required=False,
+                        help="nodes to remove separated by comma, this is done AFTER the outgroup is selected")
+    parser.add_argument("--swap", required=False, nargs="+",
+                        help="""Rotates the children of one or more internal nodes. 
+                        Each internal node is described by its named children separated by comma,   
+                        and each internal node is separated by space.
+                         --swap  A,B  C,D   --> swaps the children of the common ancestor of A and B , 
+                                                and the same for C and D
+                          
+                              /-A 
+                           /-| 
+                          |   \-B 
+                        --| 
+                          |   /-C 
+                           \-| 
+                             |   /-D 
+                              \-| 
+                                 \-H 
+                        
+                        After --swap  A,B  C,D               
+                             /-B
+                           /-|
+                          |   \-A
+                        --|
+                          |      /-D
+                          |   /-|
+                           \-|   \-H
+                             |
+                              \-C
+                               """)
+
     parser.add_argument("--force_topology", action='store_true')
+    parser.add_argument("--show_length", action='store_true')
+    parser.add_argument("--show_support", action='store_true')
+    parser.add_argument("--show_scale", action='store_true')
+
+    parser.add_argument("--circular", action='store_true')
 
     args = parser.parse_args()
 
@@ -55,6 +92,21 @@ if __name__ == '__main__':
     #               args.order.split(",") if args.order else None)
 
     ts = TreeStyle()
+
+    if args.circular:
+        ts.mode = "c"
+    ts.force_topology = args.force_topology
+    ts.show_branch_length = args.show_length
+    ts.show_branch_support = args.show_support
+    ts.show_scale = args.show_scale
+
+    if args.outgroup:
+        outgroup = tree.get_common_ancestor(*args.outgroup.split(",")) if "," in args.outgroup else args.outgroup
+        tree.set_outgroup(outgroup)
+    if args.swap:
+        for s in args.swap:
+            tree.get_common_ancestor(*s.split(",")).swap_children()
+
     if data:
         if not args.order:
             # order = list(data.keys())
@@ -62,10 +114,10 @@ if __name__ == '__main__':
             first = list(first)[0]
             order = data[first].keys()
         else:
-            order = args.order
+            order = args.order.split(",")
         ts.show_leaf_name = True
         ts.draw_guiding_lines = True
-        ts.force_topology = args.force_topology
+
 
     for i, x in enumerate(order):
         tf = TextFace(x)
