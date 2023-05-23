@@ -171,12 +171,14 @@ def process_model(structs_dir, pipeline, seq_col_name, seq_col_id, model_data, m
 
         aln_query = AlnLine(name=model_data["prot"], seq=aln_q, start=prot_start - 1, end=prot_end - 1)
         aln_hit = AlnLine(name=template_name, seq=aln_h, start=hit_start, end=hit_end)
-        template = ResidueAln(aln_query=aln_query, aln_hit=aln_hit,
+
+        if template_name != "af":
+            template = ResidueAln(aln_query=aln_query, aln_hit=aln_hit,
                               query_res_start=1,
                               query_res_end=len(chain),
                               hit_res_start=pdb_start,
                               hit_res_end=pdb_end)
-        strdoc.templates.append(template)
+            strdoc.templates.append(template)
 
         for residue in chain:
             molecule = Molecule(resid=residue.id[1],
