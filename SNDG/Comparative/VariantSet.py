@@ -462,12 +462,8 @@ df = gvcf.build_table()
         return df[columns + samples]
 
     @staticmethod
-    def aln(h, output, refseq=None, included_samples=None,include_ref=False):
+    def aln(h, output, refseq=None, included_samples=None,include_ref=False,ref_id=None):
 
-        # if hasattr(vcf_file, "read"):
-        #     h = vcf_file
-        # else:
-        #     h = open(vcf_file)
         try:
             base_idx = 0
             for line in h:
@@ -477,7 +473,7 @@ df = gvcf.build_table()
 
                         seqmap = {s: "" for s in samples}
                         if include_ref:
-                            seqmap[refseq.id] = ""
+                            seqmap[ref_id] = ""
                     continue
                 break
 
@@ -493,7 +489,7 @@ df = gvcf.build_table()
                         subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
                         seqmap[s] += subseq
                         if include_ref:
-                            seqmap[refseq.id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
+                            seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
 
                 sizes = {}
                 for s in samples:
@@ -512,7 +508,7 @@ df = gvcf.build_table()
             if not samples or s in included_samples:
                 seqmap[s] += refseq[base_idx:]
         if include_ref:
-            seqmap[refseq.id] += refseq[base_idx:]
+            seqmap[ref_id] += refseq[base_idx:]
 
         if hasattr(output, "write"):
             h = output
@@ -563,10 +559,12 @@ if __name__ == '__main__':
         if samples:
             sys.stderr.write(f'filtering {len(samples)} samples:{",".join(samples)}\n')
 
-        refseq = str(bpio.read(args.reference, "fasta").seq) if args.reference else None
+        refrecord = bpio.read(args.reference, "fasta")  if args.reference else None
+        refseq = str(refrecord.seq) if args.reference else None
         with open(args.vcf) as h:
             VariantSetUtils.aln(h, sys.stdout,
                             refseq=refseq,
                             included_samples=samples,
-                                include_ref=args.include_ref)
+                                include_ref=args.include_ref,
+                                ref_id=refrecord.id)
 
