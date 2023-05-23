@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument("--remove", required=False,
                         help="nodes to remove separated by comma, this is done AFTER the outgroup is selected")
     parser.add_argument("--swap", required=False, nargs="+",
-                        help="""Rotates the children of one or more internal nodes. 
+                        help="""Rotates the children   of one or more internal nodes. 
                         Each internal node is described by its named children separated by comma,   
                         and each internal node is separated by space.
                          --swap  A,B  C,D   --> swaps the children of the common ancestor of A and B , 
