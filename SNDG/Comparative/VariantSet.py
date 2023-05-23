@@ -488,8 +488,8 @@ df = gvcf.build_table()
                     if not included_samples or s in included_samples:
                         subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
                         seqmap[s] += subseq
-                        if include_ref:
-                            seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
+                if include_ref:
+                    seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
 
                 sizes = {}
                 for s in samples:
