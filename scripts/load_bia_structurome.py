@@ -102,7 +102,7 @@ USAGE
     from mongoengine import connect, register_connection
     connect(args.genome_database_name, host=args.db_host)
     register_connection(args.database_name, "pdb")
-    db = MongoClient()[args.genome_database_name]
+    db = MongoClient(host=args.db_host)[args.genome_database_name]
     collection = db.sequence_collection.find_one({"name": args.genome}, {"name": 1})
     assert collection, "genome %s not found" % args.genome
 
