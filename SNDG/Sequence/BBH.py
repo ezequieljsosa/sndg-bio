@@ -129,4 +129,5 @@ if __name__ == '__main__':
     bbhs = BBH.bbhs(query_best_hit_1, query_best_hit_2)
 
     for x, y in bbhs:
-         print(x + "\t" + y)
+        print(x + "\t" + y)
+        
