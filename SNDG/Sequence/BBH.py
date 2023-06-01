@@ -14,49 +14,55 @@ _log = logging.getLogger(__name__)
 class BBH:
 
     @staticmethod
-    def bbhs_from_blast(path_file1, path_file2, ident_threshold=80):
+    def bbhs(query_best_hit_1, query_best_hit_2):
         """
-        :param path_file1: blast result table format (6)
-        :param path_file2: blast result table format (6)
-        :return: list of bbh tuples
+        :param query_best_hit_1: dict of queries with best hit
+        :param query_best_hit_2: dict of queries with best hit
+        :return: bidirectional hit between inputs as a list of tuples -> (query, hit)
         """
-        query_dict = defaultdict(lambda: {})
-        for _, r in read_blast_table(path_file1).iterrows():
-
-            if r.identity > ident_threshold:
-                query_dict[r["query"]][r["hit"]] = 1
-
+        query_best_hit_1 = list(query_best_hit_1.items())
+        query_best_hit_2 = list(query_best_hit_2.items())
+        query_best_hit_2 = [t[::-1] for t in query_best_hit_2]
         bbhs = []
-        for _, r in read_blast_table(path_file2).iterrows():
-            if r.identity > ident_threshold:
-                if r["query"] in query_dict[r["hit"]]:
-                    bbhs.append((r["hit"], r["query"]))
-        return bbhs
+        for q in query_best_hit_1:
+            if q in query_best_hit_2:
+                bbhs.append((q))
+        return bbhs        
+    
+    @staticmethod
+    def best_hit(query_hits_dict):
+        """
+        :param query_hits_dict: dict of queries as key and hits as values including relevant blast values
+        :return: dict of queries as key and only one hit as value (Best hit) -> {query: hit}
+        """
+        for query in query_hits_dict:
+            max_identity = 0
+            max_bitscore = 0
+            min_evalue = 1
+            selected_hit = ""
+            for hit in query_hits_dict[query]:
+                identity = query_hits_dict[query][hit][0]
+                bitscore = query_hits_dict[query][hit][1]
+                evalue = query_hits_dict[query][hit][2]
+                if identity>max_identity and bitscore>max_bitscore and evalue<min_evalue:
+                    max_identity = identity
+                    max_bitscore = bitscore
+                    min_evalue = evalue
+                    selected_hit = hit
+            query_hits_dict[query]=selected_hit
+        return query_hits_dict
 
     @staticmethod
-    def bbhs_from_lists(path_file1, path_file2, strict=False):
+    def parse_blast(path_file, ident_threshold=80):
         """
-        :param path_file1: blast result table format (6)
-        :param path_file2: blast result table format (6)
-        :return: list of bbh tuples
+        :param path_file: blast result table format (6)
+        :return: dict of queries as key and hits as values including relevant blast values -> {query: {hit: (identity, bitscore, evalue), hit: (identity, bitscore, evalue)}}
         """
-        query_dict = defaultdict(lambda: {})
-        for line in open(path_file1).readlines():
-            try:
-                x, y = line.strip().split("\t")[0:2]
-                query_dict[x][y] = 1
-            except:
-                if strict:
-                    raise Exception("parse Error: " + line)
-                else:
-                    _log.warn("parse Error: " + line)
-
-        bbhs = []
-        for line in open(path_file2).readlines():
-            x, y = line.strip().split("\t")
-            if x in query_dict[y]:
-                bbhs.append([y, x])
-        return bbhs
+        query_hits_dict = defaultdict(lambda: {})
+        for _, r in read_blast_table(path_file).iterrows():
+            if r.identity > ident_threshold:
+                query_hits_dict[r["query"]][r["hit"]] = (r.identity, r.bitscore, r.evalue)
+        return query_hits_dict
 
 
 if __name__ == '__main__':
@@ -73,14 +79,12 @@ if __name__ == '__main__':
     parser.add_argument('-b1', '--blast_result1', default=None)
     parser.add_argument('-b2', '--blast_result2', default=None)
 
-    parser.add_argument('-i', '--ident_threshold', default=0.7)
+    parser.add_argument('-i', '--ident_threshold', default=70)
     parser.add_argument('-e', '--evalue', type=float, default=1e-6)
     parser.add_argument('-qcov', '--query_cover', type=int, default=80)
     parser.add_argument('-scov', '--subject_cover', type=int, default=80)
 
     parser.add_argument('--force', action="store_true")
-
-    # parser.add_argument('-outfmt','--ident_threshold', default=0.9)
 
     args = parser.parse_args()
 
@@ -116,7 +120,14 @@ if __name__ == '__main__':
     if not args.blast_result2:
         args.blast_result2 = args.fasta_file2 + ".tbl"
 
-    data = BBH.bbhs_from_blast(args.blast_result1, args.blast_result2, ident_threshold=args.ident_threshold)
+    query_hits_dict_1 = BBH.parse_blast(args.blast_result1, ident_threshold=args.ident_threshold)
+    query_hits_dict_2 = BBH.parse_blast(args.blast_result2, ident_threshold=args.ident_threshold)
+       
+    query_best_hit_1 = BBH.best_hit(query_hits_dict_1)
+    query_best_hit_2 = BBH.best_hit(query_hits_dict_2)
 
-    for x, y in data:
+    bbhs = BBH.bbhs(query_best_hit_1, query_best_hit_2)
+
+    for x, y in bbhs:
         print(x + "\t" + y)
+        
