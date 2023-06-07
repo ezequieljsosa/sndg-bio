@@ -462,12 +462,8 @@ df = gvcf.build_table()
         return df[columns + samples]
 
     @staticmethod
-    def aln(h, output, refseq=None, included_samples=None):
+    def aln(h, output, refseq=None, included_samples=None,include_ref=False,ref_id=None):
 
-        # if hasattr(vcf_file, "read"):
-        #     h = vcf_file
-        # else:
-        #     h = open(vcf_file)
         try:
             base_idx = 0
             for line in h:
@@ -476,6 +472,8 @@ df = gvcf.build_table()
                         samples = [x.strip() for x in line.split()[9:]]
 
                         seqmap = {s: "" for s in samples}
+                        if include_ref:
+                            seqmap[ref_id] = ""
                     continue
                 break
 
@@ -490,6 +488,8 @@ df = gvcf.build_table()
                     if not included_samples or s in included_samples:
                         subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
                         seqmap[s] += subseq
+                if include_ref:
+                    seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
 
                 sizes = {}
                 for s in samples:
@@ -507,6 +507,8 @@ df = gvcf.build_table()
         for s in samples:
             if not samples or s in included_samples:
                 seqmap[s] += refseq[base_idx:]
+        if include_ref:
+            seqmap[ref_id] += refseq[base_idx:]
 
         if hasattr(output, "write"):
             h = output
@@ -539,6 +541,7 @@ if __name__ == '__main__':
     cmd = subparsers.add_parser('aln', help='fasta aln')
     cmd.add_argument('vcf', default="-", help='joint vcf file')
     cmd.add_argument('reference', help='fasta reference')
+    cmd.add_argument('--include_ref', action="store_true", help='include reference in the alignment')
     cmd.add_argument('--include', nargs='*', default=[])
 
     args = parser.parse_args()
@@ -556,125 +559,12 @@ if __name__ == '__main__':
         if samples:
             sys.stderr.write(f'filtering {len(samples)} samples:{",".join(samples)}\n')
 
-        refseq = str(bpio.read(args.reference, "fasta").seq) if args.reference else None
+        refrecord = bpio.read(args.reference, "fasta")  if args.reference else None
+        refseq = str(refrecord.seq) if args.reference else None
         with open(args.vcf) as h:
             VariantSetUtils.aln(h, sys.stdout,
                             refseq=refseq,
-                            included_samples=samples)
+                            included_samples=samples,
+                                include_ref=args.include_ref,
+                                ref_id=refrecord.id)
 
-    """
-    init_log()
-    vcfs = glob.glob("/home/eze/workspace/git/msmegmatis_mut/data/processed/variant_call/**/*.vcf")
-    vcfs = [x for x in vcfs if "ann" not in x]
-    VariantSet.create_gvcf(vcfs, "/tmp/pepe.gvcf",
-                                  "/home/eze/workspace/git/msmegmatis_mut/data/external/GCF_000283295.1_ASM28329v1_genomic.fna")
-    pepe = VariantSet("/tmp/pepe.ann.gvcf",
-                      "/home/eze/workspace/git/msmegmatis_mut/data/external/GCF_000283295.1_ASM28329v1_genomic.fna")
-    df = pepe.build_table()
-    df.to_csv("/tmp/pepe.csv", columns=["pos", "gene", "type", "ref"] +
-                                       ["MUT-11","MUT-12","MUT-7","WT1"] + ["aa_pos", "aa_ref", "aa_alt"])
-    print pepe
-    
-    
-     import vcf
-     ...: seqs = defaultdict(lambda:"")
-     ...: alelos = []
-     ...: #with open("./Full2mergeall_onlyvariants_maf.recode.vcf") as h:
-     ...: #    variantes = list(vcf.VCFReader(h))
-     ...: terminar = False
-     ...: for v in tqdm(variantes):
-     ...:         pos_size = [v.REF]
-     ...:         alts = [v.REF] + [str(x) for x in v.ALT]
-     ...:         alelos = []
-     ...:         for sample in  v.samples:
-     ...:             if (sample.data.GT != ".") and  (str(alts[int(sample.data.GT) ]) != "<CN0>"):
-     ...:                 pos_size.append(  str(alts[int(sample.data.GT) ])  )
-     ...:             if (sample.data.GT != "."):
-     ...:                 alelos.append(str(alts[int(sample.data.GT) ]) )
-     ...:         
-     ...:                           
-     ...:         if "<CN0>" in alelos:
-     ...:             continue
-     ...:         pos_size = max([len(x) for x in pos_size])
-     ...:         for sample in v.samples:
-     ...:             if sample.called:
-     ...:                 alelo = str(alts[int(sample.data.GT) ])                
-     ...:             elif sample.data.GT == ".":
-     ...:                 alelo = "N"
-     ...:             else:
-     ...:                 alelo = v.REF            
-     ...:             if alelo == "<CN0>":
-     ...:                 alelo = ""
-     ...:             alelo = alelo.ljust(pos_size, "-")
-     ...:             seqs[sample.sample] += alelo
-     ...:             if sample.sample in fasta:
-     ...:                 if seqs[sample.sample] != str(fasta[sample.sample].seq)[: len(seqs[sample.sample])]:                
-     ...:                     terminar = True
-     ...:         if terminar:
-     ...:             break
-     ...: print seqs[sample.sample][-10:] 
-     ...: print str(fasta[sample.sample].seq)[ len(seqs[sample.sample]) - 10: len(seqs[sample.sample])]
-
-    
-    """
-
-    # strains = set(['0058', '1300', '0271', '0037', '1875', '3296', '1710', '1584',
-    #                '1445', '0142', '1527', '0564', '3867NE', '1096', '0484', '1796',
-    #                '3867NI', '1493', '0298', '1707', '3867INF', '1764', '0450'])
-    #
-    #
-    # bams = {
-    #     bam.split("/")[-2]:pysam.AlignmentFile(bam, "rb")
-    #     for bam in glob("/mnt/data2/data/projects/23staphylo/data/steps/03-mappingn315/*/aln.bam")
-    # }
-    #
-    #
-    #
-    # pepe = VariantSet("/mnt/data2/data/projects/23staphylo/data/steps/s07_joined_variant_call/output.ann.vcf",
-    #                   "/mnt/data2/data/projects/23staphylo/external/n315/refN315.fasta",
-    #                   bams_dict=bams)
-    # df = pepe.build_table()
-    #
-    # def default_value_fn(variant, sample, alt, assigned_values):
-    #     if sample.sample == "3867INF":
-    #         s = [x for x in variant.samples if x.sample == "3867NI"][0]
-    #         if s.called and validate_variant_fn(s.data):
-    #             alt = str(variant.ALT[int(s.data.GT) - 1])
-    #             return alt
-    #         else:
-    #             s = [x for x in variant.samples if x.sample == "3867NE"][0]
-    #             if s.called and validate_variant_fn(s.data):
-    #                 alt = str(variant.ALT[int(s.data.GT) - 1])
-    #                 return alt
-    #             return variant.REF
-    #     elif sample.sample == "3867NE":
-    #         s = [x for x in variant.samples if x.sample == "3867INF"][0]
-    #         if s.called and validate_variant_fn(s.data):
-    #             alt = str(variant.ALT[int(s.data.GT) - 1])
-    #             return alt
-    #         else:
-    #             s = [x for x in variant.samples if x.sample == "3867NI"][0]
-    #             if s.called and validate_variant_fn(s.data):
-    #                 alt = str(variant.ALT[int(s.data.GT) - 1])
-    #                 return alt
-    #             return variant.REF
-    #     elif sample.sample == "3867NI":
-    #         s = [x for x in variant.samples if x.sample == "3867INF"][0]
-    #         if s.called and validate_variant_fn(s.data):
-    #             return str(variant.ALT[int(s.data.GT) - 1])
-    #         else:
-    #             s = [x for x in variant.samples if x.sample == "3867INF"][0]
-    #             if s.called and validate_variant_fn(s.data):
-    #                 return str(variant.ALT[int(s.data.GT) - 1])
-    #             return variant.REF
-    #     return alt
-
-    # vs = VariantSet("/mnt/data2/data/projects/23staphylo_old/external/sordelli/variant_call/cohort.g.vcf")
-    # # vs.default_not_called_fn = default_not_called_fn
-    # vs.default_value_fn = default_value_fn
-    #
-    # df = vs.build_table()
-    # with open("/tmp/imputed.vcf", "w") as h:
-    #     VariantSet.complete_vcf_with_bams("/home/eze/projects/ST5/processed/groups/arg_chi/all.vcf",
-    #                                       "/home/eze/projects/ST5/processed/strains/*/alignment/mapped_reads.bam",
-    #                                       stdout=h)
