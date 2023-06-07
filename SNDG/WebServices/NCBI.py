@@ -170,6 +170,8 @@ if __name__ == "__main__":
                     sys.stdout.write("\n")
             except sp.CalledProcessError:
                 traceback.print_exc(file=sys.stderr)
+            except FileNotFoundError:
+                traceback.print_exc(file=sys.stderr)
     else:
         downloaded_file = NCBI.download_assembly(args.accession, dst_dir=args.output, force=args.force)
         if not os.path.exists(downloaded_file) or (os.path.getsize(downloaded_file) < 10):
