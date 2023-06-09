@@ -478,38 +478,45 @@ df = gvcf.build_table()
                 break
 
             for line in tqdm(h, file=sys.stderr):
-                _, pos, _, ref, alts = line.split()[:5]
-                pos = int(pos)
-                alts = [ref] + alts.split(",")
-                gts = [x[0] for x in line.split()[9:]]
-                gts = ["N" if x[0] == "." else alts[int(x[0])] for x in gts]
-                pos_size = max([len(x) for x in alts])
-                for i, s in enumerate(samples):
-                    if not included_samples or s in included_samples:
-                        subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
-                        seqmap[s] += subseq
-                if include_ref:
-                    seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
+                try:
+                    _, pos, _, ref, alts = line.split()[:5]
+                    pos = int(pos)
+                    alts = [ref] + alts.split(",")
+                    gts = [x[0] for x in line.split()[9:]]
+                    gts = ["N" if x[0] == "." else alts[int(x[0])] for x in gts]
+                    pos_size = max([len(x) for x in alts])
+                    for i, s in enumerate(samples):
+                        if not included_samples or s in included_samples:
+                            subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
+                            seqmap[s] += subseq
+                    if include_ref:
+                        seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
 
-                sizes = {}
-                for s in samples:
-                    if not included_samples or s in included_samples:
-                        sizes[s] = len(seqmap[s])
-                assert len(set(sizes.values())) == 1, [base_idx, set(sizes.values()),
-                                                       json.dumps({k: [x[0] for x in v] for k, v in
-                                                                   groupby(sorted(sizes.items(), key=lambda x: x[1]),
-                                                                           lambda x: x[1])})]
+                    sizes = {}
+                    samples2check = list(samples)
+                    if include_ref:
+                        samples2check.append(ref_id)
+                    for s in samples2check:
+                        if not included_samples or s in included_samples:
+                            sizes[s] = len(seqmap[s])
+                    assert len(set(sizes.values())) == 1, [base_idx, set(sizes.values()),
+                                                           json.dumps({k: [x[0] for x in v] for k, v in
+                                                                       groupby(sorted(sizes.items(), key=lambda x: x[1]),
+                                                                               lambda x: x[1])})]
 
-                base_idx = pos + len(ref)
+                    base_idx = pos + len(ref)
+                except:
+                    sys.stderr.write(line)
+                    raise
         finally:
             h.close()
-
+        """
         for s in samples:
             if not samples or s in included_samples:
                 seqmap[s] += refseq[base_idx:]
         if include_ref:
             seqmap[ref_id] += refseq[base_idx:]
-
+        """
         if hasattr(output, "write"):
             h = output
         else:
