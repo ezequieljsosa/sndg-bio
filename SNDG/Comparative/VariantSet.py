@@ -502,13 +502,13 @@ df = gvcf.build_table()
                 base_idx = pos + len(ref)
         finally:
             h.close()
-
+        """
         for s in samples:
             if not samples or s in included_samples:
                 seqmap[s] += refseq[base_idx:]
         if include_ref:
             seqmap[ref_id] += refseq[base_idx:]
-
+        """
         if hasattr(output, "write"):
             h = output
         else:
