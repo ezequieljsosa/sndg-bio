@@ -96,7 +96,7 @@ task trimming {
     Int? crop
 
     command {
-        java -jar $TRIMMOMATIC   ${cpus} ${fastq1} ${fastq2} 1.fastq.gz  1U.fastq.gz 2.fastq.gz 2U.fastq.gz \
+        java -jar $TRIMMOMATIC PE -threads ${cpus} ${fastq1} ${fastq2} 1.fastq.gz  1U.fastq.gz 2.fastq.gz 2U.fastq.gz \
 	ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq2-PE.fa:2:30:10  ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/NexteraPE-PE.fa:2:30:10 \
 	ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq3-PE.fa:2:30:10 ILLUMINACLIP:/app/Trimmomatic-0.38/adapters/TruSeq3-PE-2.fa:2:30:10  \
 	CROP:${default=300 crop}  HEADCROP:${default=18 headcrop}  TRAILING:3 SLIDINGWINDOW:${default=10 windowsize}:${default=5 windowqa} MINLEN:36

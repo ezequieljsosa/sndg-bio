@@ -79,8 +79,8 @@ USAGE
     with tqdm(sa.iterator(db, args.name, {}), total=total) as pbar:
         for model in pbar:
             pbar.set_description(model.name)
-
-            template = model.templates[0]
+            if model.templates:
+                template = model.templates[0]
 
             try:
                 protein = Protein.objects(organism=args.name, alias=template.aln_query.name).get()

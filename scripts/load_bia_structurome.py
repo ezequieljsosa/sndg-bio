@@ -133,6 +133,7 @@ USAGE
             try:
                 strdoc = process_model(args.structs_dir, args.pipeline, collection["name"], collection["_id"],
                                        model_data, model_name, model_path, parser)
+
                 strdoc.save()
             except Exception as ex:
                 _log.error(ex)
