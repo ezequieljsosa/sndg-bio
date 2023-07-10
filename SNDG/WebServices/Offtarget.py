@@ -246,6 +246,9 @@ GCF_001434175.1""".split("\n")]
 
 import gzip
 
+import os
+import Bio.SeqIO as bpio
+
 
 class Offtarget(object):
     DEFAULT_GUT_FILENAME = "gut_microbiota.fasta.gz"
@@ -269,7 +272,7 @@ class Offtarget(object):
     @staticmethod
     def download_human_prots(dst="/data/databases/human/"):
         file_path = dst + Offtarget.DEFAULT_HUMAN_FILENAME
-        unip_url = "https://www.uniprot.org/uniref/?query=uniprot:(taxonomy:%22Homo%20sapiens%20(Human)%20[9606]%22)%20identity:1.0&format=fasta&force=true&compress=yes"
+        unip_url = "https://rest.uniprot.org/uniprotkb/stream?compressed=true&format=fasta&query=%28%28taxonomy_id%3A9606%29%29"
         download_file(unip_url, file_path, ovewrite=True, timeout=120)
         return file_path
 
@@ -286,7 +289,7 @@ class Offtarget(object):
                 genome_path = dst_accs + accession + ".genomic.gbff.gz"
                 if update or not os.path.exists(genome_path):
                     genome_path = NCBI.download_assembly(accession, dst_accs)
-                utils.proteins(genome_path, h)
+                bpio.write(utils.proteins(genome_path), h, "fasta")
 
         return final_file
 
@@ -327,7 +330,7 @@ class Offtarget(object):
         return query_orgs
 
     @staticmethod
-    def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count(),min_identity=50):
+    def offtargets(proteome, dst_resutls, offtarget_db, cpus=multiprocessing.cpu_count(), min_identity=50):
         cmd = f"diamond blastp --evalue 1e-5 --max-hsps 1 --outfmt 6 --max-target-seqs 10000  --db {offtarget_db} --query {proteome} --threads {cpus}|awk '$3>{min_identity}' > {dst_resutls}"
         execute(cmd)
         return dst_resutls
@@ -336,7 +339,7 @@ class Offtarget(object):
 if __name__ == "__main__":
     from SNDG import init_log
     import argparse
-    import os
+
     from SNDG.Sequence import smart_parse
 
     parser = argparse.ArgumentParser(description='Offtarget Utilities')
