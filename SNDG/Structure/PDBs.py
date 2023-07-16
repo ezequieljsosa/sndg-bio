@@ -54,7 +54,7 @@ class PDBFile:
         for chain in self.struct.get_chains():
             if (not selected_chain) or (selected_chain == chain.id):
                 residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
-                rmap[chain.id] = {i: x.id for i, x in enumerate(residues)}
+                rmap[chain.id] = {i: x.id[1] for i, x in enumerate(residues)}
         return rmap
 
     def seq(self, selected_chain=None, standard_aa=True):
@@ -131,7 +131,7 @@ class PDBs(object):
         return self.pdb_path(pdb) + ".gz"
 
     def pdb_pockets_path(self, pdb):
-        return self.pockets_dir + "/" + pdb[1:3] + "/" + pdb +  ".json"
+        return self.pockets_dir + "/" + pdb[1:3] + "/" + pdb + ".json"
 
     def download_pdb_seq_ses(self):
         download_file(self.url_pdb_seq_res, self.pdb_seq_res_path, ovewrite=True)
@@ -229,6 +229,7 @@ class PDBs(object):
 if __name__ == '__main__':
     import sys
     from SNDG import init_log
+    import json
 
     init_log()
 
@@ -246,6 +247,10 @@ if __name__ == '__main__':
     # update_pdb.add_argument('-i', '--pdb_code', help="4 letter code", required=True)
     # update_pdb.add_argument('-o', '--ouput_file', help="output file")
 
+    cmd = subparsers.add_parser('seq', help='gets the sequence and residue map from a PDB code')
+    cmd.add_argument('pdb', help="pdb_code", default="/data/databases/pdb/")
+    cmd.add_argument('--output_dir', help="output dir", default="./")
+    cmd.add_argument('-i', '--pdbs_dir', help="pdbs_directory", default="/data/databases/pdb/")
 
     args = parser.parse_args()
     if args.command == "update":
@@ -255,7 +260,13 @@ if __name__ == '__main__':
         pdbs.update_pdb_dir()
         pdbs.download_pdb_seq_ses()
         sys.exit(0)
+    if args.command == "seq":
+        pdbs = PDBs(pdb_dir=args.pdbs_dir)
+        pdb = PDBFile(args.pdb,pdbs.pdb_path(args.pdb.lower()))
+        bpio.write(pdb.seq(),sys.stdout,"fasta")
+        json.dump(pdb.residues_map(),sys.stderr)
 
+        sys.exit(0)
 
     # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
     # pdbs.download_pdb_seq_ses()
