@@ -51,7 +51,7 @@ task scaffolding {
         isize="$( cut -d '.' -f 1 <<< "$isize" )";
         orientation=`grep -v "#" ${insert_size_metrics} | head -n 3 | tail -n 1 | cut -f9`
         echo "lib bwa ${fastq1} ${fastq2} $isize 0.25 $orientation" > libraries.txt
-        perl ${bin_SSPACE}/SSPACE_Standard_v3.0.pl -l libraries.txt -s ${incontigs} -x 1 -m 24 -k 3  -n 15 -g 1 -T ${cpus} -b sspace1
+        perl ${bin_SSPACE}/SSPACE_Standard_v3.0.pl -l libraries.txt -s ${incontigs} -x 1 -m 24 -k 3 -n 15 -g 1 -T ${cpus} -b sspace1
     }
 
     output {

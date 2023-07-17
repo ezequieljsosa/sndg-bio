@@ -174,26 +174,6 @@ class VCFGenotypeAlleles(VCFGenotype):
 
 
 class VariantSetUtils():
-    """
-bams_dict = {'1_20079_S5': '/home/andres/cepas/20079_S5_L001/dedup_reads.bam',
-             '2_20651_S6': '/home/andres/cepas/20651_S6_L001/dedup_reads.bam',
-            ...}
-
-gvcf = VariantSet(path_vcf + 'combined.ann.gvcf',
-                  path_vcf + 'h37.fna',bams_dict=bams_dict)
-
-def select_default(variant, sample, alt, assigned_values):
-    samples = [s.sample.split(".variant")[0] for s in variant.samples]
-    sample_name = sample.sample.split(".variant")[0]
-    idx = samples.index(sample_name)
-    if idx - 1 == -1:
-        return variant.REF
-    else:
-        return assigned_values[samples[idx - 1]]
-
-gvcf.default_value_fn = select_default
-df = gvcf.build_table()
-    """
 
     @staticmethod
     def complete_vs_with_bamreadcount(df, sample, bamreadcountfile):
@@ -221,54 +201,6 @@ df = gvcf.build_table()
         df[sample + "_AD_r"] = df[sample + "_AD_r"].fillna(0)
         df[sample + "_AD_a"] = df[sample + "_AD_a"].fillna(0)
 
-    @staticmethod
-    def create_gvcf(vcfs_folder, output_gvcf, ref_path, temp="/tmp/CombineVariants.vcf"):
-        """
-
-        :param vcfs_path_list: list of paths of the vcf files
-        :param gvcf_path: gvcf to be created
-        :param ref_path: fasta from the reference genome
-        :return:
-        """
-        cmd_template = """
-        docker run --rm -w /out {mount2} -v {vcfs_folder}:/out/vcfs/ -v {ref_folder}:/out/ref/ broadinstitute/gatk3:3.8-1 \
-            java -jar /usr/GenomeAnalysisTK.jar -T CombineVariants    -R /out/ref/{ref_file} {vcfs} \
-            -o {out_path}/{out_file} -genotypeMergeOptions UNIQUIFY
-        """
-
-        ref_folder = os.path.dirname(ref_path)
-        ref_file = os.path.basename(ref_path)
-        out_folder = os.path.dirname(temp)
-        out_file = os.path.basename(temp) + ".bk"
-
-        vcfs_path = "/out/vcfs/"
-        if vcfs_folder == out_folder:
-            mount2 = ""
-            out_path = "/out/vcfs/"
-        else:
-            out_path = "/out/out/"
-            mount2 = " -v {out_folder}:/out/out/ ".format(out_folder=out_folder)
-
-        vcfs = " ".join(["--variant {vcfs_path}".format(vcfs_path=vcfs_path) + x for x in os.listdir(vcfs_folder) if
-                         x.endswith(".vcf") or x.endswith(".vcf.gz")])
-        cmd = cmd_template.format(vcfs=vcfs, out_folder=out_folder, out_file=out_file, mount2=mount2, out_path=out_path,
-                                  ref_folder=ref_folder, ref_file=ref_file, vcfs_folder=vcfs_folder)
-        print(cmd)
-        execute(cmd)
-        with open(temp) as h:
-            if hasattr(output_gvcf, "write"):
-                hw = output_gvcf
-            else:
-                hw = open(output_gvcf, "w")
-            try:
-                for l in h:
-                    if l.startswith("#CHROM"):
-                        vec = l.split("\t")
-                        l = "\t".join(vec[:9] + [x.split(".variant")[0] for x in vec[9:]]) + "\n"
-
-                    hw.write(l)
-            finally:
-                hw.close()
 
     @staticmethod
     def combineGVCFs(vcfs_folder, output_gvcf, ref_path, tmp="/tmp/combineGVCFs.vcf"):
@@ -345,6 +277,50 @@ df = gvcf.build_table()
         self.default_value_fn = lambda variant, sample, alt, assigned_values: alt
         self.default_not_called_fn = lambda cov_ref, cov_alt: cov_ref < 30 or (
                 (cov_ref * 1.0 / (cov_alt + cov_ref)) < 0.75)
+
+    @staticmethod
+    def to_table(vcf_handle, groups , output):
+
+        base_idx = 0
+        for line in h:
+            if line.startswith("#"):
+                if line.startswith("#CHROM"):
+                    samples = [x.strip() for x in line.split()[9:]]
+                continue
+            break
+
+        for line in tqdm(h, file=sys.stderr):
+            try:
+                _, pos, _, ref, alts = line.split()[:5]
+                pos = int(pos)
+                alts = [ref] + alts.split(",")
+                gts = [x[0] for x in line.split()[9:]]
+                gts = ["N" if x[0] == "." else alts[int(x[0])] for x in gts]
+                pos_size = max([len(x) for x in alts])
+                for i, s in enumerate(samples):
+                    if not included_samples or s in included_samples:
+                        subseq = refseq[base_idx:pos] + gts[i].ljust(pos_size, "-")
+                        seqmap[s] += subseq
+                if include_ref:
+                    seqmap[ref_id] += refseq[base_idx:pos] + ref.ljust(pos_size, "-")
+
+                sizes = {}
+                samples2check = list(samples)
+                if include_ref:
+                    samples2check.append(ref_id)
+                for s in samples2check:
+                    if not included_samples or s in included_samples:
+                        sizes[s] = len(seqmap[s])
+                assert len(set(sizes.values())) == 1, [base_idx, set(sizes.values()),
+                                                       json.dumps({k: [x[0] for x in v] for k, v in
+                                                                   groupby(sorted(sizes.items(), key=lambda x: x[1]),
+                                                                           lambda x: x[1])})]
+
+                base_idx = pos + len(ref)
+            except:
+                sys.stderr.write(line)
+                raise
+
 
     def build(self, variant_phasing=None, tqdm_fn=tqdm):
 
