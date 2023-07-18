@@ -14,12 +14,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.Polypeptide import CaPPBuilder
 from SNDG import Struct
-from SNDG import init_log, mkdir, execute
+from SNDG import init_log
 from SNDG.Structure.CompoundTypes import compound_type
 from SNDG.Structure.PDBs import PDBs as PDBsIterator
-import shutil
+
 
 init_log()
 
@@ -128,7 +127,6 @@ def main(argv=None):  # IGNORE:C0111
 
     _log.info("proceced pdbs: %i" % len(pdbs_procesados))
 
-    ppb = CaPPBuilder()
     p = PDBParser(PERMISSIVE=1, QUIET=1)
 
     pdbs_with_drug = []
@@ -224,7 +222,6 @@ def main(argv=None):  # IGNORE:C0111
 
 
     def pepe(pdb):
-        ppb = CaPPBuilder()
         p = PDBParser(PERMISSIVE=1, QUIET=1)
         path_dir = PDB_PATH + "/" + pdb[1:3].lower() + "/"
         path = path_dir + "pdb" + pdb.lower() + ".ent"
