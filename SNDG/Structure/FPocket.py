@@ -3,6 +3,7 @@ Created on Jun 2, 2014
 
 @author: eze
 '''
+import sys
 
 import json
 import logging
@@ -83,7 +84,7 @@ class Atom(object):
         atom_tail = "           " + self.code[0] + "  "
 
         return atom_type + atom_pos + atom_code + atom_res_code + atom_res_chain + atom_res_pos + \
-               atom_x + atom_y + atom_z + atom_ocuppancy + atom_bfactor + atom_tail
+            atom_x + atom_y + atom_z + atom_ocuppancy + atom_bfactor + atom_tail
 
     # @param other: another atom
     # @return: distance between atoms 
@@ -205,15 +206,15 @@ class FPocket(object):
     def dest_path(self):
         return self.work_directory + "/" + self._out_directory()
 
-    def hunt_pockets(self,override=False):
+    def hunt_pockets(self, override=False):
         abs_path = os.path.abspath(self.pdb_file_path)
         pdb_file = os.path.basename(abs_path)
         pdb_dir = os.path.dirname(abs_path)
 
-        if override or not  os.path.exists(self.dest_path()):
+        if override or not os.path.exists(self.dest_path()):
             cmd = "docker run -u $(id -u):$(id -g) -w /out -v '{pdb_dir}':/out --rm ezequieljsosa/fpocket {fpocket} -f '{pdb_file}'".format(
-            fpocket=self.fpocket_binary, pdb_file=pdb_file, pdb_dir=pdb_dir)
-            with open("/tmp/tmppocket.txt","a") as h:
+                fpocket=self.fpocket_binary, pdb_file=pdb_file, pdb_dir=pdb_dir)
+            with open("/tmp/tmppocket.txt", "a") as h:
                 h.write(cmd + "'\n")
             self._execute(cmd)
         if os.path.abspath(self._pdb_file_directory) != os.path.abspath(self.work_directory):
@@ -266,7 +267,7 @@ class OutputPocket(object):
                     atom_num = line[6:11].strip()
                     self.atoms.append(atom_num)
                     # Chain 21 - residue 22-26 - alt 16
-                    self.residues.append( line[21].strip()  + line[22:26].strip() + line[16].strip())
+                    self.residues.append(line[21].strip() + line[22:26].strip() + line[16].strip())
 
     def load_alpha(self):
         with open(self._vert_file_path()) as h:
@@ -314,7 +315,30 @@ def fpocket_header_line_handler(header, line):
 
 
 if __name__ == '__main__':
-    from SNDG.PDBs import PDBs
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser(description='fpocket utilities')
+    subparsers = parser.add_subparsers(help='commands', description='valid subcommands', dest='command', required=True)
+
+    required = subparsers.add_parser('pockets2table')
+    required.add_argument('fpocket_out')
+
+    args = parser.parse_args()
+
+    fpo = FpocketOutput(args.fpocket_out)
+    fpo.parse()
+    sys.stdout.write("chain\tresid\tpocketnum\tdruggability\n")
+    processed = {}
+    for p in fpo.pockets:
+
+        for res in p.residues:
+            key = f'{p.pocket_num}_{res}'
+            if key not in processed:
+                sys.stdout.write(f"{res[0]}\t{res[1:]}\t{p.pocket_num}\t{p.properties['Druggability Score']}\n")
+            processed[key] = 1
+
+    """from SNDG.PDBs import PDBs
 
     for pdb in tqdm(PDBs()):
         try:
@@ -325,4 +349,4 @@ if __name__ == '__main__':
                 res.save(pocket_data)
         except Exception as e:
             print(e)
-
+    """

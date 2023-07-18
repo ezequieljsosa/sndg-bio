@@ -198,6 +198,8 @@ if __name__ == '__main__':
     required.add_argument('-g', '--max_gap_proportion', type=float, action='store', default=0.5)
     required.add_argument('-o', '--output', default="-")
 
+
+
     args = parser.parse_args()
 
     if args.input_msa != "-" and not os.path.exists(args.input_msa):
@@ -213,10 +215,12 @@ if __name__ == '__main__':
         else:
             with open(args.output, "w") as h:
                 msa.vcf(args.ref_sequence, stdout=h)
-    else:
+    if args.command == "snp":
        seqs = msa.snp_sites(min_consensus=args.min_consensus,max_gap_proportion=args.max_gap_proportion)
        if args.output == "-":
             bpio.write(seqs,sys.stdout,"fasta")
        else:
             with open(args.output, "w") as h:
                 bpio.write(seqs,h,"fasta")
+
+

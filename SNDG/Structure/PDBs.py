@@ -10,9 +10,9 @@ from collections import defaultdict
 import Bio.SeqIO as bpio
 import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
-from Bio.PDB import PDBList
+
 from Bio.PDB.PDBParser import PDBParser
-from Bio.PDB.Polypeptide import is_aa, CaPPBuilder
+from Bio.PDB.Polypeptide import is_aa
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqUtils import seq1
@@ -20,7 +20,6 @@ from tqdm import tqdm
 
 from SNDG import mkdir, execute
 from SNDG.WebServices import download_file
-import fileinput
 
 from SNDG.Structure.ChainSplitter import ChainSplitter
 
@@ -43,39 +42,13 @@ diamond makedb -d /data/target/databases/pdb/pdb_seqres.txt --in /data/target/da
 
 # ftp://ftp.ebi.ac.uk/pub/databases/pdb/derived_data/index/entries.idx
 
-class PDBFile:
-
-    def __init__(self, code, in_pdb):
-        self.code = code
-        self.struct = PDBParser(PERMISSIVE=1, QUIET=1).get_structure(self.code, in_pdb)
-
-    def residues_map(self, selected_chain=None, standard_aa=True):
-        rmap = {}
-        for chain in self.struct.get_chains():
-            if (not selected_chain) or (selected_chain == chain.id):
-                residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
-                rmap[chain.id] = {i: x.id[1] for i, x in enumerate(residues)}
-        return rmap
-
-    def seq(self, selected_chain=None, standard_aa=True):
-        records = []
-        for chain in self.struct.get_chains():
-            if (not selected_chain) or (selected_chain == chain.id):
-                residues = [x for x in chain.get_residues() if is_aa(x, standard=standard_aa)]
-                if residues:
-                    seq = "".join([seq1(x.resname) for x in residues])
-                    start = str(residues[0].id[1])
-                    end = str(residues[-1].id[1])
-                    record = SeqRecord(id="_".join([self.code, chain.id, start, end]), description="", seq=Seq(seq))
-                    records.append(record)
-        return records
-
 
 class PDBs(object):
     '''
 
     '''
 
+    DIST_COLS = "pdb chain resid resname atom ligid ligname atomlig dist".split()
     def __iter__(self):
         for index_dir in os.listdir(self.pdbs_dir):
             if len(index_dir) == 2:
@@ -90,6 +63,8 @@ class PDBs(object):
         self.pdb_dir = pdb_dir + ("/" if pdb_dir[-1] != "/" else "")
         self.pdbs_dir = self.pdb_dir + 'divided/'
         self.pockets_dir = self.pdb_dir + 'pockets/'
+        self.pdbseqs_dir = self.pdb_dir + 'seqs/'
+        self.pdbdists_dir = self.pdb_dir + 'dist/'
 
         self.pdb_seq_res_path = self.pdb_dir + "/pdb_seqres.txt"
         self.url_pdb_seq_res = "ftp://ftp.rcsb.org/pub/pdb/derived_data/pdb_seqres.txt"
@@ -176,8 +151,8 @@ class PDBs(object):
 
         pdb_codes = {x.lower(): 1 for x in self.entries_df().IDCODE}
 
-        reuse = defaultdict(lambda: [])
-        if reuse_previours:
+        reusue = defaultdict(lambda: [])
+        if rese_previours:
             for x in bpio.parse(reuse_previours, "fasta"):
                 pdb = x.id.split("_")[0]
                 reuse[pdb].append(x)
@@ -220,6 +195,17 @@ class PDBs(object):
     def pdb_path(self, pdb):
         return self.pdbs_dir + pdb[1:3] + "/pdb" + pdb + ".ent"
 
+    def pdbseq_path(self, pdb):
+        return self.pdbseqs_dir + pdb[1:3] + "/" + pdb + ".fasta.gz"
+
+    def pdbdist_path(self, pdb):
+        return self.pdbdists_dir + pdb[1:3] + "/" + pdb + ".dist.gz"
+
+
+
+    def pdbseqres_map_path(self, pdb):
+        return self.pdbseqs_dir + pdb[1:3] + "/" + pdb + "_resmap.json.gz"
+
     @staticmethod
     def sequence_from_residues(residues):
         return "".join([protein_letters_3to1[res.get_resname()[0] + res.get_resname()[1:3].lower()]
@@ -238,34 +224,32 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='PDB utils')
 
-    subparsers = parser.add_subparsers(help='commands', description='valid subcommands', dest='command')
+    parser.add_argument('--pdbdb', default=os.environ.get("PDBDB", "./pdbdb"))
+
+    subparsers = parser.add_subparsers(help='commands', description='valid subcommands', dest='command', required=True)
 
     update_pdb = subparsers.add_parser('update', help='List contents')
-    update_pdb.add_argument('-i', '--pdbs_dir', help="pdbs_directory", default="/data/databases/pdb/")
+
+    update_pdb = subparsers.add_parser('downloadpdb', help='List contents')
+    parser.add_argument('pdb')
+
 
     # update_pdb = subparsers.add_parser('getpdb', help='List contents')
     # update_pdb.add_argument('-i', '--pdb_code', help="4 letter code", required=True)
     # update_pdb.add_argument('-o', '--ouput_file', help="output file")
 
-    cmd = subparsers.add_parser('seq', help='gets the sequence and residue map from a PDB code')
-    cmd.add_argument('pdb', help="pdb_code", default="/data/databases/pdb/")
-    cmd.add_argument('--output_dir', help="output dir", default="./")
-    cmd.add_argument('-i', '--pdbs_dir', help="pdbs_directory", default="/data/databases/pdb/")
-
     args = parser.parse_args()
     if args.command == "update":
         # remzemeber to configure ftp
-        pdbs = PDBs(pdb_dir=args.pdbs_dir)
+        pdbs = PDBs(pdb_dir=args.pdbdb)
         pdbs.download_pdb_entries()
         pdbs.update_pdb_dir()
         pdbs.download_pdb_seq_ses()
         sys.exit(0)
-    if args.command == "seq":
-        pdbs = PDBs(pdb_dir=args.pdbs_dir)
-        pdb = PDBFile(args.pdb,pdbs.pdb_path(args.pdb.lower()))
-        bpio.write(pdb.seq(),sys.stdout,"fasta")
-        json.dump(pdb.residues_map(),sys.stderr)
-
+    if args.command == "downloadpdb":
+        # remzemeber to configure ftp
+        pdbs = PDBs(pdb_dir=args.pdbdb)
+        pdbs.update_pdb(args.pdb.lower())
         sys.exit(0)
 
     # os.environ["ftp_proxy"] = "http://proxy.fcen.uba.ar:8080"
