@@ -58,9 +58,20 @@ class ChainSplitter:
         if out_dir is None:
             out_dir = os.path.join(os.getcwd(), "chain_PDBs")
         self.out_dir = out_dir
-        self.filter = None
 
-    def make_pdb(self, pdb_path, pdb_id, chain, overwrite=False, struct=None):
+    def extract_chain(self, pdb_id, chain, out_path, pdbfilter, overwrite=False, struct=None):
+
+        _log.debug("Extracting chain %s from %s..." % (
+            chain, pdb_id))
+
+        # Get structure, write new file with only given chains
+
+        self.writer.set_structure(struct)
+        self.writer.save(out_path, select=pdbfilter)
+
+        return out_path
+
+    def make_pdb(self, pdb_path, pdb_id, chains=None, overwrite=False, struct=None):
         """ Create a new PDB file containing only the specified chains.
 
         Returns the path to the created file.
@@ -69,45 +80,48 @@ class ChainSplitter:
         :param chain: one letter character
         :param overwrite: write over the output file if it exists
         """
-        if not self.filter:
-            self.filter = SelectChains([chain])
 
-        out_name = "_".join([pdb_id, chain + ".pdb"])
-        out_path = os.path.join(self.out_dir, out_name)
-        _log.debug("OUT PATH:" + out_path)
-
-        # Skip PDB generation if the file already exists
-        if (not overwrite) and (os.path.isfile(out_path)):
-            _log.debug("Chain %s of '%s' already extracted to '%s'." %
-                       (chain, pdb_id, out_name))
-            return out_path
-
-        _log.debug("Extracting chain %s from %s..." % (
-            chain, pdb_id))
-
-        # Get structure, write new file with only given chains
         if struct is None:
             struct = self.parser.get_structure(pdb_id, pdb_path)
-        self.writer.set_structure(struct)
-        self.writer.save(out_path, select=self.filter)
+        if chains:
+            chains = chains.split(",")
+        else:
+            chains = [c.id for c in list(struct[0])]
 
-        return out_path
+        for c in chains:
+            out_name = "_".join([pdb_id, c + ".pdb"])
+            out_path = os.path.join(self.out_dir, out_name)
+
+
+            # Skip PDB generation if the file already exists
+            if (not overwrite) and (os.path.isfile(out_path)):
+                _log.debug("Chain %s of '%s' already extracted to '%s'." %
+                           (c, pdb_id, out_name))
+                continue
+            _log.debug("OUT PATH:" + out_path)
+            pdbfilter = SelectChains(c)
+            self.extract_chain(pdb_id, c, out_path, pdbfilter, overwrite, struct)
 
 
 if __name__ == "__main__":
-    from SNDG import init_log
+    from SNDG import init_log, mkdir
 
     init_log()
 
     parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument("-i", "--inputpdb", required=True)
-    parser.add_argument("-c", "--chain", required=True)
+    parser.add_argument("inputpdb")
+    parser.add_argument("-c", "--chains", required=False, default="",
+                        help="coma separated list of chains")
     parser.add_argument("-o", "--outdir", default="./")
+    parser.add_argument("--overwrite", action="store_true")
+
 
     args = parser.parse_args()
 
-    pdb = ".".join( args.inputpdb.split("/")[-1].split(".")[:-1])
+    mkdir(args.outdir)
+    assert os.path.exists(args.outdir), f'"{args.outdir}" could not be created'
+    pdb = ".".join(args.inputpdb.split("/")[-1].split(".")[:-1])
 
     splitter = ChainSplitter(args.outdir)
 
-    splitter.make_pdb(args.inputpdb,pdb,chain=args.chain,overwrite=True)
+    splitter.make_pdb(args.inputpdb, pdb, chains=args.chains, overwrite=args.overwrite)

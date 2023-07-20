@@ -74,7 +74,9 @@ if __name__ == '__main__':
     if args.command == "addtable":
         df1 = pd.read_table(args.basetable, sep="\t", index_col=False)
         df2 = pd.read_table(args.addtable, sep="\t", index_col=False)
-
+        df1 = df1[df1[args.base_join_field] != "-"]
+        if str(df1[ args.base_join_field].dtype) == "object":
+            df1[ args.base_join_field] = df1[ args.base_join_field].astype(df2[args.add_join_field].dtype)
         dfjoined = df1.merge(df2[ [args.add_join_field] + args.colum2add.split(",")],
                             left_on=args.base_join_field, right_on=args.add_join_field,
                              suffixes=('', '_second'), how="left")
@@ -93,10 +95,15 @@ if __name__ == '__main__':
             pdb_list = set(df.pdb)
             data = [[pdb, pdbs.pdbdist_path(pdb)] for pdb in pdb_list]
 
+
+
         dist_dict = defaultdict(list)
         for pdb, distfile in data:
+            if not os.path.exists(distfile):
+                sys.stderr.write(f'"{distfile}" does not exists\n')
+                continue
             dfdist = pd.read_table(distfile, compression='gzip', names=PDBs.DIST_COLS, sep="\t")
-            dfdist = dfdist[~dfdist.ligname.isin(args.filter)][dfdist.dist < args.maxdist]
+            dfdist = dfdist.loc[~dfdist.ligname.isin(args.filter)].loc[dfdist.dist < args.maxdist]
             dfdist["pdb_chain_res"] = ["_".join([r.pdb, r.chain, str(r.resid)]) for
                                        _, r in dfdist["pdb chain resid".split()].iterrows()]
 
