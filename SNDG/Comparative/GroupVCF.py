@@ -62,13 +62,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     df_features = pd.read_csv(args.csv)
+    df_features["sample"] = df_features["sample"].astype(str)
     categories = defaultdict(lambda: defaultdict(list))
     cols = "pos,ref,vtype,impact,gene,lt,genepos,protpos".split(",")
 
     for col in df_features.columns:
         if col != "sample":
             for _, r in df_features.iterrows():
-                categories[col][r[col]].append(r["sample"])
+                categories[col][str(r[col])].append(r["sample"])
     categories = dict(categories)
 
     for cat, value_map in categories.items():
@@ -81,6 +82,13 @@ if __name__ == '__main__':
                 if line.startswith("#CHROM"):
                     samples = [x.strip() for x in line.split()[9:]]
                     cols += samples
+                    if set(df_features["sample"]) - set(samples):
+                        sys.stderr.write("some samples are in the csv properties file and not on the vcf file\n")
+                        sys.stderr.write( ",".join(set(df_features["sample"]) - set(samples)) + "\n")
+                    if set(samples) - set(df_features["sample"]) :
+                        sys.stderr.write("some samples are in the vcf file and not in the csv properties file\n")
+                        sys.stderr.write( ",".join( set(samples) - set(df_features["sample"])) + "\n")
+
                     sys.stdout.write(",".join(cols) + "\n")
                 continue
             break
