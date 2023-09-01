@@ -166,9 +166,12 @@ class FpocketOutput():
         mkdir(os.path.dirname(os.path.abspath(file_path)))
         with open(file_path, "w") as handle:
             json.dump(
-                [{"number": p.pocket_num, "residues": p.residues, "as_lines": p.alpha_spheres, "atoms": p.atoms,
-                  "properties": p.properties}
-                 for p in self.pockets if p.properties["Druggability Score"] > 0.2], handle)
+                self.dto, handle)
+
+    def dto(self):
+        return [{"number": p.pocket_num, "residues": p.residues, "as_lines": p.alpha_spheres, "atoms": p.atoms,
+                 "properties": p.properties}
+                for p in self.pockets if p.properties["Druggability Score"] > 0.2]
 
     def __str__(self):
         return "FpocketOutput(%i pockets, max_druggability=%.2f)" % (
@@ -321,22 +324,34 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='fpocket utilities')
     subparsers = parser.add_subparsers(help='commands', description='valid subcommands', dest='command', required=True)
 
-    required = subparsers.add_parser('pockets2table')
+    required = subparsers.add_parser('2table')
+    required.add_argument('fpocket_out')
+
+    required = subparsers.add_parser('2json')
     required.add_argument('fpocket_out')
 
     args = parser.parse_args()
 
-    fpo = FpocketOutput(args.fpocket_out)
-    fpo.parse()
-    sys.stdout.write("chain\tresid\tpocketnum\tdruggability\n")
-    processed = {}
-    for p in fpo.pockets:
+    if args.fpocket_out.endswith("/"):
+        args.fpocket_out = args.fpocket_out[:-1]
 
-        for res in p.residues:
-            key = f'{p.pocket_num}_{res}'
-            if key not in processed:
-                sys.stdout.write(f"{res[0]}\t{res[1:]}\t{p.pocket_num}\t{p.properties['Druggability Score']}\n")
-            processed[key] = 1
+    if args.command == '2table':
+        fpo = FpocketOutput(args.fpocket_out)
+        fpo.parse()
+        sys.stdout.write("chain\tresid\tpocketnum\tdruggability\n")
+        processed = {}
+        for p in fpo.pockets:
+
+            for res in p.residues:
+                key = f'{p.pocket_num}_{res}'
+                if key not in processed:
+                    sys.stdout.write(f"{res[0]}\t{res[1:]}\t{p.pocket_num}\t{p.properties['Druggability Score']}\n")
+                processed[key] = 1
+    if args.command == '2json':
+        fpo = FpocketOutput(args.fpocket_out)
+        fpo.parse()
+        sys.stdout.write(json.dumps(
+            fpo.dto()))
 
     """from SNDG.PDBs import PDBs
 

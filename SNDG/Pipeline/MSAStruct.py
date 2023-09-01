@@ -62,6 +62,7 @@ if __name__ == '__main__':
     cmd.add_argument('base_join_field')
     cmd.add_argument('add_join_field')
     cmd.add_argument('colum2add')
+    cmd.add_argument('--sep',default="\t")
 
     args = parser.parse_args()
 
@@ -72,8 +73,8 @@ if __name__ == '__main__':
     pdbs = PDBs(pdb_dir=args.pdbdb)
 
     if args.command == "addtable":
-        df1 = pd.read_table(args.basetable, sep="\t", index_col=False)
-        df2 = pd.read_table(args.addtable, sep="\t", index_col=False)
+        df1 = pd.read_table(args.basetable, sep=args.sep, index_col=False)
+        df2 = pd.read_table(args.addtable, sep=args.sep, index_col=False)
         df1 = df1[df1[args.base_join_field] != "-"]
         if str(df1[ args.base_join_field].dtype) == "object":
             df1[ args.base_join_field] = df1[ args.base_join_field].astype(df2[args.add_join_field].dtype)

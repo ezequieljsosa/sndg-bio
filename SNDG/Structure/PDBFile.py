@@ -91,4 +91,5 @@ if __name__ == '__main__':
             bpio.write(pdb.seq(), hseq, "fasta")
             json.dump(pdb.residues_map(), hmap)
 
+
         sys.exit(0)

@@ -174,6 +174,7 @@ def execute_from(cmd_unformated, workdir, **kargs):
 def mkdir(dirpath):
     if not os.path.exists(dirpath):
         os.makedirs(dirpath)
+    assert os.path.exists(dirpath), f'"{dirpath}" could not be created'
 
 
 class Struct:

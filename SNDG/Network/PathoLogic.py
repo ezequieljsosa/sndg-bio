@@ -31,12 +31,12 @@ class PathoLogic:
         self.filter_count = filter_count
 
     def run_server(self):
-        print("jhgjksdfghksdjlfhg")
+
         execute(
             f'docker run --rm --name {PathoLogic.DOCKERCONTAIERNAME} -v {self.input_data_dir}:{self.input_data_dir} \
                     -w {self.input_data_dir} --volume {self.output_data_dir}:/opt/data/ptools-local/pgdbs \
                     -p 5008:5008 {PathoLogic.DOCKERIMAGENAME} /opt/pathway-tools/pathway-tools -python -api')
-        print("aaaaaaajhgjksdfghksdjlfhg")
+
 
     def start(self):
         execute(f'docker start {PathoLogic.DOCKERCONTAIERNAME}')
