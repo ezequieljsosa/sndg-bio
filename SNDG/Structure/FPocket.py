@@ -134,7 +134,10 @@ class FpocketOutput():
                     yield pocket_num, properties
 
     def parse(self):
-        assert os.path.exists(self._info_file_path()), "info file not found in: " + self._info_file_path()
+
+        if not os.path.exists(self._info_file_path()):
+            sys.stderr.write(f"info file does not exists")
+            sys.exit(0)
 
         pockets_index = [int(x.split("_")[0].split("pocket")[1]) for x in os.listdir(self.directory + "/pockets/") if
                          "pocket" in x]
